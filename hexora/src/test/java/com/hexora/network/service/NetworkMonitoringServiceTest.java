@@ -27,6 +27,8 @@ import com.hexora.network.repository.NetworkHostRepository;
 import com.hexora.network.repository.NetworkScanRepository;
 import com.hexora.network.repository.PortScanResultRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.Optional;
 import java.util.List;
 import java.time.Instant;
@@ -68,6 +70,12 @@ class NetworkMonitoringServiceTest {
     @Mock
     private MonitoredPortRepository monitoredPortRepository;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
+    @Mock
+    private ThreadPoolTaskExecutor portProbeExecutor;
+
     private NetworkMonitorProperties properties;
     private NetworkMonitoringService service;
 
@@ -84,7 +92,9 @@ class NetworkMonitoringServiceTest {
             discoverySnapshotRepository,
             monitoredPortRepository,
             properties,
-            localNetworkDiscoveryService
+            localNetworkDiscoveryService,
+            transactionManager,
+            portProbeExecutor
         );
     }
 
@@ -213,17 +223,28 @@ class NetworkMonitoringServiceTest {
 
     @Test
     void keepsAResponsiveHostOnlineAndResetsItsFailureCount() {
-        var state = NetworkMonitoringService.nextHostProbeState(2, true);
+        var state = NetworkMonitoringService.nextHostProbeState(NetworkHostStatus.OFFLINE, 2, true);
 
         assertEquals(NetworkHostStatus.ONLINE, state.status());
         assertEquals(0, state.consecutiveFailures());
     }
 
     @Test
-    void marksAHostOfflineAfterOneFailedCheck() {
-        var failedCheck = NetworkMonitoringService.nextHostProbeState(0, false);
+    void waitsForTwoConsecutiveFailuresBeforeMarkingAHostOffline() {
+        var firstFailure = NetworkMonitoringService.nextHostProbeState(NetworkHostStatus.ONLINE, 0, false);
+        var secondFailure = NetworkMonitoringService.nextHostProbeState(NetworkHostStatus.ONLINE, 1, false);
 
-        assertEquals(NetworkHostStatus.OFFLINE, failedCheck.status());
+        assertEquals(NetworkHostStatus.ONLINE, firstFailure.status());
+        assertEquals(1, firstFailure.consecutiveFailures());
+        assertEquals(NetworkHostStatus.OFFLINE, secondFailure.status());
+        assertEquals(2, secondFailure.consecutiveFailures());
+    }
+
+    @Test
+    void keepsAnUnknownHostUnknownAfterItsFirstFailedCheck() {
+        var failedCheck = NetworkMonitoringService.nextHostProbeState(NetworkHostStatus.UNKNOWN, 0, false);
+
+        assertEquals(NetworkHostStatus.UNKNOWN, failedCheck.status());
         assertEquals(1, failedCheck.consecutiveFailures());
     }
 
@@ -342,12 +363,53 @@ class NetworkMonitoringServiceTest {
 
         service.clearHistory();
 
+        verify(discoveryEventRepository).deleteAllInBatch();
+        verify(discoverySnapshotRepository).deleteAllInBatch();
         verify(eventRepository).deleteAllInBatch();
         verify(portResultRepository).deleteAllInBatch();
         verify(scanRepository).deleteAllInBatch();
         verify(hostRepository).saveAll(List.of(host));
         assertEquals(NetworkHostStatus.UNKNOWN, host.getStatus());
         assertNull(host.getLatencyMs());
+    }
+
+    @Test
+    void purgesExpiredHistoryInForeignKeySafeBatches() {
+        List<Long> expiredScanIds = List.of(12L, 13L);
+        when(scanRepository.findIdsStartedBefore(any(), any())).thenReturn(expiredScanIds);
+        when(eventRepository.findUnlinkedIdsBefore(any(), any())).thenReturn(List.of(21L, 22L, 23L));
+        when(discoveryEventRepository.findIdsCreatedBefore(any(), any())).thenReturn(List.of(31L, 32L, 33L, 34L));
+        when(discoverySnapshotRepository.findIdsObservedBefore(any(), any())).thenReturn(List.of(41L, 42L, 43L, 44L, 45L));
+
+        int deletedRecords = service.purgeExpiredHistory();
+
+        assertEquals(14, deletedRecords);
+        verify(eventRepository).deleteAllForScans(expiredScanIds);
+        verify(portResultRepository).deleteAllForScans(expiredScanIds);
+        verify(scanRepository).deleteAllByIdInBatch(expiredScanIds);
+        verify(eventRepository).deleteAllByIdInBatch(List.of(21L, 22L, 23L));
+        verify(discoveryEventRepository).deleteAllByIdInBatch(List.of(31L, 32L, 33L, 34L));
+        verify(discoverySnapshotRepository).deleteAllByIdInBatch(List.of(41L, 42L, 43L, 44L, 45L));
+    }
+
+    @Test
+    void rejectsHistoryRetentionOutsideTheSupportedRange() {
+        properties.setHistoryRetentionDays(0);
+
+        assertThrows(IllegalStateException.class, () -> new NetworkMonitoringService(
+            hostRepository,
+            scanRepository,
+            portResultRepository,
+            eventRepository,
+            detectedDeviceRepository,
+            discoveryEventRepository,
+            discoverySnapshotRepository,
+            monitoredPortRepository,
+            properties,
+            localNetworkDiscoveryService,
+            transactionManager,
+            portProbeExecutor
+        ));
     }
 
     @Test

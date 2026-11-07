@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Monitorización de red</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=7)}">
+    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=10)}">
 </head>
 <body class="network-page">
 <main class="network-shell">
@@ -20,11 +20,37 @@
             <p class="network-subtitle">Estado y disponibilidad de servicios TCP de los dispositivos autorizados.</p>
         </div>
         <div class="network-header-actions">
-            <button id="discover-network-button" class="network-action-button" type="button">Detectar dispositivos en la red</button>
+            <button id="discover-network-button" class="network-action-button" type="button" aria-controls="detected-devices-body">Detectar dispositivos en la red</button>
             <a class="network-action-button" th:href="@{/network-monitoring/history}" target="_blank" rel="noopener">Ver historial</a>
             <a class="network-back" th:href="@{/dashboard}">Volver al Dashboard</a>
         </div>
     </header>
+
+    <section class="network-card scan-panel">
+        <div>
+            <p class="network-eyebrow">REVISIÓN BAJO DEMANDA</p>
+            <h2>Revisar un dispositivo autorizado</h2>
+            <p>Las revisiones manuales usan los puertos configurados del dispositivo. La detección local combina ping, Nmap/ARP, vecinos ARP y anuncios SSDP/mDNS; no depende de la marca del router ni prueba puertos.</p>
+        </div>
+        <form id="scan-form" class="scan-form">
+            <label>
+                Dispositivo
+                <select id="host-select" required>
+                    <option value="">No hay dispositivos configurados</option>
+                </select>
+            </label>
+            <label>
+                Puerto inicial
+                <input id="start-port" type="number" min="1" max="65535" placeholder="Usar puertos guardados">
+            </label>
+            <label>
+                Puerto final
+                <input id="end-port" type="number" min="1" max="65535" placeholder="Usar puertos guardados">
+            </label>
+            <button id="scan-button" type="submit">Revisar ahora</button>
+        </form>
+        <p id="network-message" class="network-message" role="status" aria-live="polite"></p>
+    </section>
 
     <section class="network-metrics" aria-label="Resumen de monitorización">
         <article class="network-card metric-card">
@@ -78,51 +104,110 @@
         </div>
     </section>
 
-    <section class="network-card scan-panel">
-        <div>
-            <p class="network-eyebrow">REVISIÓN BAJO DEMANDA</p>
-            <h2>Revisar un dispositivo autorizado</h2>
-            <p>Las revisiones manuales usan los puertos configurados del dispositivo. La detección local combina ping, Nmap/ARP, vecinos ARP y anuncios SSDP/mDNS; no depende de la marca del router ni prueba puertos.</p>
-        </div>
-        <form id="scan-form" class="scan-form">
-            <label>
-                Dispositivo
-                <select id="host-select" required>
-                    <option value="">No hay dispositivos configurados</option>
-                </select>
-            </label>
-            <label>
-                Puerto inicial
-                <input id="start-port" type="number" min="1" max="65535" placeholder="Usar puertos guardados">
-            </label>
-            <label>
-                Puerto final
-                <input id="end-port" type="number" min="1" max="65535" placeholder="Usar puertos guardados">
-            </label>
-            <button id="scan-button" type="submit">Revisar ahora</button>
-        </form>
-        <p id="network-message" class="network-message" role="status" aria-live="polite"></p>
-    </section>
-
     <section class="network-card ports-panel" aria-labelledby="detected-devices-heading">
         <div class="section-heading">
             <div>
                 <p class="network-eyebrow">ACTUALIZACIÓN AUTOMÁTICA</p>
                 <h2 id="detected-devices-heading">Dispositivos conectados</h2>
                 <p class="management-help">La lista se actualiza automáticamente cada 30 segundos y combina ICMP, barrido ARP con Nmap, vecinos ARP y SSDP/mDNS. Algunos celulares no responden a la detección o pueden estar aislados por el punto de acceso; ningún método desde la computadora puede ver equipos bloqueados por esa separación.</p>
+                <p class="management-help">La evidencia indica el método que observó cada equipo, no una probabilidad. Las etiquetas, notas y alertas de esta página se guardan solo en este navegador.</p>
             </div>
-            <span id="discovery-live-state" class="connection-state">Conectando</span>
+            <div class="detected-device-actions">
+                <span id="discovery-live-state" class="connection-state">Conectando</span>
+            </div>
         </div>
         <p id="detected-devices-message" class="network-message" role="status" aria-live="polite"></p>
+        <div class="inventory-filters" aria-label="Filtros de dispositivos">
+            <label>Buscar
+                <input id="inventory-search" type="search" placeholder="IP, MAC, nombre o etiqueta">
+            </label>
+            <label>Estado
+                <select id="inventory-status-filter">
+                    <option value="all">Todos</option>
+                    <option value="online">En línea</option>
+                    <option value="offline">Sin respuesta</option>
+                </select>
+            </label>
+            <label>Registro
+                <select id="inventory-registration-filter">
+                    <option value="all">Todos</option>
+                    <option value="registered">Registrados</option>
+                    <option value="unregistered">No registrados</option>
+                </select>
+            </label>
+        </div>
         <div class="table-scroll">
             <table>
                 <thead>
-                <tr><th>IP</th><th>MAC</th><th>Hostname</th><th>Estado</th><th>Método de detección</th><th>Última detección</th></tr>
+                <tr><th>IP</th><th>MAC</th><th>Identificación</th><th>Estado</th><th>Método de detección / evidencia</th><th>Primera detección</th><th>Última detección</th><th>Etiqueta y nota</th></tr>
                 </thead>
                 <tbody id="detected-devices-body">
-                <tr><td colspan="6" class="empty-state">Cargando inventario...</td></tr>
+                <tr><td colspan="8" class="empty-state">Cargando inventario...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <section class="network-card" aria-labelledby="snapshot-diff-heading">
+        <div class="section-heading">
+            <div>
+                <p class="network-eyebrow">CAMBIOS ENTRE MUESTRAS</p>
+                <h2 id="snapshot-diff-heading">Comparar las dos detecciones más recientes</h2>
+                <p id="snapshot-diff-summary" class="management-help">Cargando detecciones...</p>
+            </div>
+        </div>
+        <div id="snapshot-diff-list" class="snapshot-diff-list">
+            <p class="empty-state">Cargando comparación...</p>
+        </div>
+    </section>
+
+    <section class="network-card events-panel" aria-labelledby="local-alerts-heading">
+        <div class="section-heading">
+            <div>
+                <p class="network-eyebrow">CAMBIOS OBSERVADOS EN ESTE NAVEGADOR</p>
+                <h2 id="local-alerts-heading">Alertas y cambios</h2>
+                <p class="management-help">Avisos de equipos nuevos, cambios de IP/MAC y cambios de disponibilidad. Un equipo sin respuesta puede seguir conectado; los avisos no sustituyen la lista del router.</p>
+            </div>
+            <div class="detected-device-actions">
+                <label class="inline-setting"><input id="alert-new-devices" type="checkbox"> Dispositivos nuevos</label>
+                <label class="inline-setting"><input id="alert-address-changes" type="checkbox"> Cambios IP/MAC</label>
+                <label class="inline-setting"><input id="alert-availability" type="checkbox"> Disponibilidad</label>
+                <label class="inline-setting">Repetición
+                    <select id="alert-cooldown-minutes">
+                        <option value="5">5 min</option>
+                        <option value="15">15 min</option>
+                        <option value="30">30 min</option>
+                        <option value="60">1 h</option>
+                        <option value="1440">24 h</option>
+                    </select>
+                </label>
+                <label class="inline-setting"><input id="browser-notifications-enabled" type="checkbox"> Avisos del navegador</label>
+                <button id="request-browser-notifications" class="network-action-button" type="button">Permitir notificaciones</button>
+                <button id="clear-local-alerts" class="network-action-button" type="button">Borrar alertas locales</button>
+            </div>
+        </div>
+        <div id="local-alert-list" class="event-list">
+            <p class="empty-state">Las alertas aparecerán después de observar cambios.</p>
+        </div>
+    </section>
+
+    <section class="network-card" aria-labelledby="periodic-report-heading">
+        <div class="section-heading">
+            <div>
+                <p class="network-eyebrow">INFORMES LOCALES</p>
+                <h2 id="periodic-report-heading">Informe periódico exportable</h2>
+                <p id="periodic-report-status" class="management-help">El informe se descarga como documento con tablas, usando el inventario y hasta 50 detecciones guardadas.</p>
+            </div>
+            <div class="detected-device-actions">
+                <label class="inline-setting">Recordatorio
+                    <select id="report-frequency">
+                        <option value="off">Desactivado</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="monthly">Mensual</option>
+                    </select>
+                </label>
+                <button id="export-network-report" class="network-action-button" type="button">Descargar informe</button>
+            </div>
         </div>
     </section>
 
@@ -183,7 +268,6 @@
                 <button id="clear-selected-history-button" class="network-action-button" type="button" disabled>
                     Borrar seleccionados
                 </button>
-                <button id="clear-history-button" class="network-action-button" type="button">Borrar todo el historial</button>
             </div>
         </div>
         <div class="table-scroll">
@@ -213,6 +297,6 @@
         </div>
     </section>
 </main>
-<script th:src="@{/js/network-monitoring.js(v=9)}" defer></script>
+<script th:src="@{/js/network-monitoring.js(v=17)}" defer></script>
 </body>
 </html>
