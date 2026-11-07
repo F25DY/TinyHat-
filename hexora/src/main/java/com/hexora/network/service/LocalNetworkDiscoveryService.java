@@ -58,6 +58,9 @@ public class LocalNetworkDiscoveryService {
     );
     private static final Pattern ARP_ENTRY = Pattern.compile(
         "^\\s*(\\d{1,3}(?:\\.\\d{1,3}){3})\\s+([0-9a-fA-F:-]{17})\\s+(\\S+)\\s*$");
+    private static final Pattern LINUX_NEIGHBOR_ENTRY = Pattern.compile(
+        "^\\s*(\\d{1,3}(?:\\.\\d{1,3}){3})\\s+dev\\s+\\S+(?:\\s+lladdr\\s+([0-9a-fA-F:-]{17}))?\\s+(\\S+).*$");
+    private static final Pattern LINUX_GATEWAY_ENTRY = Pattern.compile("(?m)^\\s*default\\s+via\\s+(\\S+)");
     private static final Pattern SSDP_STATUS_LINE = Pattern.compile("(?im)^HTTP/1\\.[01] 200(?:\\s|$)");
     private static final Pattern SSDP_REQUIRED_HEADER = Pattern.compile("(?im)^(?:ST|USN):\\s*\\S+");
     private final LocalNeighborPresenceTracker presenceTracker = new LocalNeighborPresenceTracker();
@@ -81,7 +84,25 @@ public class LocalNetworkDiscoveryService {
     }
 
     public Optional<String> findGatewayAddress() {
-        if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
+        if (isLinux()) {
+            try {
+                Inet4Address localAddress = getDefaultRouteAddress();
+                NetworkInterface networkInterface = NetworkInterface.getByInetAddress(localAddress);
+                if (networkInterface == null || !networkInterface.isUp()) {
+                    return Optional.empty();
+                }
+                String routes = runCommand(
+                    List.of("ip", "-4", "route", "show", "default", "dev", networkInterface.getName()),
+                    "Linux default-route lookup timed out",
+                    "Linux default-route lookup failed"
+                );
+                return Optional.ofNullable(parseLinuxGatewayAddress(routes, findDefaultPrivateSubnet()));
+            } catch (Exception exception) {
+                LOGGER.debug("Could not resolve default gateway address", exception);
+                return Optional.empty();
+            }
+        }
+        if (!isWindows()) {
             return Optional.empty();
         }
         try {
@@ -120,9 +141,9 @@ public class LocalNetworkDiscoveryService {
     }
 
     LocalNetworkSnapshot readCurrentNeighbors() {
-        if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win")) {
+        if (!isWindows() && !isLinux()) {
             throw new NetworkDiscoveryException(
-                "La detección activa de red local actualmente está disponible en Windows.");
+                "Active local network discovery is supported on Windows and Linux.");
         }
 
         LocalSubnet subnet = findDefaultPrivateSubnet();
@@ -132,102 +153,64 @@ public class LocalNetworkDiscoveryService {
             if (networkInterface == null || !networkInterface.isUp()) {
                 throw new NetworkDiscoveryException("No existe una red activa para realizar el escaneo.");
             }
-
-            Process process;
-            ExecutorService outputReader = Executors.newSingleThreadExecutor();
-            try {
-                String command = "$gateway = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' "
-                    + "-InterfaceIndex " + networkInterface.getIndex()
-                    + " -ErrorAction SilentlyContinue | Sort-Object RouteMetric, InterfaceMetric "
-                    + "| Select-Object -First 1 -ExpandProperty NextHop; "
-                    + "if ($gateway) { 'GATEWAY=' + $gateway }; "
-                    + "Get-NetNeighbor -AddressFamily IPv4 -InterfaceIndex "
-                    + networkInterface.getIndex() + " | "
-                    + "ForEach-Object { $_.IPAddress + ' ' + $_.LinkLayerAddress + ' ' + $_.State }";
-                String systemRoot = System.getenv("SystemRoot");
-                if (systemRoot == null || systemRoot.isBlank()) {
-                    throw new NetworkDiscoveryException("Windows PowerShell could not be located");
-                }
-                process = new ProcessBuilder(
-                    Path.of(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe").toString(),
-                    "-NoProfile", "-NonInteractive", "-Command", command)
-                    .redirectErrorStream(true)
-                    .start();
-                Future<byte[]> outputFuture = outputReader.submit(process.getInputStream()::readAllBytes);
-                if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                    process.destroyForcibly();
-                    throw new NetworkDiscoveryException("Windows neighbor table lookup timed out");
-                }
-                String output = new String(outputFuture.get(), StandardCharsets.UTF_8);
-                if (process.exitValue() != 0) {
-                    throw new NetworkDiscoveryException(
-                        "Windows could not read the active reachable-neighbor table");
-                }
-                String subnetText = longToIpv4(subnet.network()).getHostAddress() + "/" + subnet.prefixLength();
-                Map<String, NeighborEntry> currentDevices = new HashMap<>();
-                Map<String, NeighborEntry> neighborEntries = new HashMap<>();
-                currentDevices.put(
-                    subnet.address().getHostAddress(),
-                    localDeviceEntry(subnet.address(), networkInterface.getHardwareAddress())
-                );
-                for (NeighborEntry entry : parseNeighborEntries(output, subnet)) {
-                    neighborEntries.put(entry.address(), entry);
-                    if (isActiveNeighborState(entry.detectionMethod())) {
-                        mergeDiscoveredDevice(currentDevices, entry);
-                    }
-                }
-                for (String address : responsiveAddresses) {
-                    NeighborEntry arpEntry = neighborEntries.get(address);
-                    mergeDiscoveredDevice(currentDevices, new NeighborEntry(
-                        address,
-                        arpEntry == null ? null : arpEntry.macAddress(),
-                        arpEntry == null || arpEntry.macAddress() == null
-                            ? "ICMP"
-                            : "ICMP + ARP"
-                    ));
-                }
-                String gatewayAddress = parseGatewayAddress(output, subnet);
-                if (gatewayAddress != null) {
-                    NeighborEntry gatewayNeighbor = neighborEntries.get(gatewayAddress);
-                    mergeDiscoveredDevice(currentDevices, new NeighborEntry(
-                        gatewayAddress,
-                        gatewayNeighbor == null ? null : gatewayNeighbor.macAddress(),
-                        "Puerta de enlace"
-                    ));
-                }
-                try {
-                    for (NeighborEntry entry : nmapHostDiscovery.discover(subnet)) {
-                        mergeDiscoveredDevice(currentDevices, entry);
-                    }
-                } catch (NetworkDiscoveryException exception) {
-                    LOGGER.warn("Nmap discovery failed; keeping results from native network probes", exception);
-                }
-                for (NeighborEntry entry : discoverSsdpDevices(subnet)) {
+            String output = readNeighborTable(networkInterface);
+            String subnetText = longToIpv4(subnet.network()).getHostAddress() + "/" + subnet.prefixLength();
+            Map<String, NeighborEntry> currentDevices = new HashMap<>();
+            Map<String, NeighborEntry> neighborEntries = new HashMap<>();
+            currentDevices.put(
+                subnet.address().getHostAddress(),
+                localDeviceEntry(subnet.address(), networkInterface.getHardwareAddress())
+            );
+            List<NeighborEntry> neighborEntriesFound = isWindows()
+                ? parseNeighborEntries(output, subnet)
+                : parseLinuxNeighborEntries(output, subnet);
+            for (NeighborEntry entry : neighborEntriesFound) {
+                neighborEntries.put(entry.address(), entry);
+                if (isActiveNeighborState(entry.detectionMethod())) {
                     mergeDiscoveredDevice(currentDevices, entry);
                 }
-                for (NeighborEntry entry : discoverMdnsDevices(subnet, networkInterface)) {
-                    mergeDiscoveredDevice(currentDevices, entry);
-                }
-                return new LocalNetworkSnapshot(
-                    subnetText,
-                    "ICMP + Nmap ARP + tabla de vecinos + SSDP y mDNS de la red local",
-                    Instant.now(),
-                    currentDevices.values().stream()
-                        .sorted(java.util.Comparator.comparing(NeighborEntry::address))
-                        .toList(),
-                    gatewayAddress
-                );
-            } catch (IOException exception) {
-                throw new NetworkDiscoveryException(
-                    "Windows could not read the active reachable-neighbor table", exception);
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                throw new NetworkDiscoveryException("The local neighbor lookup was interrupted", exception);
-            } catch (ExecutionException exception) {
-                throw new NetworkDiscoveryException("Windows neighbor table output could not be read", exception);
-            } finally {
-                outputReader.shutdownNow();
             }
+            for (String address : responsiveAddresses) {
+                NeighborEntry arpEntry = neighborEntries.get(address);
+                mergeDiscoveredDevice(currentDevices, new NeighborEntry(
+                    address,
+                    arpEntry == null ? null : arpEntry.macAddress(),
+                    arpEntry == null || arpEntry.macAddress() == null
+                        ? "ICMP"
+                        : "ICMP + ARP"
+                ));
+            }
+            String gatewayAddress = parseGatewayAddress(output, subnet);
+            if (gatewayAddress != null) {
+                NeighborEntry gatewayNeighbor = neighborEntries.get(gatewayAddress);
+                mergeDiscoveredDevice(currentDevices, new NeighborEntry(
+                    gatewayAddress,
+                    gatewayNeighbor == null ? null : gatewayNeighbor.macAddress(),
+                    "Puerta de enlace"
+                ));
+            }
+            try {
+                for (NeighborEntry entry : nmapHostDiscovery.discover(subnet)) {
+                    mergeDiscoveredDevice(currentDevices, entry);
+                }
+            } catch (NetworkDiscoveryException exception) {
+                LOGGER.warn("Nmap discovery failed; keeping results from native network probes", exception);
+            }
+            for (NeighborEntry entry : discoverSsdpDevices(subnet)) {
+                mergeDiscoveredDevice(currentDevices, entry);
+            }
+            for (NeighborEntry entry : discoverMdnsDevices(subnet, networkInterface)) {
+                mergeDiscoveredDevice(currentDevices, entry);
+            }
+            return new LocalNetworkSnapshot(
+                subnetText,
+                "ICMP + Nmap ARP + tabla de vecinos + SSDP y mDNS de la red local",
+                Instant.now(),
+                currentDevices.values().stream()
+                    .sorted(java.util.Comparator.comparing(NeighborEntry::address))
+                    .toList(),
+                gatewayAddress
+            );
         } catch (SocketException exception) {
             throw new NetworkDiscoveryException("No existe una red activa para realizar el escaneo.", exception);
         }
@@ -437,6 +420,20 @@ public class LocalNetworkDiscoveryService {
         return null;
     }
 
+    static String parseLinuxGatewayAddress(String output, LocalSubnet subnet) {
+        Matcher matcher = LINUX_GATEWAY_ENTRY.matcher(output);
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            Inet4Address gateway = parseIpv4(matcher.group(1));
+            return subnet.contains(gateway) ? gateway.getHostAddress() : null;
+        } catch (UnknownHostException exception) {
+            LOGGER.debug("Ignoring invalid default gateway address from Linux", exception);
+            return null;
+        }
+    }
+
     static NeighborEntry parseSsdpResponse(
         byte[] response,
         int length,
@@ -462,6 +459,29 @@ public class LocalNetworkDiscoveryService {
     }
 
     private LanInterfaceAddress findPreferredPhysicalLanAddress() {
+        if (isLinux()) {
+            try {
+                Inet4Address routeAddress = getDefaultRouteAddress();
+                NetworkInterface networkInterface = NetworkInterface.getByInetAddress(routeAddress);
+                if (networkInterface == null || !networkInterface.isUp() || networkInterface.isLoopback()) {
+                    throw new NetworkDiscoveryException("No active Linux LAN interface was found");
+                }
+                return networkInterface.getInterfaceAddresses().stream()
+                    .filter(address -> address.getAddress() instanceof Inet4Address)
+                    .filter(address -> address.getAddress().equals(routeAddress))
+                    .filter(address -> isPrivateIpv4((Inet4Address) address.getAddress()))
+                    .filter(address -> address.getNetworkPrefixLength() >= 22
+                        && address.getNetworkPrefixLength() <= 30)
+                    .map(address -> new LanInterfaceAddress(
+                        (Inet4Address) address.getAddress(),
+                        address.getNetworkPrefixLength()))
+                    .findFirst()
+                    .orElseThrow(() -> new NetworkDiscoveryException(
+                        "No active private Linux LAN with a /22 to /30 prefix was found"));
+            } catch (SocketException exception) {
+                throw new NetworkDiscoveryException("Linux LAN interface lookup failed", exception);
+            }
+        }
         String systemRoot = System.getenv("SystemRoot");
         if (systemRoot == null || systemRoot.isBlank()) {
             throw new NetworkDiscoveryException("Windows PowerShell could not be located");
@@ -663,6 +683,112 @@ public class LocalNetworkDiscoveryService {
             macAddresses.get(value),
             detectionMethods.get(value)))
             .toList();
+    }
+
+    static List<NeighborEntry> parseLinuxNeighborEntries(String output, LocalSubnet subnet) {
+        TreeSet<Long> addresses = new TreeSet<>();
+        Map<Long, String> macAddresses = new HashMap<>();
+        Map<Long, String> detectionMethods = new HashMap<>();
+        for (String line : output.lines().toList()) {
+            Matcher matcher = LINUX_NEIGHBOR_ENTRY.matcher(line);
+            if (!matcher.matches()) {
+                continue;
+            }
+            try {
+                Inet4Address address = parseIpv4(matcher.group(1));
+                if (subnet.contains(address) && !address.equals(subnet.address())) {
+                    long numericAddress = ipv4ToLong(address);
+                    addresses.add(numericAddress);
+                    String macAddress = matcher.group(2);
+                    macAddresses.put(numericAddress, macAddress == null
+                        ? null
+                        : macAddress.replace('-', ':').toLowerCase(Locale.ROOT));
+                    detectionMethods.put(numericAddress, "ARP (vecino " + matcher.group(3) + ")");
+                }
+            } catch (UnknownHostException exception) {
+                LOGGER.debug("Ignoring invalid IPv4 address in Linux neighbor table", exception);
+            }
+        }
+        return addresses.stream().map(value -> new NeighborEntry(
+            longToIpv4(value).getHostAddress(),
+            macAddresses.get(value),
+            detectionMethods.get(value)
+        )).toList();
+    }
+
+    private String readNeighborTable(NetworkInterface networkInterface) {
+        if (isLinux()) {
+            String neighbors = runCommand(
+                List.of("ip", "-4", "neigh", "show", "dev", networkInterface.getName()),
+                "Linux neighbor table lookup timed out",
+                "Linux neighbor table lookup failed"
+            );
+            String routes = runCommand(
+                List.of("ip", "-4", "route", "show", "default", "dev", networkInterface.getName()),
+                "Linux default-route lookup timed out",
+                "Linux default-route lookup failed"
+            );
+            String gateway = parseLinuxGatewayAddress(routes, findDefaultPrivateSubnet());
+            return neighbors + (gateway == null ? "" : "\nGATEWAY=" + gateway);
+        }
+
+        String systemRoot = System.getenv("SystemRoot");
+        if (systemRoot == null || systemRoot.isBlank()) {
+            throw new NetworkDiscoveryException("Windows PowerShell could not be located");
+        }
+        String command = "$gateway = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' "
+            + "-InterfaceIndex " + networkInterface.getIndex()
+            + " -ErrorAction SilentlyContinue | Sort-Object RouteMetric, InterfaceMetric "
+            + "| Select-Object -First 1 -ExpandProperty NextHop; "
+            + "if ($gateway) { 'GATEWAY=' + $gateway }; "
+            + "Get-NetNeighbor -AddressFamily IPv4 -InterfaceIndex "
+            + networkInterface.getIndex() + " | "
+            + "ForEach-Object { $_.IPAddress + ' ' + $_.LinkLayerAddress + ' ' + $_.State }";
+        return runCommand(List.of(
+            Path.of(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe").toString(),
+            "-NoProfile", "-NonInteractive", "-Command", command
+        ), "Windows neighbor table lookup timed out", "Windows neighbor table lookup failed");
+    }
+
+    private String runCommand(List<String> command, String timeoutMessage, String failureMessage) {
+        ExecutorService outputReader = Executors.newSingleThreadExecutor();
+        Process process = null;
+        try {
+            process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            Future<byte[]> outputFuture = outputReader.submit(process.getInputStream()::readAllBytes);
+            if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                throw new NetworkDiscoveryException(timeoutMessage);
+            }
+            String output = new String(outputFuture.get(), StandardCharsets.UTF_8);
+            if (process.exitValue() != 0) {
+                throw new NetworkDiscoveryException(failureMessage);
+            }
+            return output;
+        } catch (IOException exception) {
+            throw new NetworkDiscoveryException(failureMessage, exception);
+        } catch (InterruptedException exception) {
+            if (process != null) {
+                process.destroyForcibly();
+            }
+            Thread.currentThread().interrupt();
+            throw new NetworkDiscoveryException(failureMessage + " (interrupted)", exception);
+        } catch (ExecutionException exception) {
+            if (process != null) {
+                process.destroyForcibly();
+            }
+            throw new NetworkDiscoveryException(failureMessage + " (output could not be read)", exception);
+        } finally {
+            outputReader.shutdownNow();
+        }
+    }
+
+    private boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    }
+
+    private boolean isLinux() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux");
     }
 
     static Inet4Address parseIpv4(String address) throws UnknownHostException {

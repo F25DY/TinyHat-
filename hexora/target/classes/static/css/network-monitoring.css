@@ -359,6 +359,64 @@
     font-size: 0.82rem;
 }
 
+.device-metadata-editor {
+    display: grid;
+    min-width: 190px;
+    gap: 6px;
+}
+
+.device-metadata-editor input,
+.device-metadata-editor textarea {
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 9px;
+    border: 1px solid var(--network-border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--network-text);
+    font: inherit;
+    font-size: 0.78rem;
+}
+
+.device-metadata-editor textarea {
+    min-height: 54px;
+    resize: vertical;
+}
+
+.device-metadata-editor .network-action-button {
+    justify-self: start;
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+}
+
+.evidence-label {
+    display: inline-block;
+    border-radius: 12px;
+    padding: 3px 8px;
+    background: rgba(0, 168, 197, 0.1);
+    color: #007c91;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.evidence-source {
+    display: block;
+    max-width: 190px;
+    margin-top: 5px;
+    color: var(--network-muted);
+    font-size: 0.72rem;
+    white-space: normal;
+}
+
+.local-alert-item {
+    grid-template-columns: 10px 1fr auto;
+}
+
+.local-alert-item .event-dot {
+    background: #d29a25;
+}
+
 .device-port-add-form {
     display: flex;
     align-items: end;
@@ -432,6 +490,64 @@
     gap: 9px;
 }
 
+.inventory-filters {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) minmax(150px, 1fr) minmax(150px, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.inventory-filters label,
+.inline-setting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--network-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.inventory-filters label {
+    display: grid;
+}
+
+.inventory-filters input,
+.inventory-filters select,
+.inline-setting select {
+    min-width: 0;
+    min-height: 38px;
+    padding: 6px 9px;
+    border: 1px solid var(--network-border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--network-text);
+    font: inherit;
+}
+
+.inline-setting {
+    white-space: nowrap;
+}
+
+.inline-setting input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--network-cyan);
+}
+
+.snapshot-diff-list {
+    display: grid;
+    gap: 8px;
+}
+
+.snapshot-diff-list .event-item {
+    grid-template-columns: 10px 1fr;
+}
+
+.snapshot-diff-list .event-item p {
+    color: var(--network-muted);
+    font-size: 0.82rem;
+}
+
 .network-action-button {
     display: inline-flex;
     align-items: center;
@@ -454,6 +570,34 @@
 .network-action-button:disabled {
     cursor: not-allowed;
     opacity: 0.55;
+}
+
+#discover-network-button.is-scanning {
+    gap: 9px;
+    cursor: wait;
+    opacity: 0.92;
+}
+
+#discover-network-button.is-scanning::before {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: var(--network-cyan);
+    border-radius: 50%;
+    content: "";
+    animation: network-scan-spin 0.75s linear infinite;
+}
+
+@keyframes network-scan-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #discover-network-button.is-scanning::before {
+        animation-duration: 2.5s;
+    }
 }
 
 .selected-device-row {
@@ -676,6 +820,28 @@
     color: var(--network-text);
 }
 
+.network-card > .table-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.network-card > .table-scroll th,
+.network-card > .table-scroll td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #eaf1f3;
+    font-size: 0.86rem;
+    vertical-align: top;
+}
+
+.network-card > .table-scroll th {
+    color: var(--network-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
 .event-list {
     display: grid;
     gap: 10px;
@@ -745,6 +911,14 @@
 
     .device-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .inventory-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .inventory-filters label:first-child {
+        grid-column: 1 / -1;
     }
 
     .device-form button {
@@ -817,6 +991,14 @@
         grid-template-columns: 1fr;
     }
 
+    .inventory-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-filters label:first-child {
+        grid-column: auto;
+    }
+
     .scan-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -828,6 +1010,11 @@
 
     .event-item {
         grid-template-columns: 10px 1fr;
+    }
+
+    .local-alert-item time {
+        grid-column: 2;
+        white-space: normal;
     }
 
     .event-item time {

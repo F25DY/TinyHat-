@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Historial de detecciones</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=7)}">
+    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=9)}">
 </head>
 <body class="network-page">
 <main class="network-shell">
@@ -20,15 +20,37 @@
             <p class="network-subtitle">Resultados guardados cada vez que detectas dispositivos en la red.</p>
         </div>
         <div class="network-header-actions">
+            <button id="clear-history-button" class="network-action-button" type="button">Borrar todo el historial</button>
             <a class="network-action-button" th:href="@{/network-monitoring}">Volver a dispositivos actuales</a>
         </div>
     </header>
+
+    <section class="network-card" aria-labelledby="availability-heading">
+        <div class="section-heading">
+            <div>
+                <p class="network-eyebrow">MUESTRAS DEL HISTORIAL</p>
+                <h2 id="availability-heading">Disponibilidad estimada</h2>
+                <p id="availability-summary" class="management-help">Cargando el historial de detecciones...</p>
+            </div>
+            <span class="chart-caption">No representa medición continua</span>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                <tr><th>Dispositivo</th><th>Muestras en línea</th><th>Muestras sin respuesta</th><th>Disponibilidad observada</th></tr>
+                </thead>
+                <tbody id="availability-body">
+                <tr><td colspan="4" class="empty-state">Cargando muestras...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <p id="discovery-history-message" class="network-card network-message" role="status" aria-live="polite">
         Cargando historial...
     </p>
     <div id="discovery-history-list" class="discovery-history-list"></div>
 </main>
-<script th:src="@{/js/network-monitoring-history.js(v=1)}" defer></script>
+<script th:src="@{/js/network-monitoring-history.js(v=5)}" defer></script>
 </body>
 </html>

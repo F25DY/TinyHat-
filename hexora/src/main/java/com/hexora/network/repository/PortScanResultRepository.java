@@ -12,6 +12,23 @@ public interface PortScanResultRepository extends JpaRepository<PortScanResult, 
 
     Optional<PortScanResult> findTopByHost_IdAndPortOrderByDetectedAtDesc(Long hostId, int port);
 
+        @Query("""
+                select result from PortScanResult result
+                where result.host.id = :hostId
+                    and result.port in :ports
+                    and not exists (
+                            select newer.id from PortScanResult newer
+                            where newer.host.id = result.host.id
+                                and newer.port = result.port
+                                and (newer.detectedAt > result.detectedAt
+                                    or (newer.detectedAt = result.detectedAt and newer.id > result.id))
+                    )
+                """)
+        List<PortScanResult> findLatestByHostAndPorts(
+                @Param("hostId") Long hostId,
+                @Param("ports") List<Integer> ports
+        );
+
     @Modifying
     @Query("delete from PortScanResult result where result.host.id = :hostId")
     int deleteAllForHost(@Param("hostId") Long hostId);

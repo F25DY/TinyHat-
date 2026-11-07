@@ -8,6 +8,7 @@
             "cwd": "${workspaceFolder}/hexora",
             "mainClass": "com.hexora.hexora.HexoraApplication",
             "projectName": "hexora",
+            "preLaunchTask": "Compile Hexora with Maven Wrapper",
             "args": "",
             "envFile": "${workspaceFolder}/hexora/.env"
         }

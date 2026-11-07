@@ -33,4 +33,12 @@ class NetworkReachabilityProbeTest {
 
         assertTrue(probe.pingWindows(InetAddress.getLoopbackAddress(), 1_000));
     }
+
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    void detectsReachableLinuxHostWithSystemPing() throws Exception {
+        NetworkReachabilityProbe probe = new NetworkReachabilityProbe();
+
+        assertTrue(probe.pingLinux(InetAddress.getLoopbackAddress(), 1_000));
+    }
 }

@@ -1,0 +1,10 @@
+{
+    "maven.executable.preferMavenWrapper": true,
+    "maven.executable.path": "C:\\Users\\Luis David\\.maven\\maven-3.10.0\\bin\\mvn.cmd",
+    "maven.terminal.customEnv": [
+        {
+            "environmentVariable": "JAVA_HOME",
+            "value": "C:\\Users\\Luis David\\AppData\\Local\\jdks\\jdk-25.0.2"
+        }
+    ]
+}

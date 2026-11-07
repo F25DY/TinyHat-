@@ -41,6 +41,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -55,10 +56,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -68,6 +71,10 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -77,6 +84,9 @@ public class NetworkMonitoringService {
     private static final int MAX_RANGE_SIZE = 128;
     private static final int MAX_CONFIGURED_PORTS = 32;
     private static final int MAX_DISCOVERY_HISTORY = 50;
+    private static final int HISTORY_CLEANUP_BATCH_SIZE = 500;
+    private static final int HOST_FAILURES_BEFORE_OFFLINE = 2;
+    private static final long PORT_SCAN_TIMEOUT_SECONDS = 30;
     private static final long HOSTNAME_LOOKUP_TIMEOUT_MILLIS = 500;
     private static final ExecutorService HOSTNAME_LOOKUP_EXECUTOR = Executors.newFixedThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, "network-hostname-lookup");
@@ -94,8 +104,11 @@ public class NetworkMonitoringService {
     private final NetworkMonitorProperties properties;
     private final NetworkReachabilityProbe reachabilityProbe = new NetworkReachabilityProbe();
     private final LocalNetworkDiscoveryService localNetworkDiscoveryService;
+    private final TransactionTemplate transactionTemplate;
+    private final ThreadPoolTaskExecutor portProbeExecutor;
     private final ConcurrentMap<Long, Long> nextManualScanAt = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, ReentrantLock> scanLocks = new ConcurrentHashMap<>();
+    private final ReentrantReadWriteLock historyLock = new ReentrantReadWriteLock(true);
 
     public NetworkMonitoringService(
         NetworkHostRepository hostRepository,
@@ -107,7 +120,9 @@ public class NetworkMonitoringService {
         NetworkDiscoverySnapshotRepository discoverySnapshotRepository,
         MonitoredPortRepository monitoredPortRepository,
         NetworkMonitorProperties properties,
-        LocalNetworkDiscoveryService localNetworkDiscoveryService
+        LocalNetworkDiscoveryService localNetworkDiscoveryService,
+        PlatformTransactionManager transactionManager,
+        @Qualifier("networkPortProbeExecutor") ThreadPoolTaskExecutor portProbeExecutor
     ) {
         this.hostRepository = hostRepository;
         this.scanRepository = scanRepository;
@@ -119,15 +134,22 @@ public class NetworkMonitoringService {
         this.monitoredPortRepository = monitoredPortRepository;
         this.properties = properties;
         this.localNetworkDiscoveryService = localNetworkDiscoveryService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.portProbeExecutor = portProbeExecutor;
         validateConfiguration();
     }
 
     static HostProbeState nextHostProbeState(
+        NetworkHostStatus previousStatus,
         int previousFailures,
         boolean responsive
     ) {
         int consecutiveFailures = responsive ? 0 : previousFailures + 1;
-        NetworkHostStatus status = responsive ? NetworkHostStatus.ONLINE : NetworkHostStatus.OFFLINE;
+        NetworkHostStatus status = responsive
+            ? NetworkHostStatus.ONLINE
+            : consecutiveFailures >= HOST_FAILURES_BEFORE_OFFLINE
+                ? NetworkHostStatus.OFFLINE
+                : previousStatus;
         return new HostProbeState(status, consecutiveFailures);
     }
 
@@ -136,9 +158,14 @@ public class NetworkMonitoringService {
 
     @Transactional
     public NetworkInventoryUpdateDto discoverLocalNetwork() {
-        NetworkInventoryUpdateDto update = synchronizeDetectedDevices();
-        saveDiscoverySnapshot(update);
-        return update;
+        historyLock.readLock().lock();
+        try {
+            NetworkInventoryUpdateDto update = synchronizeDetectedDevices();
+            saveDiscoverySnapshot(update);
+            return update;
+        } finally {
+            historyLock.readLock().unlock();
+        }
     }
 
     @Transactional(readOnly = true)
@@ -520,11 +547,53 @@ public class NetworkMonitoringService {
 
     @Transactional
     public void clearHistory() {
-        discoveryEventRepository.deleteAllInBatch();
-        eventRepository.deleteAllInBatch();
-        portResultRepository.deleteAllInBatch();
-        scanRepository.deleteAllInBatch();
-        resetHostStatuses(hostRepository.findAll());
+        historyLock.writeLock().lock();
+        try {
+            discoveryEventRepository.deleteAllInBatch();
+            discoverySnapshotRepository.deleteAllInBatch();
+            eventRepository.deleteAllInBatch();
+            portResultRepository.deleteAllInBatch();
+            scanRepository.deleteAllInBatch();
+            resetHostStatuses(hostRepository.findAll());
+        } finally {
+            historyLock.writeLock().unlock();
+        }
+    }
+
+    @Transactional
+    public int purgeExpiredHistory() {
+        historyLock.readLock().lock();
+        try {
+            LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC)
+                .minus(properties.getHistoryRetentionDays(), ChronoUnit.DAYS);
+            int deletedScans = 0;
+            List<Long> expiredScanIds = scanRepository.findIdsStartedBefore(
+                cutoff,
+                PageRequest.of(0, HISTORY_CLEANUP_BATCH_SIZE)
+            );
+            if (!expiredScanIds.isEmpty()) {
+                eventRepository.deleteAllForScans(expiredScanIds);
+                portResultRepository.deleteAllForScans(expiredScanIds);
+                scanRepository.deleteAllByIdInBatch(expiredScanIds);
+                deletedScans = expiredScanIds.size();
+            }
+            PageRequest batch = PageRequest.of(0, HISTORY_CLEANUP_BATCH_SIZE);
+            List<Long> unlinkedEventIds = eventRepository.findUnlinkedIdsBefore(cutoff, batch);
+            if (!unlinkedEventIds.isEmpty()) {
+                eventRepository.deleteAllByIdInBatch(unlinkedEventIds);
+            }
+            List<Long> discoveryEventIds = discoveryEventRepository.findIdsCreatedBefore(cutoff, batch);
+            if (!discoveryEventIds.isEmpty()) {
+                discoveryEventRepository.deleteAllByIdInBatch(discoveryEventIds);
+            }
+            List<Long> snapshotIds = discoverySnapshotRepository.findIdsObservedBefore(cutoff, batch);
+            if (!snapshotIds.isEmpty()) {
+                discoverySnapshotRepository.deleteAllByIdInBatch(snapshotIds);
+            }
+            return deletedScans + unlinkedEventIds.size() + discoveryEventIds.size() + snapshotIds.size();
+        } finally {
+            historyLock.readLock().unlock();
+        }
     }
 
     @Transactional
@@ -711,7 +780,6 @@ public class NetworkMonitoringService {
         hostRepository.save(host);
     }
 
-    @Transactional
     public NetworkScanDto scanHost(Long hostId, Integer startPort, Integer endPort) {
         if (hostId == null) {
             throw new IllegalArgumentException("hostId is required");
@@ -719,14 +787,19 @@ public class NetworkMonitoringService {
         if (startPort != null || endPort != null) {
             resolvePorts(startPort, endPort);
         }
-        ReentrantLock lock = scanLocks.computeIfAbsent(hostId, ignored -> new ReentrantLock());
-        if (!lock.tryLock()) {
-            throw new ScanRateLimitException("A scan for this host is already running");
-        }
+        historyLock.readLock().lock();
         try {
-            return scanHostInternal(hostId, startPort, endPort);
+            ReentrantLock lock = scanLocks.computeIfAbsent(hostId, ignored -> new ReentrantLock());
+            if (!lock.tryLock()) {
+                throw new ScanRateLimitException("A scan for this host is already running");
+            }
+            try {
+                return scanHostInternal(hostId, startPort, endPort);
+            } finally {
+                lock.unlock();
+            }
         } finally {
-            lock.unlock();
+            historyLock.readLock().unlock();
         }
     }
 
@@ -751,23 +824,29 @@ public class NetworkMonitoringService {
         }
 
         LocalDateTime startedAt = now();
-        NetworkHostStatus previousHostStatus = host.getStatus();
         InetAddress address = resolveAddress(host.getAddress());
         ReachabilityResult reachability = checkReachability(address);
+        List<ProbeResult> probeResults = probePorts(address, ports);
+        return java.util.Objects.requireNonNull(transactionTemplate.execute(status ->
+            persistScan(hostId, ports, probeResults, reachability, startedAt)));
+    }
+
+    private NetworkScanDto persistScan(
+        Long hostId,
+        List<Integer> ports,
+        List<ProbeResult> probeResults,
+        ReachabilityResult reachability,
+        LocalDateTime startedAt
+    ) {
+        NetworkHost host = hostRepository.findById(hostId)
+            .filter(NetworkHost::isEnabled)
+            .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
+        requireConfiguredHost(host);
+        NetworkHostStatus previousHostStatus = host.getStatus();
         boolean reachable = reachability.reachable();
         Integer latencyMs = reachable ? reachability.latencyMs() : null;
-
-        NetworkScan scan = new NetworkScan();
-        scan.setHost(host);
-        scan.setStartedAt(startedAt);
-        scan.setStatus(NetworkScanStatus.COMPLETED);
-        scan.setPortsScanned(ports.size());
-
-        List<ProbeResult> probeResults = new ArrayList<>(ports.size());
         boolean anyOpen = false;
-        for (int port : ports) {
-            ProbeResult probeResult = probe(address, port);
-            probeResults.add(probeResult);
+        for (ProbeResult probeResult : probeResults) {
             anyOpen |= probeResult.open();
             if (probeResult.open() && (latencyMs == null || probeResult.latencyMs() < latencyMs)) {
                 latencyMs = probeResult.latencyMs();
@@ -775,10 +854,15 @@ public class NetworkMonitoringService {
         }
 
         boolean responsive = reachable || anyOpen;
-        HostProbeState probeState = nextHostProbeState(host.getConsecutiveFailures(), responsive);
+        HostProbeState probeState = nextHostProbeState(host.getStatus(), host.getConsecutiveFailures(), responsive);
         int consecutiveFailures = probeState.consecutiveFailures();
         NetworkHostStatus currentStatus = probeState.status();
         LocalDateTime completedAt = now();
+        NetworkScan scan = new NetworkScan();
+        scan.setHost(host);
+        scan.setStartedAt(startedAt);
+        scan.setStatus(NetworkScanStatus.COMPLETED);
+        scan.setPortsScanned(ports.size());
         scan.setCompletedAt(completedAt);
         scan.setHostStatus(currentStatus);
         scan.setLatencyMs(latencyMs);
@@ -795,13 +879,15 @@ public class NetworkMonitoringService {
             addEvent(scan, host, eventType, "Host changed to " + currentStatus);
         }
 
+        Map<Integer, PortScanResult> previousPortResults = ports.isEmpty()
+            ? Map.of()
+            : portResultRepository.findLatestByHostAndPorts(host.getId(), ports).stream()
+                .collect(Collectors.toMap(PortScanResult::getPort, result -> result));
         for (int index = 0; index < ports.size(); index++) {
             int port = ports.get(index);
             ProbeResult probeResult = probeResults.get(index);
             PortStatus currentPortStatus = probeResult.open() ? PortStatus.OPEN : PortStatus.CLOSED;
-            PortScanResult previous = portResultRepository
-                .findTopByHost_IdAndPortOrderByDetectedAtDesc(host.getId(), port)
-                .orElse(null);
+            PortScanResult previous = previousPortResults.get(port);
 
             PortScanResult result = new PortScanResult();
             result.setHost(host);
@@ -824,7 +910,6 @@ public class NetworkMonitoringService {
         return toDto(scan);
     }
 
-    @Transactional
     public NetworkScanDto scanManually(Long hostId, Integer startPort, Integer endPort) {
         if (hostId == null) {
             throw new IllegalArgumentException("hostId is required");
@@ -874,8 +959,12 @@ public class NetworkMonitoringService {
     public NetworkDashboardDto getStatus() {
         List<NetworkHost> hosts = hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc();
         List<NetworkHostDto> hostDtos = hosts.stream().map(this::toDto).toList();
+        Map<Long, NetworkScan> latestScans = hosts.isEmpty()
+            ? Map.of()
+            : scanRepository.findLatestByHostIds(hosts.stream().map(NetworkHost::getId).toList()).stream()
+                .collect(Collectors.toMap(scan -> scan.getHost().getId(), scan -> scan));
         List<NetworkScanDto> recentScans = hosts.stream()
-            .map(host -> scanRepository.findFirstByHost_IdOrderByStartedAtDesc(host.getId()).orElse(null))
+            .map(host -> latestScans.get(host.getId()))
             .filter(scan -> scan != null)
             .map(this::toDto)
             .toList();
@@ -914,6 +1003,9 @@ public class NetworkMonitoringService {
         }
         if (properties.getDiscoveryIntervalMs() < 30_000) {
             throw new IllegalStateException("hexora.network.discovery-interval-ms must be at least 30000");
+        }
+        if (properties.getHistoryRetentionDays() < 1 || properties.getHistoryRetentionDays() > 3_650) {
+            throw new IllegalStateException("hexora.network.history-retention-days must be between 1 and 3650");
         }
         if (properties.getAllowedHosts() == null || properties.getDefaultPorts() == null) {
             throw new IllegalStateException("Network monitoring host and port configuration must not be null");
@@ -1032,6 +1124,41 @@ public class NetworkMonitoringService {
         } catch (IOException exception) {
             throw new IllegalStateException("TCP probe failed for port " + port, exception);
         }
+    }
+
+    private List<ProbeResult> probePorts(InetAddress address, List<Integer> ports) {
+        List<java.util.concurrent.Callable<ProbeResult>> probes = ports.stream()
+            .<java.util.concurrent.Callable<ProbeResult>>map(port -> () -> probe(address, port))
+            .toList();
+        List<Future<ProbeResult>> results;
+        try {
+            results = portProbeExecutor.getThreadPoolExecutor().invokeAll(
+                probes,
+                PORT_SCAN_TIMEOUT_SECONDS,
+                TimeUnit.SECONDS
+            );
+        } catch (RejectedExecutionException exception) {
+            throw new ScanRateLimitException("Network scan capacity is busy; try again shortly");
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Network port scan was interrupted", exception);
+        }
+
+        List<ProbeResult> probeResults = new ArrayList<>(results.size());
+        for (Future<ProbeResult> result : results) {
+            if (result.isCancelled()) {
+                throw new ScanRateLimitException("Network port scan exceeded its 30-second time limit");
+            }
+            try {
+                probeResults.add(result.get());
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Network port scan was interrupted", exception);
+            } catch (ExecutionException exception) {
+                throw new IllegalStateException("Network port probe failed", exception.getCause());
+            }
+        }
+        return probeResults;
     }
 
     private void addEvent(NetworkScan scan, NetworkHost host, NetworkEventType eventType, String description) {

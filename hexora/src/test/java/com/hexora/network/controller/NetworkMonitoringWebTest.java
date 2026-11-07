@@ -40,7 +40,9 @@ class NetworkMonitoringWebTest {
         mockMvc.perform(get("/network-monitoring/history"))
             .andExpect(status().isOk())
             .andExpect(view().name("network-monitoring-history"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Historial de detecciones")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Historial de detecciones")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Disponibilidad estimada")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Borrar todo el historial")));
     }
 
     @Test

@@ -13,6 +13,7 @@ public class NetworkMonitorProperties {
     private long monitorIntervalMs = 60_000;
     private long discoveryIntervalMs = 30_000;
     private boolean discoveryEnabled = true;
+    private int historyRetentionDays = 90;
 
     public List<AllowedHost> getAllowedHosts() {
         return allowedHosts;
@@ -60,6 +61,14 @@ public class NetworkMonitorProperties {
 
     public void setDiscoveryEnabled(boolean discoveryEnabled) {
         this.discoveryEnabled = discoveryEnabled;
+    }
+
+    public int getHistoryRetentionDays() {
+        return historyRetentionDays;
+    }
+
+    public void setHistoryRetentionDays(int historyRetentionDays) {
+        this.historyRetentionDays = historyRetentionDays;
     }
 
     public static class AllowedHost {

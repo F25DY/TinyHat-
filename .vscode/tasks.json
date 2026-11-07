@@ -2,6 +2,13 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Compile Hexora with Maven Wrapper",
+			"type": "shell",
+			"command": "$env:JAVA_HOME = 'C:\\Users\\Luis David\\AppData\\Local\\jdks\\jdk-25.0.2'; $env:PATH = $env:JAVA_HOME + '\\bin;C:\\Windows\\System32\\WindowsPowerShell\\v1.0;C:\\Windows\\System32;C:\\Windows;' + $env:PATH; Set-Location '${workspaceFolder}\\hexora'; .\\mvnw.cmd compile",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
 			"label": "Start Hexora MySQL database",
 			"type": "shell",
 			"command": "docker",
@@ -41,9 +48,9 @@
 			"group": "build"
 		},
 		{
-			"label": "Run Hexora direct Maven",
+			"label": "Run Hexora app with Maven Wrapper",
 			"type": "shell",
-			"command": "Set-Location 'C:\\Users\\Luis David\\Desktop\\tinyhat\\Hexora-\\hexora'; mvn spring-boot:run",
+			"command": "$env:JAVA_HOME = 'C:\\Users\\Luis David\\AppData\\Local\\jdks\\jdk-25.0.2'; $env:PATH = $env:JAVA_HOME + '\\bin;C:\\Windows\\System32\\WindowsPowerShell\\v1.0;C:\\Windows\\System32;C:\\Windows;' + $env:PATH; Set-Location '${workspaceFolder}\\hexora'; .\\mvnw.cmd spring-boot:run",
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"
