@@ -156,6 +156,28 @@ class LocalNetworkDiscoveryServiceTest {
     }
 
     @Test
+    void parsesLinuxNeighborRowsAndFiltersThemToTheCurrentSubnet() throws Exception {
+        Inet4Address localAddress = (Inet4Address) InetAddress.getByName("192.168.1.20");
+        var subnet = LocalNetworkDiscoveryService.createSubnet(localAddress, (short) 24);
+
+        var entries = LocalNetworkDiscoveryService.parseLinuxNeighborEntries("""
+            192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:ff REACHABLE
+            192.168.1.9 dev eth0 lladdr 00-11-22-33-44-55 STALE
+            192.168.1.10 dev eth0 FAILED
+            192.168.2.2 dev eth0 lladdr 12:34:56:78:90:ab REACHABLE
+            """, subnet);
+
+        assertEquals(3, entries.size());
+        assertEquals("192.168.1.1", entries.get(0).address());
+        assertEquals("aa:bb:cc:dd:ee:ff", entries.get(0).macAddress());
+        assertTrue(LocalNetworkDiscoveryService.isActiveNeighborState(entries.get(0).detectionMethod()));
+        assertEquals("192.168.1.9", entries.get(1).address());
+        assertEquals("00:11:22:33:44:55", entries.get(1).macAddress());
+        assertTrue(!LocalNetworkDiscoveryService.isActiveNeighborState(entries.get(1).detectionMethod()));
+        assertNull(entries.get(2).macAddress());
+    }
+
+    @Test
     void acceptsActiveWindowsNeighborStatesCaseInsensitively() {
         assertTrue(LocalNetworkDiscoveryService.isActiveNeighborState("ARP (vecino Reachable)"));
         assertTrue(LocalNetworkDiscoveryService.isActiveNeighborState("ARP (vecino delay)"));
@@ -175,6 +197,10 @@ class LocalNetworkDiscoveryServiceTest {
             "GATEWAY=192.168.2.1\n", subnet));
         assertNull(LocalNetworkDiscoveryService.parseGatewayAddress(
             "GATEWAY=not-an-ip\n", subnet));
+        assertEquals("192.168.1.1", LocalNetworkDiscoveryService.parseLinuxGatewayAddress(
+            "default via 192.168.1.1 dev eth0 proto dhcp metric 100\n", subnet));
+        assertNull(LocalNetworkDiscoveryService.parseLinuxGatewayAddress(
+            "default via 192.168.2.1 dev eth0\n", subnet));
     }
 
     @Test

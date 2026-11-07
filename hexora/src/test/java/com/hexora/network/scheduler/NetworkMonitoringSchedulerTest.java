@@ -1,11 +1,14 @@
 package com.hexora.network.scheduler;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.hexora.network.model.NetworkInventoryUpdateDto;
 import com.hexora.network.service.NetworkMonitorProperties;
 import com.hexora.network.service.NetworkMonitoringService;
+import com.hexora.network.service.NetworkScheduledTaskLock;
 import com.hexora.network.websocket.NetworkMonitorWebSocketHandler;
 import java.time.Instant;
 import java.util.List;
@@ -24,13 +27,16 @@ class NetworkMonitoringSchedulerTest {
     @Mock
     private NetworkMonitorWebSocketHandler webSocketHandler;
 
+    @Mock
+    private NetworkScheduledTaskLock taskLock;
+
     private NetworkMonitorProperties properties;
     private NetworkMonitoringScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         properties = new NetworkMonitorProperties();
-        scheduler = new NetworkMonitoringScheduler(monitoringService, webSocketHandler, properties);
+        scheduler = new NetworkMonitoringScheduler(monitoringService, webSocketHandler, properties, taskLock);
     }
 
     @Test
@@ -44,6 +50,10 @@ class NetworkMonitoringSchedulerTest {
             false
         );
         when(monitoringService.synchronizeDetectedDevices()).thenReturn(update);
+        when(taskLock.executeIfAvailable(anyString(), any(Runnable.class))).thenAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return true;
+        });
 
         scheduler.discoverConnectedDevices();
 
@@ -53,6 +63,15 @@ class NetworkMonitoringSchedulerTest {
     @Test
     void doesNotRunAutomaticDiscoveryWhenItIsDisabled() {
         properties.setDiscoveryEnabled(false);
+
+        scheduler.discoverConnectedDevices();
+
+        org.mockito.Mockito.verifyNoInteractions(monitoringService, webSocketHandler);
+    }
+
+    @Test
+    void skipsAutomaticDiscoveryWhenAnotherInstanceHoldsTheLock() {
+        when(taskLock.executeIfAvailable(anyString(), any(Runnable.class))).thenReturn(false);
 
         scheduler.discoverConnectedDevices();
 

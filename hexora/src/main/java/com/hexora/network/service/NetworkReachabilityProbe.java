@@ -23,11 +23,51 @@ final class NetworkReachabilityProbe {
         } catch (IOException exception) {
             LOGGER.debug("Java ICMP reachability check failed for {}", address.getHostAddress(), exception);
         }
-        return isWindows() && pingWindows(address, timeoutMillis);
+        if (isWindows()) {
+            return pingWindows(address, timeoutMillis);
+        }
+        return isLinux() && pingLinux(address, timeoutMillis);
     }
 
     boolean isWindows() {
         return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    }
+
+    boolean isLinux() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux");
+    }
+
+    boolean pingLinux(InetAddress address, int timeoutMillis) {
+        int timeoutSeconds = Math.max(1, (timeoutMillis + 999) / 1_000);
+        Process process;
+        try {
+            process = new ProcessBuilder(
+                "ping",
+                "-n",
+                "-c", "1",
+                "-W", Integer.toString(timeoutSeconds),
+                address.getHostAddress()
+            )
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start();
+        } catch (IOException exception) {
+            LOGGER.debug("Linux ping could not start for {}", address.getHostAddress(), exception);
+            return false;
+        }
+
+        try {
+            if (!process.waitFor(timeoutMillis + 1_000L, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                return false;
+            }
+            return process.exitValue() == 0;
+        } catch (InterruptedException exception) {
+            process.destroyForcibly();
+            Thread.currentThread().interrupt();
+            LOGGER.debug("Linux ping was interrupted for {}", address.getHostAddress(), exception);
+            return false;
+        }
     }
 
     boolean pingWindows(InetAddress address, int timeoutMillis) {

@@ -30,10 +30,14 @@ public class NetworkMethodNotAllowedFilter extends OncePerRequestFilter {
         HttpServletResponse response,
         FilterChain filterChain
     ) throws ServletException, IOException {
+        if (!request.getRequestURI().startsWith(request.getContextPath() + "/api/network/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
         filterChain.doFilter(request, wrappedResponse);
-        if (wrappedResponse.getStatus() != HttpServletResponse.SC_METHOD_NOT_ALLOWED
-            || !request.getRequestURI().startsWith(request.getContextPath() + "/api/network/")) {
+        if (wrappedResponse.getStatus() != HttpServletResponse.SC_METHOD_NOT_ALLOWED) {
             wrappedResponse.copyBodyToResponse();
             return;
         }
