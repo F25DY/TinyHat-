@@ -12,10 +12,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import com.hexora.hexora.model.PublicIds;
 
 @Entity
 @Table(name = "network_scan")
@@ -48,6 +50,12 @@ public class NetworkScan {
 
     @Column(name = "completed_at", nullable = false)
     private LocalDateTime completedAt;
+
+    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     @OneToMany(mappedBy = "scan", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PortScanResult> portResults = new ArrayList<>();
@@ -117,6 +125,23 @@ public class NetworkScan {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 
     public List<PortScanResult> getPortResults() {

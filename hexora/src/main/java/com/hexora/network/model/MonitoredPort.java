@@ -13,7 +13,9 @@ import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "monitored_port", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_monitored_port_host_port", columnNames = {"network_host_id", "port"})
+    @UniqueConstraint(
+        name = "uk_monitored_port_cuenta_host_port",
+        columnNames = {"cuenta_id", "network_host_id", "port"})
 })
 public class MonitoredPort {
 
@@ -30,6 +32,12 @@ public class MonitoredPort {
 
     @Column(nullable = false)
     private boolean enabled = true;
+
+    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     public Long getId() {
         return id;
@@ -57,5 +65,22 @@ public class MonitoredPort {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @jakarta.persistence.PrePersist
+    void generatePublicId() {
+        publicId = com.hexora.hexora.model.PublicIds.ensure(publicId);
     }
 }

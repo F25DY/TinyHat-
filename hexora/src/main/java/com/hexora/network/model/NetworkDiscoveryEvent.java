@@ -10,8 +10,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import com.hexora.hexora.model.PublicIds;
 
 @Entity
 @Table(name = "network_discovery_event")
@@ -40,6 +42,12 @@ public class NetworkDiscoveryEvent {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     public Long getId() {
         return id;
@@ -91,5 +99,22 @@ public class NetworkDiscoveryEvent {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 }

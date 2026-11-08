@@ -1,15 +1,15 @@
 package com.hexora.hexora.model;
 
-import jakarta.annotation.Generated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "empresa")
+@Table(name = "organizacion_cliente")
 
 public class Empresa {
 
@@ -28,6 +28,12 @@ public class Empresa {
     
     @Column(length = 80)
     private String sector;
+
+    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     //Constructores
     public Empresa() {
@@ -72,6 +78,23 @@ public class Empresa {
 
     public void setSector(String sector) {
         this.sector = sector;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 
 }

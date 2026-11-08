@@ -9,10 +9,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import com.hexora.hexora.model.PublicIds;
 
 @Entity
 @Table(name = "network_discovery_snapshot")
@@ -30,6 +32,12 @@ public class NetworkDiscoverySnapshot {
 
     @Column(name = "observed_at", nullable = false)
     private LocalDateTime observedAt;
+
+    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     @OneToMany(mappedBy = "snapshot", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("address ASC")
@@ -61,6 +69,23 @@ public class NetworkDiscoverySnapshot {
 
     public void setObservedAt(LocalDateTime observedAt) {
         this.observedAt = observedAt;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 
     public List<NetworkDiscoverySnapshotDevice> getDevices() {

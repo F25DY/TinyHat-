@@ -1,5 +1,6 @@
 package com.hexora.network.websocket;
 
+import com.hexora.hexora.security.TinyHatSecurityProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -10,13 +11,19 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class NetworkWebSocketConfiguration implements WebSocketConfigurer {
 
     private final NetworkMonitorWebSocketHandler handler;
+    private final TinyHatSecurityProperties securityProperties;
 
-    public NetworkWebSocketConfiguration(NetworkMonitorWebSocketHandler handler) {
+    public NetworkWebSocketConfiguration(
+        NetworkMonitorWebSocketHandler handler,
+        TinyHatSecurityProperties securityProperties
+    ) {
         this.handler = handler;
+        this.securityProperties = securityProperties;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(handler, "/ws/network");
+        registry.addHandler(handler, "/ws/network")
+            .setAllowedOrigins(securityProperties.getWs().getAllowedOrigins().toArray(String[]::new));
     }
 }

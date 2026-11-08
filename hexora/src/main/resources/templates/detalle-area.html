@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Departamento</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
@@ -45,9 +46,11 @@
                     <span class="correo-usuario">analista@gmail.com</span>
                 </div>
             </div>
-            <a th:href="@{/}" class="boton-cerrar-sesion">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
+            </form>
         </div>
     </aside>
 

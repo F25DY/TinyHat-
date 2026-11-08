@@ -10,9 +10,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import com.hexora.hexora.model.PublicIds;
 
 @Entity
 @Table(name = "port_scan_result", uniqueConstraints = {
@@ -44,6 +46,12 @@ public class PortScanResult {
 
     @Column(name = "detected_at", nullable = false)
     private LocalDateTime detectedAt;
+
+    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     public Long getId() {
         return id;
@@ -99,5 +107,22 @@ public class PortScanResult {
 
     public void setDetectedAt(LocalDateTime detectedAt) {
         this.detectedAt = detectedAt;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 }

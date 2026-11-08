@@ -650,18 +650,15 @@ public class NetworkMonitoringService {
             host.setAddress(address);
             host.setEnabled(true);
             host.setManagedByUi(false);
-            if (host.getId() == null) {
-                host.setMonitoredPorts(properties.getDefaultPorts());
+            host = hostRepository.save(host);
+            if (monitoredPortRepository.findAllByHost_IdOrderByPortAsc(host.getId()).isEmpty()) {
+                replaceMonitoredPorts(host, properties.getDefaultPorts());
             }
-            hostRepository.save(host);
         }
         for (NetworkHost host : hostRepository.findAll()) {
             if (host.isEnabled() && !host.isManagedByUi()
                 && !configuredAddresses.contains(host.getAddress().toLowerCase())) {
                 host.setEnabled(false);
-            }
-            if (monitoredPortRepository.findAllByHost_IdOrderByPortAsc(host.getId()).isEmpty()) {
-                replaceMonitoredPorts(host, host.getMonitoredPorts());
             }
             if (host.isEnabled() && host.getStatus() != NetworkHostStatus.OFFLINE) {
                 host.setStatus(NetworkHostStatus.OFFLINE);
@@ -709,7 +706,6 @@ public class NetworkMonitoringService {
         host.setLatencyMs(null);
         host.setLastCheckedAt(null);
         host.setConsecutiveFailures(0);
-        host.setMonitoredPorts(validatedPorts);
         host = hostRepository.save(host);
         replaceMonitoredPorts(host, validatedPorts);
         return toDto(host);
@@ -732,7 +728,6 @@ public class NetworkMonitoringService {
         monitoredPort.setPort(port);
         monitoredPort.setEnabled(true);
         monitoredPort = monitoredPortRepository.save(monitoredPort);
-        synchronizeLegacyPortList(host);
         return toDto(monitoredPort);
     }
 
@@ -754,17 +749,13 @@ public class NetworkMonitoringService {
         MonitoredPort monitoredPort = monitoredPortRepository.findByHost_IdAndPort(hostId, port)
             .orElseThrow(() -> new EntityNotFoundException("Monitored port was not found"));
         monitoredPortRepository.delete(monitoredPort);
-        synchronizeLegacyPortList(host);
     }
 
     @Transactional
     public NetworkHostDto updateMonitoredPorts(Long hostId, List<Integer> ports) {
         List<Integer> validatedPorts = validateConfiguredPorts(ports);
         NetworkHost host = requireManagedHost(hostId);
-        host.setMonitoredPorts(validatedPorts);
-        host = hostRepository.save(host);
         replaceMonitoredPorts(host, validatedPorts);
-        synchronizeLegacyPortList(host);
         return toDto(host);
     }
 
@@ -1248,14 +1239,6 @@ public class NetworkMonitoringService {
         if (!added.isEmpty()) {
             monitoredPortRepository.saveAll(added);
         }
-    }
-
-    private void synchronizeLegacyPortList(NetworkHost host) {
-        List<Integer> ports = monitoredPortRepository.findAllByHost_IdOrderByPortAsc(host.getId()).stream()
-            .map(MonitoredPort::getPort)
-            .toList();
-        host.setMonitoredPorts(ports);
-        hostRepository.save(host);
     }
 
     private NetworkHost requireManagedHost(Long hostId) {

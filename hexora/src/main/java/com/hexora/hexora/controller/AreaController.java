@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +20,7 @@ import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
 
 @Controller
+@PreAuthorize("hasRole('AUDITOR')")
 public class AreaController {
 
     private final AreaAuditableRepository areaAuditableRepository;
