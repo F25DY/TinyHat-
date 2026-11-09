@@ -8,12 +8,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "usuario")
-public class Usuario {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class Usuario implements TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,7 +50,7 @@ public class Usuario {
     @Column(name = "actualizado_en", nullable = false)
     private LocalDateTime actualizadoEn;
 
-    protected Usuario() {
+    public Usuario() {
     }
 
     public Long getId() {
@@ -65,6 +69,7 @@ public class Usuario {
         return cuentaId;
     }
 
+    @Override
     public void setCuentaId(Long cuentaId) {
         this.cuentaId = cuentaId;
     }

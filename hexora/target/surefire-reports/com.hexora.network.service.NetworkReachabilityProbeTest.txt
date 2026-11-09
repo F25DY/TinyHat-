@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.hexora.network.service.NetworkReachabilityProbeTest
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 1.091 s -- in com.hexora.network.service.NetworkReachabilityProbeTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 1.078 s -- in com.hexora.network.service.NetworkReachabilityProbeTest

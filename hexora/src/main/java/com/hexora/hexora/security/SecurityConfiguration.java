@@ -4,7 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
+import jakarta.persistence.EntityManager;
 import tools.jackson.databind.ObjectMapper;
+import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -19,6 +21,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.session.SessionInformationExpiredStrategy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +34,9 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 @Configuration
 @EnableWebSecurity
@@ -57,6 +63,20 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
+	TenantContextFilter tenantContextFilter(org.springframework.beans.factory.ObjectProvider<EntityManager> entityManagerProvider) {
+		return new TenantContextFilter(entityManagerProvider);
+	}
+
+	@Bean
+	FilterRegistrationBean<TenantContextFilter> tenantContextFilterRegistration(
+		TenantContextFilter tenantContextFilter
+	) {
+		FilterRegistrationBean<TenantContextFilter> registration = new FilterRegistrationBean<>(tenantContextFilter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
 	DaoAuthenticationProvider authenticationProvider(
 		TinyHatUserDetailsService userDetailsService,
 		PasswordEncoder passwordEncoder
@@ -77,6 +97,116 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
+	SecurityContextRepository securityContextRepository() {
+		return new HttpSessionSecurityContextRepository();
+	}
+
+	@Bean
+	Clock sessionClock() {
+		return Clock.systemUTC();
+	}
+
+	@Bean
+	SessionActivityFilter sessionActivityFilter(
+		TinyHatSecurityProperties securityProperties,
+		Clock sessionClock,
+		com.hexora.hexora.repository.UsuarioRepository usuarioRepository,
+		com.hexora.hexora.repository.CuentaRepository cuentaRepository,
+		SessionRegistry sessionRegistry,
+		AuditService auditService
+	) {
+		return new SessionActivityFilter(
+			securityProperties,
+			sessionClock,
+			usuarioRepository,
+			cuentaRepository,
+			sessionRegistry,
+			auditService,
+			objectMapper
+		);
+	}
+
+	@Bean
+	FilterRegistrationBean<SessionActivityFilter> sessionActivityFilterRegistration(
+		SessionActivityFilter sessionActivityFilter
+	) {
+		FilterRegistrationBean<SessionActivityFilter> registration =
+			new FilterRegistrationBean<>(sessionActivityFilter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	IpRateLimitFilter ipRateLimitFilter(
+		TinyHatSecurityProperties properties,
+		ClientIpResolver clientIpResolver,
+		LoginAttemptService loginAttemptService,
+		RateLimitService rateLimitService,
+		RateLimitAuditGate auditGate,
+		AuditService auditService
+	) {
+		return new IpRateLimitFilter(
+			properties, clientIpResolver, loginAttemptService, rateLimitService, auditGate, auditService, objectMapper
+		);
+	}
+
+	@Bean
+	FilterRegistrationBean<IpRateLimitFilter> ipRateLimitFilterRegistration(IpRateLimitFilter filter) {
+		FilterRegistrationBean<IpRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	UserRateLimitFilter userRateLimitFilter(
+		TinyHatSecurityProperties properties,
+		ClientIpResolver clientIpResolver,
+		RateLimitService rateLimitService,
+		RateLimitAuditGate auditGate,
+		AuditService auditService
+	) {
+		return new UserRateLimitFilter(
+			properties, clientIpResolver, rateLimitService, auditGate, auditService, objectMapper
+		);
+	}
+
+	@Bean
+	FilterRegistrationBean<UserRateLimitFilter> userRateLimitFilterRegistration(UserRateLimitFilter filter) {
+		FilterRegistrationBean<UserRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	LoginAttemptFilter loginAttemptFilter(
+		LoginAttemptService loginAttemptService,
+		ClientIpResolver clientIpResolver,
+		RateLimitAuditGate auditGate,
+		AuditService auditService
+	) {
+		return new LoginAttemptFilter(loginAttemptService, clientIpResolver, auditGate, auditService);
+	}
+
+	@Bean
+	FilterRegistrationBean<LoginAttemptFilter> loginAttemptFilterRegistration(LoginAttemptFilter filter) {
+		FilterRegistrationBean<LoginAttemptFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	MfaGateFilter mfaGateFilter(TinyHatSecurityProperties properties, MfaService mfaService) {
+		return new MfaGateFilter(properties, mfaService, objectMapper);
+	}
+
+	@Bean
+	FilterRegistrationBean<MfaGateFilter> mfaGateFilterRegistration(MfaGateFilter filter) {
+		FilterRegistrationBean<MfaGateFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
 	@Order(1)
 	SecurityFilterChain apiSecurityFilterChain(
 		HttpSecurity http,
@@ -84,22 +214,37 @@ public class SecurityConfiguration {
 		SessionRegistry sessionRegistry,
 		TinyHatSecurityProperties securityProperties,
 		ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
-		ApiAccessDeniedHandler apiAccessDeniedHandler
+		ApiAccessDeniedHandler apiAccessDeniedHandler,
+		TenantContextFilter tenantContextFilter,
+		SessionActivityFilter sessionActivityFilter,
+		IpRateLimitFilter ipRateLimitFilter,
+		UserRateLimitFilter userRateLimitFilter,
+		MfaGateFilter mfaGateFilter,
+		SecurityContextRepository securityContextRepository
 	) throws Exception {
 		http
 			.securityMatcher("/api/**")
 			.authenticationProvider(authenticationProvider)
+			.securityContext(context -> context.securityContextRepository(securityContextRepository))
 			.requestCache(cache -> cache.requestCache(new NullRequestCache()))
 			.sessionManagement(session -> {
 				session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
 				session.sessionFixation(fixation -> fixation.changeSessionId());
 				session.maximumSessions(securityProperties.getSession().getMaxPerUser())
 					.maxSessionsPreventsLogin(false)
+					.expiredSessionStrategy(event -> writeJsonError(
+						objectMapper,
+						event.getRequest(),
+						event.getResponse(),
+						HttpStatus.UNAUTHORIZED,
+						"SESSION_REPLACED"
+					))
 					.sessionRegistry(sessionRegistry);
 			})
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers("/api/agent/**").denyAll()
 				.requestMatchers(
+					"/api/organizaciones/*/invitaciones",
 					"/api/cves/buscar",
 					"/api/cves/*/detalle",
 					"/api/network/scan",
@@ -125,6 +270,11 @@ public class SecurityConfiguration {
 			.exceptionHandling(exceptions -> exceptions
 				.authenticationEntryPoint(apiAuthenticationEntryPoint)
 				.accessDeniedHandler(apiAccessDeniedHandler))
+			.addFilterAfter(tenantContextFilter, org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class)
+			.addFilterAfter(sessionActivityFilter, TenantContextFilter.class)
+			.addFilterBefore(ipRateLimitFilter, org.springframework.security.web.context.SecurityContextHolderFilter.class)
+			.addFilterAfter(mfaGateFilter, SessionActivityFilter.class)
+			.addFilterAfter(userRateLimitFilter, MfaGateFilter.class)
 			.headers(this::configureHeaders);
 		return http.build();
 	}
@@ -137,15 +287,27 @@ public class SecurityConfiguration {
 		SessionRegistry sessionRegistry,
 		TinyHatSecurityProperties securityProperties,
 		AuditService auditService,
-		WebAccessDeniedHandler webAccessDeniedHandler
+		WebAccessDeniedHandler webAccessDeniedHandler,
+		TenantContextFilter tenantContextFilter,
+		SessionActivityFilter sessionActivityFilter,
+		Clock sessionClock,
+		IpRateLimitFilter ipRateLimitFilter,
+		UserRateLimitFilter userRateLimitFilter,
+		LoginAttemptFilter loginAttemptFilter,
+		LoginAttemptService loginAttemptService,
+		ClientIpResolver clientIpResolver,
+		MfaGateFilter mfaGateFilter,
+		SecurityContextRepository securityContextRepository
 	) throws Exception {
 		http
 			.authenticationProvider(authenticationProvider)
+			.securityContext(context -> context.securityContextRepository(securityContextRepository))
 			.sessionManagement(session -> {
 				session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
 				session.sessionFixation(fixation -> fixation.changeSessionId());
 				session.maximumSessions(securityProperties.getSession().getMaxPerUser())
 					.maxSessionsPreventsLogin(false)
+					.expiredUrl("/login?replaced")
 					.sessionRegistry(sessionRegistry);
 			})
 			.authorizeHttpRequests(authorize -> authorize
@@ -153,6 +315,9 @@ public class SecurityConfiguration {
 					"/",
 					"/login",
 					"/registro",
+					"/verificar/**",
+					"/verificar-correo/**",
+					"/recuperar",
 					"/recuperar/**",
 					"/recuperar-contrasena",
 					"/invitacion/**",
@@ -163,36 +328,22 @@ public class SecurityConfiguration {
 					"/imagen/**",
 					"/favicon.ico"
 				).permitAll()
-				.requestMatchers(
+					.requestMatchers("/mfa/**").authenticated()
+					.requestMatchers(
 					"/dashboard",
 					"/inicio",
-					"/proyectos",
-					"/proyectos/",
-					"/proyectos/nuproyectos",
-					"/proyectos/guardar",
-					"/proyectos/{id}",
-					"/proyectos/{id}/editar",
-					"/proyectos/{id}/actualizar",
-					"/proyectos/{id}/eliminar",
-					"/proyectos/{idProyecto}/areas/nueva",
-					"/proyectos/{idProyecto}/departamentos/nuevo",
-					"/proyectos/{idProyecto}/areas/guardar",
-					"/proyectos/{idProyecto}/departamentos/guardar",
-					"/areas/{idArea}",
-					"/proyectos/{idProyecto}/departamentos/{idArea}",
-					"/areas/{idArea}/editar",
-					"/areas/{idArea}/actualizar",
-					"/areas/{idArea}/eliminar",
-					"/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva",
-					"/proyectos/{pid}/departamentos/{did}/vulnerabilidades/guardar",
-					"/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar",
-					"/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}",
-					"/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/actualizar",
-					"/proyectos/{pid}/departamentos/{did}/vulnerabilidades/eliminar/{vid}",
 					"/network-monitoring",
 					"/network-monitoring/history",
 					"/ws/network"
 				).hasRole("AUDITOR")
+				.requestMatchers(
+					"/proyectos",
+					"/proyectos/",
+					"/proyectos/{publicId}",
+					"/areas/{areaPublicId}",
+					"/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}"
+				).hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
+				.requestMatchers("/proyectos/**", "/areas/**").hasRole("AUDITOR")
 				.anyRequest().denyAll())
 			.formLogin(form -> form
 				.loginPage("/login")
@@ -200,8 +351,15 @@ public class SecurityConfiguration {
 				.usernameParameter("email")
 				.passwordParameter("password")
 				.failureUrl("/login?error")
-				.successHandler(loginSuccessHandler(auditService))
-				.failureHandler(loginFailureHandler(auditService)))
+				.successHandler(loginSuccessHandler(
+					auditService,
+					sessionClock,
+					loginAttemptService,
+					clientIpResolver,
+					securityProperties,
+					securityContextRepository
+				))
+				.failureHandler(loginFailureHandler(auditService, loginAttemptService, clientIpResolver)))
 			.logout(logout -> logout
 				.logoutUrl("/logout")
 				.invalidateHttpSession(true)
@@ -211,6 +369,12 @@ public class SecurityConfiguration {
 				.logoutSuccessUrl("/login?logout"))
 			.exceptionHandling(exceptions -> exceptions
 				.accessDeniedHandler(webAccessDeniedHandler))
+			.addFilterAfter(tenantContextFilter, org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class)
+			.addFilterAfter(sessionActivityFilter, TenantContextFilter.class)
+			.addFilterBefore(ipRateLimitFilter, org.springframework.security.web.context.SecurityContextHolderFilter.class)
+			.addFilterAfter(mfaGateFilter, SessionActivityFilter.class)
+			.addFilterAfter(userRateLimitFilter, MfaGateFilter.class)
+			.addFilterBefore(loginAttemptFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
 			.headers(this::configureHeaders);
 		return http.build();
 	}
@@ -225,19 +389,55 @@ public class SecurityConfiguration {
 			.cacheControl(Customizer.withDefaults());
 	}
 
-	private AuthenticationSuccessHandler loginSuccessHandler(AuditService auditService) {
+	private AuthenticationSuccessHandler loginSuccessHandler(
+		AuditService auditService,
+		Clock clock,
+		LoginAttemptService loginAttemptService,
+		ClientIpResolver clientIpResolver,
+		TinyHatSecurityProperties securityProperties,
+		SecurityContextRepository securityContextRepository
+	) {
 		return (request, response, authentication) -> {
 			if (!(authentication.getPrincipal() instanceof TinyHatPrincipal principal)) {
 				throw new IllegalStateException("Authenticated principal has an unsupported type");
+			}
+			long now = clock.millis();
+			jakarta.servlet.http.HttpSession session = request.getSession(false);
+			if (session == null) {
+				throw new IllegalStateException("Authenticated session was not created");
+			}
+			session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+			session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
+			loginAttemptService.recordSuccess(request.getParameter("email"));
+			if (securityProperties.getMfa().isRequired()) {
+				org.springframework.security.core.context.SecurityContext context =
+					org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+				context.setAuthentication(
+					org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(
+						principal,
+						null,
+						java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority(
+							"ROLE_PRE_MFA"
+						))
+					)
+				);
+				org.springframework.security.core.context.SecurityContextHolder.setContext(context);
+				securityContextRepository.saveContext(context, request, response);
 			}
 			auditService.loginSucceeded(principal, request);
 			response.sendRedirect(request.getContextPath() + "/dashboard");
 		};
 	}
 
-	private AuthenticationFailureHandler loginFailureHandler(AuditService auditService) {
+	private AuthenticationFailureHandler loginFailureHandler(
+		AuditService auditService,
+		LoginAttemptService loginAttemptService,
+		ClientIpResolver clientIpResolver
+	) {
 		return (request, response, exception) -> {
-			auditService.loginFailed(request.getParameter("email"), request);
+			String email = request.getParameter("email");
+			loginAttemptService.recordFailure(email, clientIpResolver.resolve(request));
+			auditService.loginFailed(email, request);
 			response.sendRedirect(request.getContextPath() + "/login?error");
 		};
 	}

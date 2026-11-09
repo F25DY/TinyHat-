@@ -51,8 +51,87 @@ public class AuditService {
 	}
 
 	@Transactional
+	public void sessionExpired(TinyHatPrincipal principal, HttpServletRequest request, String reason) {
+		record("SESSION_EXPIRED", "EXPIRED", principal, request, Map.of("reason", reason));
+	}
+
+	@Transactional
 	public void accessDenied(HttpServletRequest request) {
 		record("ACCESS_DENIED", "DENEGADO", principal(request), request, Map.of());
+	}
+
+	@Transactional
+	public void mfaReset(TinyHatPrincipal principal, HttpServletRequest request) {
+		record("MFA_RESET", "OK", principal, request, Map.of());
+	}
+
+	@Transactional
+	public void rateLimited(String category, String subject, String clientIp, HttpServletRequest request) {
+		TinyHatPrincipal principal = principal(request);
+		AuditEvent event = new AuditEvent();
+		event.setEvento("RATE_LIMITED");
+		event.setResultado("DENEGADO");
+		event.setCuentaId(principal == null ? FALLBACK_ACCOUNT_ID : principal.getCuentaId());
+		event.setUsuarioId(principal == null ? null : principal.getUserId());
+		event.setOrganizacionId(principal == null ? null : principal.getOrganizacionId());
+		event.setIp(clientIp);
+		event.setUserAgent(limit(request.getHeader("User-Agent"), 512));
+		event.setCorrelationId(MDC.get(CorrelationIdFilter.MDC_KEY));
+		event.setDetalle(Map.of("category", category, "subject", subject));
+		auditEventRepository.save(event);
+	}
+
+	@Transactional
+	public void scopedNotFound(TinyHatPrincipal principal, HttpServletRequest request) {
+		AuditEvent event = new AuditEvent();
+		event.setEvento("NOT_FOUND_SCOPED");
+		event.setResultado("NOT_FOUND");
+		event.setCuentaId(principal.getCuentaId());
+		event.setUsuarioId(principal.getUserId());
+		event.setOrganizacionId(principal.getOrganizacionId());
+		event.setIp(request.getRemoteAddr());
+		event.setUserAgent(limit(request.getHeader("User-Agent"), 512));
+		event.setRecursoTipo("ROUTE");
+		event.setCorrelationId(MDC.get(CorrelationIdFilter.MDC_KEY));
+		event.setDetalle(Map.of("path", limit(request.getRequestURI(), 512)));
+		auditEventRepository.save(event);
+	}
+
+	@Transactional
+	public void userCreated(Usuario usuario, HttpServletRequest request) {
+		record("USER_CREATED", "OK", knownPrincipal(usuario), request, Map.of("email", usuario.getEmailNormalizado()));
+	}
+
+	@Transactional
+	public void userVerified(Usuario usuario, HttpServletRequest request) {
+		record("USER_VERIFIED", "OK", knownPrincipal(usuario), request, Map.of("email", usuario.getEmailNormalizado()));
+	}
+
+	@Transactional
+	public void userInvited(Usuario usuario, TinyHatPrincipal auditor, HttpServletRequest request) {
+		record("USER_INVITED", "OK", auditor, request, Map.of(
+			"invitedUserId", usuario.getId(),
+			"email", usuario.getEmailNormalizado(),
+			"role", usuario.getRol()
+		));
+	}
+
+	@Transactional
+	public void passwordReset(Usuario usuario, HttpServletRequest request) {
+		record("PASSWORD_RESET", "OK", knownPrincipal(usuario), request, Map.of("email", usuario.getEmailNormalizado()));
+	}
+
+	@Transactional
+	public void opsCommand(String command, String targetPublicId, String outcome) {
+		AuditEvent event = new AuditEvent();
+		event.setEvento("OPS_COMMAND");
+		event.setResultado(outcome);
+		event.setCuentaId(FALLBACK_ACCOUNT_ID);
+		event.setIp("127.0.0.1");
+		event.setUserAgent("OPS_CLI");
+		event.setCorrelationId(MDC.get(CorrelationIdFilter.MDC_KEY));
+		event.setDetalle(Map.of("command", command, "target", targetPublicId != null ? targetPublicId : ""));
+		auditEventRepository.save(event);
 	}
 
 	private void record(

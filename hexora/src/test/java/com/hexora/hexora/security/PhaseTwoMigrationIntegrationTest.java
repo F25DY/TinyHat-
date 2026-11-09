@@ -25,7 +25,7 @@ import org.testcontainers.mysql.MySQLContainer;
 @SpringBootTest(properties = {
 	"spring.jpa.hibernate.ddl-auto=validate",
 	"spring.flyway.clean-disabled=true",
-	"spring.flyway.target=23",
+	"spring.flyway.target=25",
 	"hexora.network.discovery-enabled=false",
 	"hexora.network.monitor-interval-ms=2147483647",
 	"hexora.network.retention-cleanup-interval-ms=2147483647"
@@ -99,12 +99,12 @@ class PhaseTwoMigrationIntegrationTest {
 	}
 
 	@Test
-	void migratesToVersion23WithoutLosingExistingRowsOrPublicIds() {
+	void migratesToVersion25WithoutLosingExistingRowsOrPublicIds() {
 		assertThat(jdbcTemplate.queryForObject(
 			"SELECT version FROM flyway_schema_history WHERE success = TRUE " +
 				"ORDER BY installed_rank DESC LIMIT 1",
 			String.class
-		)).isEqualTo("23");
+		)).isEqualTo("25");
 
 		PRE_MIGRATION_COUNTS.forEach((table, expectedCount) ->
 			assertThat(countRows(table)).as("row count in %s", table).isEqualTo(expectedCount)

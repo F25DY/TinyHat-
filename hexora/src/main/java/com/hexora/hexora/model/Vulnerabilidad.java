@@ -12,10 +12,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "vulnerabilidad")
-public class Vulnerabilidad {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class Vulnerabilidad implements TenantScopedEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -75,7 +79,7 @@ public class Vulnerabilidad {
     @JoinColumn(name = "id_area", nullable = false)
     private AreaAuditable areaAuditable;
 
-    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
@@ -271,6 +275,11 @@ public class Vulnerabilidad {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
     }
 
     public String getPublicId() {

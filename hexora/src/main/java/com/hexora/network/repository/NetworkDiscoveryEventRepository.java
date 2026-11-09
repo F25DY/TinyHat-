@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,17 @@ public interface NetworkDiscoveryEventRepository extends JpaRepository<NetworkDi
 
     List<NetworkDiscoveryEvent> findTop20ByOrderByCreatedAtDesc();
 
-    @Query("select event.id from NetworkDiscoveryEvent event where event.createdAt < :cutoff order by event.createdAt, event.id")
-    List<Long> findIdsCreatedBefore(@Param("cutoff") LocalDateTime cutoff, Pageable pageable);
+    @Query("""
+        select event.id from NetworkDiscoveryEvent event
+        where event.cuentaId = :cuentaId and event.createdAt < :cutoff
+        order by event.createdAt, event.id
+        """)
+    List<Long> findIdsCreatedBefore(
+        @Param("cutoff") LocalDateTime cutoff,
+        @Param("cuentaId") Long cuentaId,
+        Pageable pageable);
+
+    @Modifying
+    @Query("delete from NetworkDiscoveryEvent event where event.cuentaId = :cuentaId")
+    int deleteAllForAccount(@Param("cuentaId") Long cuentaId);
 }

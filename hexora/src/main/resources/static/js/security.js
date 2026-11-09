@@ -20,7 +20,15 @@
 
         const response = await nativeFetch(input, options);
         if (response.status === 401 && window.location.pathname !== "/login") {
-            window.location.assign("/login?expired");
+            let loginReason = "expired";
+            try {
+                if ((await response.clone().json()).error === "SESSION_REPLACED") {
+                    loginReason = "replaced";
+                }
+            } catch (_) {
+                // Non-JSON 401 responses still represent an expired authentication.
+            }
+            window.location.assign(`/login?${loginReason}`);
         } else if (response.status === 403) {
             document.dispatchEvent(new CustomEvent("hexora:forbidden"));
         }

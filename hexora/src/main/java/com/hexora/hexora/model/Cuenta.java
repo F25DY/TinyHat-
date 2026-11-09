@@ -33,7 +33,13 @@ public class Cuenta {
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
 
-    protected Cuenta() {
+    public Cuenta() {
+    }
+
+    public Cuenta(String nombre, String tipo, String estado) {
+        this.nombre = nombre;
+        this.tipo = tipo;
+        this.estado = estado;
     }
 
     public Long getId() {

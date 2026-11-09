@@ -6,12 +6,17 @@ import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import com.hexora.hexora.security.TinyHatCapabilityProperties;
+import com.hexora.hexora.security.TinyHatNvdProperties;
 import com.hexora.hexora.security.TinyHatSecurityProperties;
 
 @SpringBootApplication(scanBasePackages = {"com.hexora.hexora", "com.hexora.network"})
 @EntityScan(basePackages = {"com.hexora.hexora", "com.hexora.network"})
 @EnableJpaRepositories(basePackages = {"com.hexora.hexora", "com.hexora.network"})
-@EnableConfigurationProperties({TinyHatSecurityProperties.class, TinyHatCapabilityProperties.class})
+@EnableConfigurationProperties({
+	TinyHatSecurityProperties.class,
+	TinyHatCapabilityProperties.class,
+	TinyHatNvdProperties.class
+})
 public class HexoraApplication {
 
 	public static void main(String[] args) {

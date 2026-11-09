@@ -30,6 +30,7 @@ import com.hexora.network.repository.NetworkHostRepository;
 import com.hexora.network.repository.NetworkScanRepository;
 import com.hexora.network.repository.MonitoredPortRepository;
 import com.hexora.network.repository.PortScanResultRepository;
+import com.hexora.hexora.security.TenantContext;
 import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -66,8 +67,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -291,6 +290,7 @@ public class NetworkMonitoringService {
 
     @Transactional
     public synchronized NetworkInventoryUpdateDto synchronizeDetectedDevices() {
+        TenantContext.requireTenantId();
         LocalNetworkSnapshot snapshot = localNetworkDiscoveryService.readCurrentNeighbors();
         LocalDateTime observedAt = LocalDateTime.ofInstant(snapshot.observedAt(), ZoneOffset.UTC);
         Map<String, NetworkHost> registeredHosts = hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc().stream()
@@ -549,11 +549,12 @@ public class NetworkMonitoringService {
     public void clearHistory() {
         historyLock.writeLock().lock();
         try {
-            discoveryEventRepository.deleteAllInBatch();
-            discoverySnapshotRepository.deleteAllInBatch();
-            eventRepository.deleteAllInBatch();
-            portResultRepository.deleteAllInBatch();
-            scanRepository.deleteAllInBatch();
+            Long cuentaId = TenantContext.requireTenantId();
+            discoveryEventRepository.deleteAllForAccount(cuentaId);
+            discoverySnapshotRepository.deleteAllForAccount(cuentaId);
+            eventRepository.deleteAllForAccount(cuentaId);
+            portResultRepository.deleteAllForAccount(cuentaId);
+            scanRepository.deleteAllForAccount(cuentaId);
             resetHostStatuses(hostRepository.findAll());
         } finally {
             historyLock.writeLock().unlock();
@@ -562,6 +563,7 @@ public class NetworkMonitoringService {
 
     @Transactional
     public int purgeExpiredHistory() {
+        Long cuentaId = TenantContext.requireTenantId();
         historyLock.readLock().lock();
         try {
             LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC)
@@ -569,6 +571,7 @@ public class NetworkMonitoringService {
             int deletedScans = 0;
             List<Long> expiredScanIds = scanRepository.findIdsStartedBefore(
                 cutoff,
+                cuentaId,
                 PageRequest.of(0, HISTORY_CLEANUP_BATCH_SIZE)
             );
             if (!expiredScanIds.isEmpty()) {
@@ -578,15 +581,15 @@ public class NetworkMonitoringService {
                 deletedScans = expiredScanIds.size();
             }
             PageRequest batch = PageRequest.of(0, HISTORY_CLEANUP_BATCH_SIZE);
-            List<Long> unlinkedEventIds = eventRepository.findUnlinkedIdsBefore(cutoff, batch);
+            List<Long> unlinkedEventIds = eventRepository.findUnlinkedIdsBefore(cutoff, cuentaId, batch);
             if (!unlinkedEventIds.isEmpty()) {
                 eventRepository.deleteAllByIdInBatch(unlinkedEventIds);
             }
-            List<Long> discoveryEventIds = discoveryEventRepository.findIdsCreatedBefore(cutoff, batch);
+            List<Long> discoveryEventIds = discoveryEventRepository.findIdsCreatedBefore(cutoff, cuentaId, batch);
             if (!discoveryEventIds.isEmpty()) {
                 discoveryEventRepository.deleteAllByIdInBatch(discoveryEventIds);
             }
-            List<Long> snapshotIds = discoverySnapshotRepository.findIdsObservedBefore(cutoff, batch);
+            List<Long> snapshotIds = discoverySnapshotRepository.findIdsObservedBefore(cutoff, cuentaId, batch);
             if (!snapshotIds.isEmpty()) {
                 discoverySnapshotRepository.deleteAllByIdInBatch(snapshotIds);
             }
@@ -637,9 +640,9 @@ public class NetworkMonitoringService {
         }
     }
 
-    @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void synchronizeAllowedHosts() {
+        TenantContext.requireTenantId();
         Set<String> configuredAddresses = new HashSet<>();
         for (NetworkMonitorProperties.AllowedHost target : properties.getAllowedHosts()) {
             String name = target.getName().trim();
@@ -978,6 +981,7 @@ public class NetworkMonitoringService {
 
     @Transactional(readOnly = true)
     public List<Long> getConfiguredHostIds() {
+        TenantContext.requireTenantId();
         return hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc().stream()
             .filter(this::isConfigured)
             .map(NetworkHost::getId)

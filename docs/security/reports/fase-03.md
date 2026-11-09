@@ -12,13 +12,11 @@ Se completó la configuración de autenticación y autorización de Fase 3:
 
 ## 2. Migraciones
 
-No se ejecutaron migraciones en la base compartida.
+Las migraciones V18–V24 se ejecutaron en instancias MySQL de Testcontainers durante las pruebas. V18 detecta los nombres reales de las FKs antiguas y puede continuar desde el estado parcial hallado.
 
-Las migraciones V18–V24 se ejecutaron en instancias MySQL de Testcontainers durante las pruebas. V18 detecta el nombre real de la FK auditoría-organización antes de reemplazarla; el mapeo final usa `organizacion_cliente_id`.
+Tras crear snapshots previos, se ejecutó Flyway repair para eliminar el registro fallido y luego se aplicaron V18–V24 a `hexora_db`, con cada objetivo explícitamente limitado a la versión prevista. El último snapshot, en `C:\Users\Fredy\OneDrive\Documentos\dumps\Dump20261108_pre_v19_v24.sql`, se restauró en MySQL desechable y el tramo V19–V24 se validó allí antes de la aplicación compartida. El dump `Dump20261108.sql` inspeccionado inicialmente reflejaba V18 fallida y no fue importado.
 
-La base compartida `hexora_db` continúa en estado parcial: V17 exitosa, V18 fallida. El dump `Dump20261108.sql`, inspeccionado en solo lectura, también registra V18 con `success=0`, conserva `auditoria.empresa_id` y la FK anterior, y contiene los cambios parciales de `cuenta` y `organizacion_cliente`. Por tanto, es una copia del estado parcial y no un respaldo previo a V18. No se importó.
-
-No ejecutar la aplicación ni Flyway contra el datasource predeterminado hasta acordar y validar la recuperación.
+La base está en V24, todas las versiones registradas son exitosas, y los conteos originales se conservaron. Se verificó que las relaciones usen `organizacion_cliente_id`, que existan 36 FKs de cuenta, que los cruces comprobados sean cero, y que los puertos 21–24 sigan habilitados tras normalizarse. No se crearon ni aplicaron versiones posteriores a V24.
 
 ## 3. Criterios de aceptación
 
@@ -43,16 +41,16 @@ Todos los contextos con JPA/Flyway usaron Testcontainers. Los registros muestran
 
 ## 5. Desviaciones
 
-- Se documentó el uso de V24 para normalizar `monitored_port`, aunque el mapa original reservaba V24 para MFA. La numeración futura debe actualizarse antes de desarrollar V25–V27. Ver [IMPLEMENTATION_LOG.md](../IMPLEMENTATION_LOG.md).
-- La FK de auditoría tenía un nombre distinto al supuesto originalmente. V18 ahora resuelve el nombre por metadatos y fue probada desde un esquema limpio V17.
-- El dump `Dump20261108.sql` fue localizado mediante la ruta proporcionada e inspeccionado solo para metadatos/DDL relevantes. No fue importado ni ejecutado.
+- V24 normaliza `monitored_port`, desplazando el número que el plan original reservaba para MFA. MFA y futuras migraciones deben comenzar en una versión libre posterior; se propone V25 para MFA. Ver [IMPLEMENTATION_LOG.md](../IMPLEMENTATION_LOG.md).
+- La FK de auditoría, área y vulnerabilidad tenían nombres generados distintos a los supuestos originalmente. V18 resuelve esos nombres por metadatos y se probó en un clon aislado del dump y desde un esquema limpio.
+- V19 creó las tablas de usuario y asignaciones sin insertar usuarios. No se alteró ni eliminó ningún usuario existente; no había registros en `usuario`.
 
 ## 6. Riesgos y pendientes
 
-- La base compartida no está migrada y mantiene una fila de V18 fallida y cambios DDL parciales. El dump disponible refleja el mismo estado, por lo que no permite restaurar el estado anterior a V18. Se necesita un respaldo pre-V18 o un procedimiento de recuperación probado primero en una copia aislada.
-- La unificación canónica de activos de red y la validación compuesta que impide cruces de cuenta siguen pendientes. La normalización de puertos es parcial hasta revisar el respaldo y probar el traspaso de datos.
-- No avanzar a Fase 4 ni aplicar V18–V24 a la base compartida hasta revisar el dump, acordar la recuperación y completar las migraciones de esquema requeridas.
+- La base compartida está en V24. El snapshot previo a V18 y el snapshot previo a V19–V24 se conservaron en `C:\Users\Fredy\OneDrive\Documentos\dumps\Dump20261108_pre_recovery.sql` y `C:\Users\Fredy\OneDrive\Documentos\dumps\Dump20261108_pre_v19_v24.sql`.
+- La unificación canónica de activos de red y el vínculo opcional al catálogo CVE manteniendo captura manual aún no están implementados; requieren migraciones posteriores y cambios de aplicación.
+- El mapa original reservaba V24 para MFA, pero ese número ya lo ocupa la normalización de puertos. Asignar MFA y demás versiones nuevas desde V25.
 
 ## 7. Validación manual
 
-Las pruebas MockMvc cubren login, logout, CSRF, respuestas API/web, cabeceras, rutas denegadas y auditoría. No se recomienda iniciar la aplicación manualmente con el perfil/datasource actual porque Flyway intentaría operar sobre la base compartida.
+Las pruebas MockMvc cubren login, logout, CSRF, respuestas API/web, cabeceras, rutas denegadas y auditoría. `HexoraApplicationTests` pasó (1/1) con JPA/Hibernate validando el esquema. Las seis migraciones V19–V24 se aplicaron primero a una restauración desechable y después a la base compartida mediante Flyway.

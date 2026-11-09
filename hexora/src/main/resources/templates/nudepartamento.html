@@ -57,21 +57,26 @@
     <main class="contenido-principal">
 
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos/{id}(id=${auditoria.idAuditoria})}" class="link-volver">
+            <a th:href="@{/proyectos/{id}(id=${auditoria.publicId})}" class="link-volver">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div class="titulos-nuevo">
-                <h1 class="titulo-pagina">Agregar Nuevo Departamento</h1>
-                <!-- Corrección: descripción en lugar de nombre del proyecto -->
-                <p class="subtitulo">Crea un departamento para organizar las vulnerabilidades del proyecto</p>
+                <h1 class="titulo-pagina" th:text="${areaEditing} ? 'Editar Departamento' : 'Agregar Nuevo Departamento'">
+                    Agregar Nuevo Departamento
+                </h1>
+                <p class="subtitulo" th:text="${areaEditing} ? 'Actualiza la información del área auditable' : 'Crea un departamento para organizar las vulnerabilidades del proyecto'">
+                    Crea un departamento para organizar las vulnerabilidades del proyecto
+                </p>
             </div>
         </header>
 
         <section class="tarjeta-blanca contenedor-formulario">
-            <h3 class="seccion-form-titulo">Información del Departamento</h3>
+            <h3 class="seccion-form-titulo" th:text="${areaEditing} ? 'Editar área auditable' : 'Información del Departamento'">
+                Información del Departamento
+            </h3>
 
-            <form th:action="@{/proyectos/{id}/departamentos/guardar(id=${auditoria.idAuditoria})}"
-                    th:object="${departamentoForm}"
+            <form th:action="${areaAction}"
+                    th:object="${areaForm}"
                     method="post"
                     class="form-proyecto">
 
@@ -90,11 +95,12 @@
                 </div>
 
                 <div class="acciones-formulario">
-                    <a th:href="@{/proyectos/{id}(id=${auditoria.idAuditoria})}">
+                    <a th:href="@{/proyectos/{id}(id=${auditoria.publicId})}">
                         <button type="button" class="btn-cancelar">Cancelar</button>
                     </a>
                     <button type="submit" class="btn-guardar">
-                        <i class="fa-solid fa-floppy-disk"></i> Crear Departamento
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span th:text="${areaEditing} ? 'Actualizar Departamento' : 'Crear Departamento'">Crear Departamento</span>
                     </button>
                 </div>
 

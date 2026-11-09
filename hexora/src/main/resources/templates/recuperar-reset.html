@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexora - Nueva Contraseña</title>
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+</head>
+<body>
+    <main>
+        <section class="login">
+            <header>
+                <img th:src="@{/imagen/logo.png}" alt="Logo Hexora">
+                <h1>Hexora</h1>
+                <p>Establecer Nueva Contraseña</p>
+            </header>
+
+            <form th:action="@{/recuperar/{token}(token=${token})}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label for="password">Nueva Contraseña (mínimo 12 caracteres)</label>
+                <input type="password" id="password" name="password" placeholder="••••••••••••" required>
+
+                <button type="submit">Actualizar Contraseña</button>
+            </form>
+
+            <p style="margin-top: 1rem;">
+                <a th:href="@{/login}">Volver al inicio de sesión</a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="pie-pagina-login">
+        <p>Secure Access &bull; Encrypted Connection</p>
+    </footer>
+</body>
+</html>
+

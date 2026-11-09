@@ -11,10 +11,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name= "auditoria")
-public class Auditoria {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class Auditoria implements TenantScopedEntity {
 
     //Definimos Id
     @Id
@@ -41,7 +45,7 @@ public class Auditoria {
     @JoinColumn(name = "organizacion_cliente_id", nullable = false)
     private Empresa empresa;
 
-    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
@@ -134,6 +138,11 @@ public class Auditoria {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
     }
 
     public String getPublicId() {

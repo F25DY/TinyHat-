@@ -72,7 +72,7 @@
                 <p class="subtitulo">Administra tus proyectos de auditoría y pentesting</p>
             </div>
 
-            <a th:href="@{/proyectos/nuproyectos}" style="text-decoration: none;">
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}" style="text-decoration: none;">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Crear Proyecto
                 </button>
@@ -111,11 +111,11 @@
 
                     <tr th:each="aud : ${auditorias}">
                         <td class="nombre-destacado">
-                            <a th:href="@{/proyectos/{id}(id=${aud.idAuditoria})}" style="text-decoration:none;color:inherit;">
+                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" style="text-decoration:none;color:inherit;">
                                 <span th:text="${aud.nombre}"></span>
                             </a>
                             <br>
-                            <small style="color:#666; font-size:0.8rem;" th:text="@{/proyectos/{id}(id=${aud.idAuditoria})}"></small>
+                            <small style="color:#666; font-size:0.8rem;" th:text="@{/proyectos/{id}(id=${aud.publicId})}"></small>
                         </td>
                         <td class="texto-empresa">
                             <i class="fa-solid fa-building"></i>
@@ -129,8 +129,8 @@
                         <td th:text="${aud.fechaInico}"></td>
                         <td th:text="${aud.fechaFin}"></td>
                         <td>
-                            <a th:href="@{/proyectos/{id}(id=${aud.idAuditoria})}" class="btn-verdetalle">Ver</a>
-                            <form th:action="@{/proyectos/{id}/eliminar(id=${aud.idAuditoria})}" method="post" style="display:inline">
+                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="btn-verdetalle">Ver</a>
+                            <form th:if="${canManageProjects}" th:action="@{/proyectos/{id}/eliminar(id=${aud.publicId})}" method="post" style="display:inline">
                                 <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar proyecto?')">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>

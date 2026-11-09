@@ -14,14 +14,20 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import com.hexora.hexora.model.PublicIds;
+import com.hexora.hexora.model.TenantScopedEntity;
+import com.hexora.hexora.model.TenantScopedEntityListener;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "network_scan")
-public class NetworkScan {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class NetworkScan implements TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,7 +57,7 @@ public class NetworkScan {
     @Column(name = "completed_at", nullable = false)
     private LocalDateTime completedAt;
 
-    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
@@ -129,6 +135,11 @@ public class NetworkScan {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
     }
 
     public String getPublicId() {

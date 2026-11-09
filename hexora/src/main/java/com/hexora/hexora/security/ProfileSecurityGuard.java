@@ -43,6 +43,9 @@ public class ProfileSecurityGuard implements BeanFactoryPostProcessor, Environme
         if (!hasText(environment.getProperty("spring.datasource.password"))) {
             violations.add("DB_PASSWORD must be configured");
         }
+        if (mfaRequired && !MfaKeyValidator.isValid(mfaKey)) {
+            violations.add("TINYHAT_MFA_KEY must be a Base64-encoded 32-byte key when MFA is required");
+        }
 
         if (production) {
             if (!sslEnabled) {
@@ -50,8 +53,6 @@ public class ProfileSecurityGuard implements BeanFactoryPostProcessor, Environme
             }
             if (!mfaRequired) {
                 violations.add("MFA must be required");
-            } else if (!hasText(mfaKey)) {
-                violations.add("TINYHAT_MFA_KEY must be configured when MFA is required");
             }
             if (cspReportOnly) {
                 violations.add("CSP report-only mode must be disabled");

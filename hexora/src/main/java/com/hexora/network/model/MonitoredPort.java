@@ -10,6 +10,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.EntityListeners;
+import com.hexora.hexora.model.TenantScopedEntity;
+import com.hexora.hexora.model.TenantScopedEntityListener;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "monitored_port", uniqueConstraints = {
@@ -17,7 +21,9 @@ import jakarta.persistence.UniqueConstraint;
         name = "uk_monitored_port_cuenta_host_port",
         columnNames = {"cuenta_id", "network_host_id", "port"})
 })
-public class MonitoredPort {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class MonitoredPort implements TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +39,7 @@ public class MonitoredPort {
     @Column(nullable = false)
     private boolean enabled = true;
 
-    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
@@ -69,6 +75,11 @@ public class MonitoredPort {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
     }
 
     public String getPublicId() {

@@ -63,7 +63,7 @@
             </a>
             <div class="titulos-nuevo">
                 <h1 class="titulo-pagina"
-                    th:text="${vulnerabilidadForm.id != null} ? 'Editar Vulnerabilidad' : 'Agregar Vulnerabilidad'">
+                    th:text="${editing} ? 'Editar Vulnerabilidad' : 'Agregar Vulnerabilidad'">
                     Agregar Vulnerabilidad
                 </h1>
                 <p class="subtitulo" th:text="'Departamento: ' + ${departamento.nombre}">Departamento</p>
@@ -219,7 +219,7 @@
                     </a>
                     <button type="submit" class="btn-guardar">
                         <i class="fa-solid fa-floppy-disk"></i>
-                        <span th:text="${vulnerabilidadForm.id != null} ? 'Actualizar Vulnerabilidad' : 'Guardar Vulnerabilidad'">
+                        <span th:text="${editing} ? 'Actualizar Vulnerabilidad' : 'Guardar Vulnerabilidad'">
                             Guardar Vulnerabilidad
                         </span>
                     </button>

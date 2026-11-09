@@ -12,12 +12,18 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
 import com.hexora.hexora.model.PublicIds;
+import com.hexora.hexora.model.TenantScopedEntity;
+import com.hexora.hexora.model.TenantScopedEntityListener;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "network_event")
-public class NetworkEvent {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class NetworkEvent implements TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,7 +47,7 @@ public class NetworkEvent {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
@@ -97,6 +103,11 @@ public class NetworkEvent {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
     }
 
     public String getPublicId() {

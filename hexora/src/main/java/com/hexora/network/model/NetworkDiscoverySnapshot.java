@@ -11,14 +11,20 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import com.hexora.hexora.model.PublicIds;
+import com.hexora.hexora.model.TenantScopedEntity;
+import com.hexora.hexora.model.TenantScopedEntityListener;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "network_discovery_snapshot")
-public class NetworkDiscoverySnapshot {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class NetworkDiscoverySnapshot implements TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +39,7 @@ public class NetworkDiscoverySnapshot {
     @Column(name = "observed_at", nullable = false)
     private LocalDateTime observedAt;
 
-    @Column(name = "cuenta_id", nullable = false, insertable = false, updatable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
@@ -73,6 +79,11 @@ public class NetworkDiscoverySnapshot {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
     }
 
     public String getPublicId() {

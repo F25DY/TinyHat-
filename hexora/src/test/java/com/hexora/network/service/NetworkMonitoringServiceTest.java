@@ -26,6 +26,7 @@ import com.hexora.network.repository.NetworkEventRepository;
 import com.hexora.network.repository.NetworkHostRepository;
 import com.hexora.network.repository.NetworkScanRepository;
 import com.hexora.network.repository.PortScanResultRepository;
+import com.hexora.hexora.security.TenantContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -120,7 +121,7 @@ class NetworkMonitoringServiceTest {
         when(detectedDeviceRepository.findAll()).thenReturn(List.of(device));
         when(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc()).thenReturn(List.of(device));
 
-        service.synchronizeDetectedDevices();
+        TenantContext.runAs(1L, () -> service.synchronizeDetectedDevices());
 
         assertEquals(NetworkHostStatus.OFFLINE, device.getStatus());
         assertEquals(1, device.getConsecutiveMisses());
@@ -138,7 +139,7 @@ class NetworkMonitoringServiceTest {
         when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of());
         when(detectedDeviceRepository.findAll()).thenReturn(List.of());
 
-        service.discoverLocalNetwork();
+        TenantContext.runAs(1L, () -> service.discoverLocalNetwork());
 
         ArgumentCaptor<NetworkDiscoverySnapshot> snapshotCaptor =
             ArgumentCaptor.forClass(NetworkDiscoverySnapshot.class);
@@ -180,7 +181,7 @@ class NetworkMonitoringServiceTest {
         when(detectedDeviceRepository.findAll()).thenAnswer(invocation -> new java.util.ArrayList<>(knownDevices));
         when(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc()).thenReturn(knownDevices);
 
-        var update = service.discoverLocalNetwork();
+        var update = TenantContext.runAs(1L, service::discoverLocalNetwork);
 
         assertEquals(1, update.devices().size());
         assertEquals("192.168.1.25", update.devices().getFirst().address());
@@ -361,13 +362,13 @@ class NetworkMonitoringServiceTest {
         host.setLatencyMs(12);
         when(hostRepository.findAll()).thenReturn(List.of(host));
 
-        service.clearHistory();
+        TenantContext.runAs(1L, () -> service.clearHistory());
 
-        verify(discoveryEventRepository).deleteAllInBatch();
-        verify(discoverySnapshotRepository).deleteAllInBatch();
-        verify(eventRepository).deleteAllInBatch();
-        verify(portResultRepository).deleteAllInBatch();
-        verify(scanRepository).deleteAllInBatch();
+        verify(discoveryEventRepository).deleteAllForAccount(1L);
+        verify(discoverySnapshotRepository).deleteAllForAccount(1L);
+        verify(eventRepository).deleteAllForAccount(1L);
+        verify(portResultRepository).deleteAllForAccount(1L);
+        verify(scanRepository).deleteAllForAccount(1L);
         verify(hostRepository).saveAll(List.of(host));
         assertEquals(NetworkHostStatus.UNKNOWN, host.getStatus());
         assertNull(host.getLatencyMs());
@@ -376,12 +377,14 @@ class NetworkMonitoringServiceTest {
     @Test
     void purgesExpiredHistoryInForeignKeySafeBatches() {
         List<Long> expiredScanIds = List.of(12L, 13L);
-        when(scanRepository.findIdsStartedBefore(any(), any())).thenReturn(expiredScanIds);
-        when(eventRepository.findUnlinkedIdsBefore(any(), any())).thenReturn(List.of(21L, 22L, 23L));
-        when(discoveryEventRepository.findIdsCreatedBefore(any(), any())).thenReturn(List.of(31L, 32L, 33L, 34L));
-        when(discoverySnapshotRepository.findIdsObservedBefore(any(), any())).thenReturn(List.of(41L, 42L, 43L, 44L, 45L));
+        when(scanRepository.findIdsStartedBefore(any(), any(), any())).thenReturn(expiredScanIds);
+        when(eventRepository.findUnlinkedIdsBefore(any(), any(), any())).thenReturn(List.of(21L, 22L, 23L));
+        when(discoveryEventRepository.findIdsCreatedBefore(any(), any(), any()))
+            .thenReturn(List.of(31L, 32L, 33L, 34L));
+        when(discoverySnapshotRepository.findIdsObservedBefore(any(), any(), any()))
+            .thenReturn(List.of(41L, 42L, 43L, 44L, 45L));
 
-        int deletedRecords = service.purgeExpiredHistory();
+        int deletedRecords = TenantContext.runAs(1L, service::purgeExpiredHistory);
 
         assertEquals(14, deletedRecords);
         verify(eventRepository).deleteAllForScans(expiredScanIds);

@@ -4,9 +4,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "capacidad_cuenta")
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
 public class CapacidadCuenta {
 
     @EmbeddedId
@@ -15,7 +17,12 @@ public class CapacidadCuenta {
     @Column(nullable = false)
     private boolean habilitada;
 
-    protected CapacidadCuenta() {
+    public CapacidadCuenta() {
+    }
+
+    public CapacidadCuenta(CapacidadCuentaId id, boolean habilitada) {
+        this.id = id;
+        this.habilitada = habilitada;
     }
 
     public CapacidadCuentaId getId() {

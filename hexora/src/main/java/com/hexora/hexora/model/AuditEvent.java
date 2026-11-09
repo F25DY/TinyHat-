@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Filter;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "audit_event")
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
 public class AuditEvent {
 
     @Id

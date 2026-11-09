@@ -1,6 +1,16 @@
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\HexoraApplicationTests.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\ClientIpResolverTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\IpRateLimitFilterTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\LoginAttemptFilterTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\LoginAttemptServiceTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\PhaseFiveSessionHttpIntegrationTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\PhaseFourTenantIsolationIntegrationTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\PhaseThreeSecurityIntegrationTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\PhaseTwoMigrationIntegrationTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\RateLimitCategoryTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\RateLimitServiceTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\SessionActivityFilterTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\security\UserRateLimitFilterTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\hexora\service\CveServiceTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\network\controller\NetworkMonitoringWebTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\network\scheduler\NetworkMonitoringSchedulerTest.java
@@ -10,4 +20,5 @@ C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexor
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\network\service\NetworkReachabilityProbeTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\network\service\NetworkScheduledTaskLockTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\network\service\NmapHostDiscoveryTest.java
+C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\network\websocket\NetworkMonitorWebSocketHandlerTest.java
 C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\test\java\com\hexora\test\IsolatedMySqlTestDatabase.java

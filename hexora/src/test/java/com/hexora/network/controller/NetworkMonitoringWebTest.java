@@ -13,11 +13,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.hexora.hexora.HexoraApplication;
+import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.security.SessionActivityFilter;
 import com.hexora.test.IsolatedMySqlTestDatabase;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -29,6 +37,30 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    private TinyHatPrincipal principal;
+
+    @BeforeEach
+    void createAuditorPrincipal() {
+        String email = "network-test-" + UUID.randomUUID() + "@example.test";
+        jdbcTemplate.update(
+            "INSERT INTO usuario "
+                + "(public_id, cuenta_id, rol, estado, email_normalizado, password_hash) "
+                + "VALUES (?, 1, 'AUDITOR', 'ACTIVO', ?, ?)",
+            UUID.randomUUID().toString(),
+            email,
+            passwordEncoder.encode("network-test-password"));
+        principal = (TinyHatPrincipal) userDetailsService.loadUserByUsername(email);
+    }
 
     @Test
     void servesAnIndependentMonitoringPage() throws Exception {
@@ -186,6 +218,12 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
     }
 
     private ResultActions performAsAuditor(MockHttpServletRequestBuilder request) throws Exception {
-        return mockMvc.perform(request.with(user("network-test").roles("AUDITOR")));
+        long now = System.currentTimeMillis();
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+        session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
+        return mockMvc.perform(request
+            .session(session)
+            .with(user(principal)));
     }
 }

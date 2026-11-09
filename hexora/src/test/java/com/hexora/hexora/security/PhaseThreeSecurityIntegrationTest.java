@@ -40,9 +40,20 @@ import org.testcontainers.mysql.MySQLContainer;
 @SpringBootTest(properties = {
 	"spring.jpa.hibernate.ddl-auto=validate",
 	"spring.flyway.clean-disabled=true",
+	"tinyhat.security.mfa.required=false",
 	"hexora.network.discovery-enabled=false",
 	"hexora.network.monitor-interval-ms=2147483647",
-	"hexora.network.retention-cleanup-interval-ms=2147483647"
+	"hexora.network.retention-cleanup-interval-ms=2147483647",
+	"tinyhat.security.ratelimit.auth.capacity=100",
+	"tinyhat.security.ratelimit.auth.refill-tokens=100",
+	"tinyhat.security.login.throttle.schedule-seconds[0]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[1]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[2]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[3]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[4]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[5]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[6]=0",
+	"tinyhat.security.login.throttle.schedule-seconds[7]=0"
 })
 @AutoConfigureMockMvc
 class PhaseThreeSecurityIntegrationTest {
@@ -196,12 +207,82 @@ class PhaseThreeSecurityIntegrationTest {
 			.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("TINYHAT_SID=")))
 			.andReturn();
 		assertThat(session.isInvalid()).isTrue();
+		String deletedCookie = logout.getResponse().getHeader("Set-Cookie");
+		assertThat(deletedCookie).contains("TINYHAT_SID=");
 		assertThat(jdbcTemplate.queryForObject(
 			"SELECT COUNT(*) FROM audit_event " +
 				"WHERE evento = 'LOGOUT' AND correlation_id = ? AND usuario_id IS NOT NULL",
 			Integer.class,
 			logout.getResponse().getHeader(CorrelationIdFilter.HEADER_NAME)
 		)).isEqualTo(1);
+	}
+
+	@Test
+	void loginRotatesSessionIdAndStampsActivityTimes() throws Exception {
+		MvcResult beforeLogin = mockMvc.perform(get("/login")).andExpect(status().isOk()).andReturn();
+		MockHttpSession preAuthenticationSession =
+			(MockHttpSession) beforeLogin.getRequest().getSession(false);
+		assertThat(preAuthenticationSession).isNotNull();
+		String previousSessionId = preAuthenticationSession.getId();
+
+		MvcResult login = mockMvc.perform(post("/login")
+				.session(preAuthenticationSession)
+				.with(csrf())
+				.param("email", email)
+				.param("password", "phase3-test-password"))
+			.andExpect(status().isFound())
+			.andReturn();
+
+		MockHttpSession authenticatedSession = (MockHttpSession) login.getRequest().getSession(false);
+		assertThat(authenticatedSession).isNotNull();
+		assertThat(authenticatedSession.getId()).isNotEqualTo(previousSessionId);
+		assertThat(authenticatedSession.getAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE))
+			.isInstanceOf(Number.class);
+		assertThat(authenticatedSession.getAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE))
+			.isInstanceOf(Number.class);
+	}
+
+	@Test
+	void secondLoginReplacesThePreviousSession() throws Exception {
+		MockHttpSession firstSession = loginAndGetSession();
+		MockHttpSession secondSession = loginAndGetSession();
+
+		mockMvc.perform(get("/api/network/status").session(firstSession).accept(MediaType.APPLICATION_JSON))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.error").value("SESSION_REPLACED"));
+
+		mockMvc.perform(get("/api/network/status").session(secondSession).accept(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void suspendedUserSessionIsRejectedOnItsNextRequest() throws Exception {
+		MockHttpSession session = loginAndGetSession();
+		jdbcTemplate.update("UPDATE usuario SET estado = 'SUSPENDIDO' WHERE email_normalizado = ?", email);
+
+		mockMvc.perform(get("/api/network/status").session(session).accept(MediaType.APPLICATION_JSON))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.error").value("SESSION_EXPIRED"));
+		assertThat(jdbcTemplate.queryForObject(
+			"SELECT COUNT(*) FROM audit_event "
+				+ "WHERE evento = 'SESSION_EXPIRED' AND usuario_id = "
+				+ "(SELECT id FROM usuario WHERE email_normalizado = ?)",
+			Integer.class,
+			email)).isEqualTo(1);
+	}
+
+	private MockHttpSession loginAndGetSession() throws Exception {
+		MvcResult beforeLogin = mockMvc.perform(get("/login")).andReturn();
+		MockHttpSession preAuthenticationSession =
+			(MockHttpSession) beforeLogin.getRequest().getSession(false);
+		MvcResult login = mockMvc.perform(post("/login")
+				.session(preAuthenticationSession)
+				.with(csrf())
+				.param("email", email)
+				.param("password", "phase3-test-password"))
+			.andExpect(status().isFound())
+			.andReturn();
+		return (MockHttpSession) login.getRequest().getSession(false);
 	}
 
 	@Test

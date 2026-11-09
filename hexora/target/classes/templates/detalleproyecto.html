@@ -66,7 +66,7 @@
                 <p class="subtitulo" th:text="${proyecto.empresa}">Empresa</p>
             </div>
             <!-- Botón que va a agregar departamento pasando el ID del proyecto -->
-            <a th:href="@{/proyectos/{id}/departamentos/nuevo(id=${proyecto.id})}" 
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/areas/nueva(id=${proyecto.id})}"
                 style="text-decoration:none;">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Agregar Departamento
@@ -130,8 +130,8 @@
         <section class="tarjeta-blanca contenedor-busqueda">
             <div class="campo-busqueda">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="buscador" 
-                       placeholder="Buscar departamentos..." 
+                <input type="text" id="buscador"
+                       placeholder="Buscar departamentos..."
                        onkeyup="filtrarDepartamentos()">
             </div>
         </section>
@@ -145,7 +145,7 @@
             </div>
 
             <!-- Tarjeta por cada departamento -->
-            <article class="tarjeta-blanca tarjeta-departamento" 
+            <article class="tarjeta-blanca tarjeta-departamento"
                      th:each="dep : ${proyecto.departamentos}">
                 <h3 th:text="${dep.nombre}"></h3>
                 <p class="texto-gris" th:text="${dep.descripcion}"></p>

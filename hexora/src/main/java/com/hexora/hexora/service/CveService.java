@@ -10,7 +10,6 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -18,6 +17,9 @@ import org.springframework.web.client.RestClientException;
 
 import com.hexora.hexora.model.Cve;
 import com.hexora.hexora.repository.CveRepository;
+import com.hexora.hexora.security.NvdRateLimitService;
+import com.hexora.hexora.security.RateLimitExceededException;
+import com.hexora.hexora.security.TinyHatNvdProperties;
 
 /**
  * Busca CVEs. Primero mira en la base de datos local (rápido). Si no encuentra
@@ -29,7 +31,6 @@ public class CveService {
 
     private static final Logger log = LoggerFactory.getLogger(CveService.class);
 
-    private static final String URL_NVD = "https://services.nvd.nist.gov/rest/json/cves/2.0";
     private static final Pattern PATRON_CVE = Pattern.compile("^CVE-\\d{4}-\\d{4,}$", Pattern.CASE_INSENSITIVE);
     private static final int MAX_ENLACES_PARCHE = 5;
 
@@ -37,14 +38,15 @@ public class CveService {
     private final TraductorService traductorService;
     private final RestClient restClient;
     private final String apiKey;
+    private final NvdRateLimitService nvdRateLimitService;
 
-    // NVD_API_KEY sale del archivo .env. Si está vacía, igual funciona, pero con menos consultas permitidas.
     public CveService(CveRepository cveRepository, TraductorService traductorService,
-            @Value("${NVD_API_KEY:}") String apiKey) {
+            TinyHatNvdProperties properties, NvdRateLimitService nvdRateLimitService) {
         this.cveRepository = cveRepository;
         this.traductorService = traductorService;
-        this.apiKey = apiKey;
-        this.restClient = RestClient.builder().baseUrl(URL_NVD).build();
+        this.apiKey = properties.getApiKey();
+        this.nvdRateLimitService = nvdRateLimitService;
+        this.restClient = RestClient.builder().baseUrl(properties.getBaseUrl()).build();
     }
 
     public List<Cve> buscar(String texto) {
@@ -125,6 +127,10 @@ public class CveService {
     private List<Map<String, Object>> consultarNvd(String parametro, String valor) {
         List<Map<String, Object>> resultado = new ArrayList<>();
         try {
+            long retryAfter = nvdRateLimitService.tryConsume();
+            if (retryAfter > 0) {
+                throw new RateLimitExceededException(retryAfter);
+            }
             Map<String, Object> respuesta = restClient.get()
                     .uri(uri -> uri.queryParam(parametro, "{valor}")
                             .queryParam("resultsPerPage", 10)
@@ -143,8 +149,10 @@ public class CveService {
                     resultado.add(mapa(item.get("cve")));
                 }
             }
+        } catch (RateLimitExceededException e) {
+            log.warn("Consulta NVD omitida por límite local; reintento disponible en {} s", e.getRetryAfterSeconds());
         } catch (RestClientException e) {
-            // Si el NVD no responde o nos pasamos del límite, la app no se cae: solo avisa en el log.
+            // Si el NVD no responde, la app conserva los resultados locales y lo registra.
             log.warn("No se pudo consultar el NVD ({}={}): {}", parametro, valor, e.getMessage());
         }
         return resultado;
