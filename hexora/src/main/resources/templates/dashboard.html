@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Dashboard</title>
+    <title>TinyHat - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="pagina-dashboard">
 
     <aside class="sidebar">
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
 
@@ -43,14 +45,19 @@
                 </div>
             </div>
             <a th:href="@{/}" class="boton-cerrar-sesion">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesi�n
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesin
             </a>
         </div>
+
     </aside>
 
     <main class="contenido-principal">
         <header class="encabezado-principal">
-            <h1 class="titulo-pagina">Dashboard</h1>
+            <div class="identidad-dashboard">
+                <p class="etiqueta-dashboard">CENTRO DE CONTROL</p>
+                <h1 class="titulo-pagina"><span class="texto-degradado">Dashboard</span></h1>
+                <p class="subtitulo-dashboard">Supervisa el estado de seguridad de tus proyectos.</p>
+            </div>
             <div class="acciones-encabezado">
                 <div class="contenedor-notificaciones">
                     <i class="fa-solid fa-bell"></i>
@@ -59,31 +66,64 @@
             </div>
         </header>
 
-        <section class="seccion-metricas">
-            <article class="tarjeta-blanca">
+        <section class="tinyhat-welcome" aria-labelledby="tinyhat-welcome-title">
+            <div class="row align-items-center g-3">
+                <div class="col-12 col-lg-8 tinyhat-welcome__content">
+                    <p class="tinyhat-welcome__eyebrow">
+                        <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
+                        Ponte el sombrero por tu seguridad
+                    </p>
+                    <h2 class="tinyhat-welcome__title" id="tinyhat-welcome-title">
+                        <span data-tinyhat-greeting>Bienvenido</span>,
+                        <span class="tinyhat-welcome__name">Analista <span aria-hidden="true">👋</span></span>
+                    </h2>
+                    <p class="tinyhat-welcome__description">Supervisa el estado de seguridad de tus proyectos.</p>
+                    <div class="tinyhat-welcome__actions">
+                        <a th:href="@{/proyectos/nuproyectos}" class="tinyhat-welcome__button tinyhat-welcome__button--primary rounded-pill">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            Crear Nuevo Proyecto
+                        </a>
+                        <a th:href="@{/proyectos}" class="tinyhat-welcome__button tinyhat-welcome__button--secondary rounded-pill">
+                            Ver Todos los Proyectos
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4 tinyhat-welcome__visual" aria-hidden="true">
+                    <span class="tinyhat-welcome__ring"></span>
+                    <span class="tinyhat-welcome__ring tinyhat-welcome__ring--outer"></span>
+                    <div class="tinyhat-welcome__logo">
+                        <img th:src="@{/imagen/logo.png}" alt="">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="seccion-metricas row g-3">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo azul"><i class="fa-solid fa-folder-tree"></i></div>
                 <h2 class="numero-grande">12</h2>
                 <p class="texto-gris">Total Proyectos</p>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo naranja"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 <h2 class="numero-grande">47</h2>
                 <p class="texto-gris">Vulnerabilidades Activas</p>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo rojo"><i class="fa-solid fa-bolt"></i></div>
                 <h2 class="numero-grande">8</h2>
                 <p class="texto-gris">Críticas</p>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo verde"><i class="fa-solid fa-check-double"></i></div>
                 <h2 class="numero-grande">23</h2>
                 <p class="texto-gris">Mitigadas este mes</p>
             </article>
         </section>
 
-        <div class="grid-intermedio">
-            <section class="tarjeta-blanca container-riesgos">
+        <div class="grid-intermedio row g-3">
+            <section class="tarjeta-blanca container-riesgos col-md-6">
                 <h3>Distribución de Riesgos</h3>
                 <div class="risk-item">
                     <div class="risk-info"><span>Crítico</span> <span class="badge bg-rojo">8</span></div>
@@ -102,7 +142,7 @@
                     <div class="progress-bar"><div class="progress bg-verde" style="width: 15%;"></div></div>
                 </div>
             </section>
-            <section class="tarjeta-blanca container-actividad">
+            <section class="tarjeta-blanca container-actividad col-md-6">
                 <h3>Actividad Reciente</h3>
                 <ul class="lista-actividad">
                     <li>
@@ -142,5 +182,18 @@
         </section>
     </main>
 
+    <script>
+        (() => {
+            const greeting = document.querySelector('[data-tinyhat-greeting]');
+            if (!greeting) return;
+
+            const hour = new Date().getHours();
+            greeting.textContent = hour >= 5 && hour < 12
+                ? 'Buenos días'
+                : hour >= 12 && hour < 19
+                    ? 'Buenas tardes'
+                    : 'Buenas noches';
+        })();
+    </script>
 </body>
 </html>

@@ -1,0 +1,16 @@
+com\hexora\hexora\HexoraApplication.class
+com\hexora\hexora\dto\ProyectoView.class
+com\hexora\hexora\model\Auditoria.class
+com\hexora\hexora\model\Empresa.class
+com\hexora\hexora\controller\AreaController.class
+com\hexora\hexora\dto\ProyectoView$DepartamentoView.class
+com\hexora\hexora\repository\EmpresaRepository.class
+com\hexora\hexora\model\Vulnerabilidad.class
+com\hexora\hexora\controller\VulnerabilidadController.class
+com\hexora\hexora\repository\AreaAuditableRepository.class
+com\hexora\hexora\repository\VulnerabilidadRepository.class
+com\hexora\hexora\model\AreaAuditable.class
+com\hexora\hexora\controller\DashboardController.class
+com\hexora\hexora\repository\AuditoriaRepository.class
+com\hexora\hexora\controller\AuthController.class
+com\hexora\hexora\controller\ProyectosController.class

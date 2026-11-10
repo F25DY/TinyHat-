@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Detalle Vulnerabilidad</title>
+    <title>TinyHat - Detalle Vulnerabilidad</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -13,7 +15,7 @@
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
         <nav class="menu">
@@ -77,20 +79,20 @@
             </div>
         </section>
 
-        <section class="seccion-metricas">
-            <article class="tarjeta-blanca">
+        <section class="seccion-metricas row g-3">
+            <article class="tarjeta-blanca col-md-3">
                 <p class="texto-gris">Impacto</p>
                 <h2 class="numero-grande" th:text="${vulnerabilidad.impacto} + '/10'">0/10</h2>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <p class="texto-gris">Probabilidad</p>
                 <h2 class="numero-grande" th:text="${vulnerabilidad.probabilidad} + '/10'">0/10</h2>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <p class="texto-gris">Nivel de Riesgo</p>
                 <h2 class="numero-grande" th:text="${vulnerabilidad.nivelRiesgo}">Bajo</h2>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <p class="texto-gris">Fecha de Deteccion</p>
                 <h2 class="numero-grande" th:text="${vulnerabilidad.fechaDeteccion}">--</h2>
             </article>
@@ -98,28 +100,28 @@
 
         <section class="tarjeta-blanca contenedor-formulario">
             <h3 class="seccion-form-titulo">Activo Afectado</h3>
-            <div class="grid-form">
-                <div>
+            <div class="grid-form row g-3">
+                <div class="col-md-6">
                     <p class="texto-gris">Herramienta</p>
                     <p th:text="${vulnerabilidad.herramienta} ?: '--'">--</p>
                 </div>
-                <div>
+                <div class="col-md-6">
                     <p class="texto-gris">Host</p>
                     <p th:text="${vulnerabilidad.host} ?: '--'">--</p>
                 </div>
-                <div>
+                <div class="col-md-6">
                     <p class="texto-gris">IP</p>
                     <p th:text="${vulnerabilidad.ipAfectada} ?: '--'">--</p>
                 </div>
-                <div>
+                <div class="col-md-6">
                     <p class="texto-gris">Puerto</p>
                     <p th:text="${vulnerabilidad.puerto} ?: '--'">--</p>
                 </div>
-                <div>
+                <div class="col-md-6">
                     <p class="texto-gris">Servicio</p>
                     <p th:text="${vulnerabilidad.servicio} ?: '--'">--</p>
                 </div>
-                <div>
+                <div class="col-md-6">
                     <p class="texto-gris">CVE</p>
                     <p th:text="${vulnerabilidad.cve} ?: '--'">--</p>
                 </div>

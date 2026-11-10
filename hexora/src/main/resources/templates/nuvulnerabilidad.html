@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Vulnerabilidad</title>
+    <title>TinyHat - Vulnerabilidad</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -13,7 +15,7 @@
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
         <nav class="menu">
@@ -69,30 +71,30 @@
             <section class="tarjeta-blanca contenedor-formulario">
                 <h3 class="seccion-form-titulo">Informacion Basica</h3>
 
-                <div class="campo-grupo">
-                    <label>Nombre <span class="requerido">*</span></label>
-                    <input type="text" th:field="*{nombre}" placeholder="Ej: SQL Injection" required>
-                </div>
+                <div class="grid-form row g-3">
+                    <div class="campo-grupo col-md-6">
+                        <label>Nombre <span class="requerido">*</span></label>
+                        <input class="form-control" type="text" th:field="*{nombre}" placeholder="Ej: SQL Injection" required>
+                    </div>
 
-                <div class="grid-form">
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Tipo <span class="requerido">*</span></label>
-                        <input type="text" th:field="*{tipo}" placeholder="Ej: Inyeccion SQL" required>
+                        <input class="form-control" type="text" th:field="*{tipo}" placeholder="Ej: Inyeccion SQL" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Herramienta</label>
-                        <input type="text" th:field="*{herramienta}" placeholder="Ej: Burp Suite, Nmap, OWASP ZAP">
+                        <input class="form-control" type="text" th:field="*{herramienta}" placeholder="Ej: Burp Suite, Nmap, OWASP ZAP">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Fecha de Deteccion <span class="requerido">*</span></label>
-                        <input type="date" th:field="*{fechaDeteccion}" required>
+                        <input class="form-control" type="date" th:field="*{fechaDeteccion}" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Estado <span class="requerido">*</span></label>
-                        <select th:field="*{estado}" required>
+                        <select class="form-select" th:field="*{estado}" required>
                             <option value="Abierta">Abierta</option>
                             <option value="En Progreso">En Progreso</option>
                             <option value="Mitigada">Mitigada</option>
@@ -105,30 +107,30 @@
             <section class="tarjeta-blanca contenedor-formulario">
                 <h3 class="seccion-form-titulo">Activo Afectado</h3>
 
-                <div class="grid-form">
-                    <div class="campo-grupo">
+                <div class="grid-form row g-3">
+                    <div class="campo-grupo col-md-6">
                         <label>Host afectado</label>
-                        <input type="text" th:field="*{host}" placeholder="Ej: app.hexora.local">
+                        <input class="form-control" type="text" th:field="*{host}" placeholder="Ej: app.hexora.local">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>IP afectada</label>
-                        <input type="text" th:field="*{ipAfectada}" placeholder="Ej: 192.168.1.10">
+                        <input class="form-control" type="text" th:field="*{ipAfectada}" placeholder="Ej: 192.168.1.10">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Puerto afectado</label>
-                        <input type="number" th:field="*{puerto}" min="1" max="65535" placeholder="Ej: 443">
+                        <input class="form-control" type="number" th:field="*{puerto}" min="1" max="65535" placeholder="Ej: 443">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Servicio</label>
-                        <input type="text" th:field="*{servicio}" placeholder="Ej: HTTPS, SSH, MySQL">
+                        <input class="form-control" type="text" th:field="*{servicio}" placeholder="Ej: HTTPS, SSH, MySQL">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>CVE</label>
-                        <input type="text" th:field="*{cve}" placeholder="Ej: CVE-2026-0001">
+                        <input class="form-control" type="text" th:field="*{cve}" placeholder="Ej: CVE-2026-0001">
                     </div>
                 </div>
             </section>
@@ -136,35 +138,35 @@
             <section class="tarjeta-blanca contenedor-formulario">
                 <h3 class="seccion-form-titulo">Evaluacion de Riesgo</h3>
 
-                <div class="grid-form">
-                    <div class="campo-grupo">
+                <div class="grid-form row g-3">
+                    <div class="campo-grupo col-md-6">
                         <label>Confidencialidad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{confidencialidad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input class="form-control" type="number" th:field="*{confidencialidad}" min="0" max="10" oninput="calcularRiesgo()" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Integridad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{integridad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input class="form-control" type="number" th:field="*{integridad}" min="0" max="10" oninput="calcularRiesgo()" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Disponibilidad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{disponibilidad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input class="form-control" type="number" th:field="*{disponibilidad}" min="0" max="10" oninput="calcularRiesgo()" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Probabilidad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{probabilidad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input class="form-control" type="number" th:field="*{probabilidad}" min="0" max="10" oninput="calcularRiesgo()" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Impacto <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{impacto}" id="campo-impacto" step="0.01" min="0" max="10" readonly required>
+                        <input class="form-control" type="number" th:field="*{impacto}" id="campo-impacto" step="0.01" min="0" max="10" readonly required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label>Nivel de Riesgo</label>
-                        <input type="text" id="campo-nivel-riesgo-visible" th:value="*{nivelRiesgo}" readonly>
+                        <input class="form-control" type="text" id="campo-nivel-riesgo-visible" th:value="*{nivelRiesgo}" readonly>
                         <input type="hidden" th:field="*{nivelRiesgo}" id="campo-nivel-riesgo">
                     </div>
                 </div>
@@ -177,16 +179,16 @@
                             <p>El impacto y nivel se calculan con los valores ingresados</p>
                         </div>
                     </div>
-                    <div class="grid-calculo">
-                        <div>
+                    <div class="grid-calculo row g-3">
+                        <div class="col-md-4">
                             <p class="texto-gris">Impacto</p>
                             <p class="numero-calculo" id="resultado-impacto">0/10</p>
                         </div>
-                        <div>
+                        <div class="col-md-4">
                             <p class="texto-gris">Puntaje</p>
                             <p class="numero-calculo" id="resultado-puntaje">0/10</p>
                         </div>
-                        <div>
+                        <div class="col-md-4">
                             <p class="texto-gris">Nivel</p>
                             <span class="badge badge-verde" id="resultado-nivel">Bajo</span>
                         </div>
@@ -199,16 +201,16 @@
 
                 <div class="campo-grupo">
                     <label>Plan de Mitigacion</label>
-                    <textarea th:field="*{planMitigacion}"
+                    <textarea class="form-control" th:field="*{planMitigacion}"
                               rows="5"
                               placeholder="Describe los pasos para mitigar esta vulnerabilidad..."></textarea>
                 </div>
 
                 <div class="acciones-formulario">
                     <a th:href="${returnUrl}">
-                        <button type="button" class="btn-cancelar">Cancelar</button>
+                        <button type="button" class="btn btn-cancelar">Cancelar</button>
                     </a>
-                    <button type="submit" class="btn-guardar">
+                    <button type="submit" class="btn btn-guardar">
                         <i class="fa-solid fa-floppy-disk"></i>
                         <span th:text="${vulnerabilidadForm.id != null} ? 'Actualizar Vulnerabilidad' : 'Guardar Vulnerabilidad'">
                             Guardar Vulnerabilidad

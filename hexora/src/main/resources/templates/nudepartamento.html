@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Nuevo Departamento</title>
+    <title>TinyHat - Nuevo Departamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -13,7 +15,7 @@
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
         <nav class="menu">
@@ -67,25 +69,27 @@
                     method="post"
                     class="form-proyecto">
 
-                <div class="campo-grupo">
-                    <label>Nombre del Departamento <span class="requerido">*</span></label>
-                    <input type="text"
+                <div class="grid-form row g-3">
+                    <div class="campo-grupo col-md-6">
+                        <label>Nombre del Departamento <span class="requerido">*</span></label>
+                        <input class="form-control" type="text"
                             th:field="*{nombre}"
                             placeholder="Ej: Aplicaciones Web, API REST, Infraestructura" required>
-                </div>
+                    </div>
 
-                <div class="campo-grupo">
-                    <label>Descripción <span class="requerido">*</span></label>
-                    <textarea th:field="*{descripcion}"
-                                rows="5"
-                                placeholder="Describe el alcance y área de este departamento..."required></textarea>
+                    <div class="campo-grupo col-md-6">
+                        <label>Descripción <span class="requerido">*</span></label>
+                        <textarea class="form-control" th:field="*{descripcion}"
+                                  rows="5"
+                                  placeholder="Describe el alcance y área de este departamento..."required></textarea>
+                    </div>
                 </div>
 
                 <div class="acciones-formulario">
                     <a th:href="@{/proyectos/{id}(id=${auditoria.idAuditoria})}">
-                        <button type="button" class="btn-cancelar">Cancelar</button>
+                        <button type="button" class="btn btn-cancelar">Cancelar</button>
                     </a>
-                    <button type="submit" class="btn-guardar">
+                    <button type="submit" class="btn btn-guardar">
                         <i class="fa-solid fa-floppy-disk"></i> Crear Departamento
                     </button>
                 </div>

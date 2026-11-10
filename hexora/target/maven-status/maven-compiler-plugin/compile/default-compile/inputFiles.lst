@@ -1,15 +1,15 @@
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\AreaController.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\AuthController.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\DashboardController.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\ProyectosController.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\VulnerabilidadController.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\dto\ProyectoView.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\HexoraApplication.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\model\AreaAuditable.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\model\Auditoria.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\model\Empresa.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\model\Vulnerabilidad.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\AreaAuditableRepository.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\AuditoriaRepository.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\EmpresaRepository.java
-C:\Users\Fredy\OneDrive\Documentos\OneDrive\Desktop\Ronin\Uni\4to Semestre\Hexora\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\VulnerabilidadRepository.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\AreaController.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\AuthController.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\DashboardController.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\ProyectosController.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\controller\VulnerabilidadController.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\dto\ProyectoView.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\HexoraApplication.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\model\AreaAuditable.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\model\Auditoria.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\model\Empresa.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\model\Vulnerabilidad.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\AreaAuditableRepository.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\AuditoriaRepository.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\EmpresaRepository.java
+C:\Users\HP\Hexora-\hexora\src\main\java\com\hexora\hexora\repository\VulnerabilidadRepository.java

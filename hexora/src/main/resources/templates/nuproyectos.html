@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Crear Proyecto</title>
+    <title>TinyHat - Crear Proyecto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -13,7 +15,7 @@
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
 
@@ -72,35 +74,35 @@
             <h3 class="seccion-form-titulo">Información Básica</h3>
 
             <form th:action="@{/proyectos/guardar}" method="post" id="form-nuevo-proyecto" class="form-proyecto">
-                <div class="grid-form">
-                    <div class="campo-grupo">
+                <div class="grid-form row g-3">
+                    <div class="campo-grupo col-md-6">
                         <label for="nombreEmpresa">Empresa / Auditoría <span class="requerido">*</span></label>
-                        <input type="text" id="nombreEmpresa" name="nombreEmpresa" placeholder="Ej: Banco Nacional" required>
+                        <input class="form-control" type="text" id="nombreEmpresa" name="nombreEmpresa" placeholder="Ej: Banco Nacional" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="nit">NIT</label>
-                        <input type="text" id="nit" name="nit" placeholder="Ej: 123456789">
+                        <input class="form-control" type="text" id="nit" name="nit" placeholder="Ej: 123456789">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="sector">Sector</label>
-                        <input type="text" id="sector" name="sector" placeholder="Ej: Financiero">
+                        <input class="form-control" type="text" id="sector" name="sector" placeholder="Ej: Financiero">
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="nombre">Nombre del Proyecto <span class="requerido">*</span></label>
-                        <input type="text" id="nombre" name="nombre" placeholder="Ej: Auditoría Sistema Bancario" required>
+                        <input class="form-control" type="text" id="nombre" name="nombre" placeholder="Ej: Auditoría Sistema Bancario" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="tipoAuditoria">Tipo de Auditoría <span class="requerido">*</span></label>
-                        <input type="text" id="tipoAuditoria" name="tipoAuditoria" placeholder="Ej: Auditoría Interna" required>
+                        <input class="form-control" type="text" id="tipoAuditoria" name="tipoAuditoria" placeholder="Ej: Auditoría Interna" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="estado">Estado <span class="requerido">*</span></label>
-                        <select id="estado" name="estado" required>
+                        <select class="form-select" id="estado" name="estado" required>
                             <option value="">Seleccionar estado</option>
                             <option value="Planificado">Planificado</option>
                             <option value="En Progreso">En progreso</option>
@@ -108,20 +110,20 @@
                         </select>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="fechaInicio">Fecha de Inicio <span class="requerido">*</span></label>
-                        <input type="date" id="fechaInicio" name="fechaInicio" required>
+                        <input class="form-control" type="date" id="fechaInicio" name="fechaInicio" required>
                     </div>
 
-                    <div class="campo-grupo">
+                    <div class="campo-grupo col-md-6">
                         <label for="fechaFin">Fecha de Finalización</label>
-                        <input type="date" id="fechaFin" name="fechaFin">
+                        <input class="form-control" type="date" id="fechaFin" name="fechaFin">
                     </div>
                 </div>
 
                 <div class="acciones-formulario">
-                    <a th:href="@{/proyectos}" class="btn-cancelar">Cancelar</a>
-                    <button type="submit" class="btn-guardar">Crear Proyecto</button>
+                    <a th:href="@{/proyectos}" class="btn btn-cancelar">Cancelar</a>
+                    <button type="submit" class="btn btn-guardar">Crear Proyecto</button>
                 </div>
             </form>
         </section>

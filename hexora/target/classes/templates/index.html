@@ -3,39 +3,341 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora</title>
+    <title>TinyHat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- NUEVO: fuentes de la marca e íconos (van después de Bootstrap y antes de nuestro CSS) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
 </head>
 <body>
-    <main>
+
+    <!-- Fondo decorativo con tráfico de datos -->
+    <div class="fondo-decorativo" aria-hidden="true">
+        <canvas class="trafico-datos" id="trafico-datos"></canvas>
+    </div>
+
+    <!-- NUEVO: barra superior con la marca -->
+    <header class="barra-marca">
+        <a class="marca-enlace" th:href="@{/}" aria-label="Ir al inicio de TinyHat">
+            <img src="../static/imagen/logo.png" th:src="@{/imagen/logo.png}" alt="Logo TinyHat" class="marca-logo">
+            <div class="marca-textos">
+                <span class="marca-nombre"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
+                <span class="marca-subtitulo">Pentesting &amp; Monitoreo</span>
+            </div>
+        </a>
+    </header>
+
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+
+        <!-- NUEVO: fila de Bootstrap que pone el hero a la izquierda y la tarjeta a la derecha -->
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
+
+            <!-- NUEVO: columna izquierda (hero) -->
+            <section class="col-12 col-lg-6 order-2 order-lg-1 hero">
+                <h2 class="hero-titulo">
+                    Ponte el sombrero por
+                    <span class="texto-degradado">tu seguridad.</span>
+                </h2>
+
+                <p class="hero-texto">
+                    <strong>No esperes a sufrir un ataque para proteger tu empresa.</strong> El Sombrerito te protege,
+                    detecta amenazas a tiempo y mantiene a salvo tus servidores, datos y activos tecnológicos.
+                </p>
+
+                <div class="hero-logo-marco">
+                    <img src="../static/imagen/logo.png" th:src="@{/imagen/logo.png}" alt="Imagotipo de TinyHat" class="hero-logo">
+                </div>
+
+                <div class="row g-3 hero-capacidades">
+                    <div class="col-12 col-md-4">
+                        <article class="capacidad capacidad-turquesa">
+                            <div class="capacidad-icono"><i class="fa-solid fa-folder-tree"></i></div>
+                            <h3 class="capacidad-titulo">Gestión por Proyectos</h3>
+                            <p class="capacidad-texto">Organiza cada auditoría por proyecto y departamento.</p>
+                        </article>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <article class="capacidad capacidad-verde">
+                            <div class="capacidad-icono"><i class="fa-solid fa-gauge-high"></i></div>
+                            <h3 class="capacidad-titulo">Riesgo CIA</h3>
+                            <p class="capacidad-texto">Prioriza según confidencialidad, integridad y disponibilidad.</p>
+                        </article>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <article class="capacidad capacidad-magenta">
+                            <div class="capacidad-icono"><i class="fa-solid fa-list-check"></i></div>
+                            <h3 class="capacidad-titulo">Seguimiento</h3>
+                            <p class="capacidad-texto">Controla el estado de cada vulnerabilidad hasta mitigarla.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- NUEVO: columna derecha que envuelve tu tarjeta de login -->
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+
         <section class="login">
             <header>
-                <img th:src="@{/imagen/logo.png}" alt="Logo Hexora">
-                <h1>Hexora</h1>
+                <img src="../static/imagen/logo.png" th:src="@{/imagen/logo.png}" alt="Logo TinyHat">
+                <h1><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></h1>
                 <p>Plataforma de Gestión de Vulnerabilidades</p>
             </header>
+
+            <!-- NUEVO: encabezado de la tarjeta -->
+            <div class="login-encabezado">
+                <h2 class="login-titulo">Bienvenido</h2>
+                <p class="login-subtitulo">Ingresa tus credenciales autorizadas para gestionar tus activos.</p>
+            </div>
+
+            <!-- NUEVO: selector de rol (solo visual, sin name: no viaja en el formulario) -->
+            <div class="selector-rol" role="group" aria-label="Tipo de usuario">
+                <button type="button" class="rol-opcion activo" aria-pressed="true">Analista de Seguridad</button>
+                <button type="button" class="rol-opcion" aria-pressed="false">Administrador MiPyme</button>
+            </div>
 
             <form th:action="@{/login}" method="post">
 
                 <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" name="email" placeholder="usuario@gmail.com" required>
+                <!-- NUEVO: contenedor + ícono; el input no cambia -->
+                <div class="campo-con-icono">
+                    <i class="fa-regular fa-envelope icono-campo"></i>
+                <input class="form-control" type="email" id="email" name="email" placeholder="usuario@gmail.com" required>
+                </div>
 
                 <label for="contraseña">Contraseña</label>
-                <input type="password" id="contraseña" name="password" placeholder="••••••••" required>
+                <!-- NUEVO: contenedor + ícono + botón del ojo; el input no cambia -->
+                <div class="campo-con-icono">
+                    <i class="fa-solid fa-lock icono-campo"></i>
+                <input class="form-control" type="password" id="contraseña" name="password" placeholder="••••••••" required>
+                    <button type="button" id="boton-ojo" class="boton-ojo" aria-label="Mostrar u ocultar contraseña">
+                        <i class="fa-regular fa-eye" id="icono-ojo"></i>
+                    </button>
+                </div>
+
+                <!-- NUEVO: opciones extra (solo visuales, sin name) -->
+                <div class="opciones-sesion">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="recordar-sesion">
+                        <label class="form-check-label" for="recordar-sesion">Recordar sesión (30 días)</label>
+                    </div>
+                    <button type="button" class="boton-passkey">
+                        <i class="fa-solid fa-key"></i> Usar Passkey
+                    </button>
+                </div>
 
                 <p th:if="${error}" th:text="${error}" style="color:red;"></p>
 
-                <button type="submit">Iniciar Sesión</button>
+                <button class="btn btn-primario w-100" type="submit">Iniciar Sesión</button>
 
             </form>
 
             <a th:href="@{/}">¿Olvidaste tu contraseña?</a>
 
+            <!-- NUEVO -->
+            <p class="login-registro">
+                ¿Tu empresa aún no tiene el sombrerito activo?
+                <a href="#">Solicitar registro o auditoría</a>
+            </p>
+
         </section>
+
+            </div>
+        </div>
+
+        <!-- NUEVO: bloque legal (va antes de tu footer original) -->
+        <footer class="pie-legal w-100">
+            <span>© 2026 <strong><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span> Cybersecurity</strong>. Todos los derechos reservados.</span>
+            <span class="pie-programa">Tecnología en Gestión de Redes de Computadoras y Seguridad Informática</span>
+            <nav class="pie-enlaces">
+                <a href="#">Política de Privacidad</a>
+                <a href="#">Términos del Servicio</a>
+            </nav>
+        </footer>
+
     </main>
 
-    <footer class="pie-pagina-login">
-        <p>Secure Access &bull; Encrypted Connection</p>
-    </footer>
+    <!-- NUEVO: mostrar/ocultar contraseña y cambio visual de las pestañas de rol -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var campo = document.getElementById('contraseña');
+            var boton = document.getElementById('boton-ojo');
+            var icono = document.getElementById('icono-ojo');
+
+            boton.addEventListener('click', function () {
+                var oculta = campo.type === 'password';
+                campo.type = oculta ? 'text' : 'password';
+                icono.className = oculta ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            });
+
+            var roles = document.querySelectorAll('.rol-opcion');
+            roles.forEach(function (rol) {
+                rol.addEventListener('click', function () {
+                    roles.forEach(function (r) {
+                        r.classList.remove('activo');
+                        r.setAttribute('aria-pressed', 'false');
+                    });
+                    rol.classList.add('activo');
+                    rol.setAttribute('aria-pressed', 'true');
+                });
+            });
+        });
+    </script>
+    <script>
+        (function () {
+            var canvas = document.getElementById('trafico-datos');
+            var contexto = canvas && canvas.getContext('2d');
+
+            if (!contexto) {
+                return;
+            }
+
+            var nodos = [];
+            var rutas = [];
+            var paquetes = [];
+            var ancho = 0;
+            var alto = 0;
+            var ultimoTiempo = 0;
+            var animacionId = 0;
+            var movimientoReducido = window.matchMedia('(prefers-reduced-motion: reduce)');
+            var coloresPaquetes = ['#42C7F5', '#6BE5B1', '#8AB4FF'];
+
+            function dibujar() {
+                contexto.clearRect(0, 0, ancho, alto);
+                contexto.lineWidth = 1;
+
+                rutas.forEach(function (ruta) {
+                    contexto.beginPath();
+                    contexto.moveTo(ruta.inicio.x, ruta.inicio.y);
+                    contexto.lineTo(ruta.fin.x, ruta.fin.y);
+                    contexto.strokeStyle = 'rgba(116, 190, 235, 0.13)';
+                    contexto.stroke();
+                });
+
+                nodos.forEach(function (nodo) {
+                    contexto.beginPath();
+                    contexto.arc(nodo.x, nodo.y, 2, 0, Math.PI * 2);
+                    contexto.fillStyle = 'rgba(141, 215, 245, 0.52)';
+                    contexto.fill();
+                });
+
+                if (!movimientoReducido.matches) {
+                    paquetes.forEach(function (paquete) {
+                        var ruta = rutas[paquete.ruta];
+                        var x = ruta.inicio.x + (ruta.fin.x - ruta.inicio.x) * paquete.progreso;
+                        var y = ruta.inicio.y + (ruta.fin.y - ruta.inicio.y) * paquete.progreso;
+
+                        contexto.beginPath();
+                        contexto.arc(x, y, 2.5, 0, Math.PI * 2);
+                        contexto.fillStyle = paquete.color;
+                        contexto.shadowColor = paquete.color;
+                        contexto.shadowBlur = 9;
+                        contexto.fill();
+                        contexto.shadowBlur = 0;
+                    });
+                }
+            }
+
+            function ajustarCanvas() {
+                var escala = Math.min(window.devicePixelRatio || 1, 2);
+                var columnas;
+                var filas;
+
+                ancho = window.innerWidth;
+                alto = window.innerHeight;
+                canvas.width = Math.round(ancho * escala);
+                canvas.height = Math.round(alto * escala);
+                contexto.setTransform(escala, 0, 0, escala, 0, 0);
+
+                columnas = Math.max(4, Math.ceil(ancho / 180));
+                filas = Math.max(3, Math.ceil(alto / 160));
+                nodos = [];
+                rutas = [];
+                paquetes = [];
+
+                for (var fila = 0; fila < filas; fila += 1) {
+                    for (var columna = 0; columna < columnas; columna += 1) {
+                        nodos.push({
+                            x: (columna + 0.2 + Math.random() * 0.6) * ancho / columnas,
+                            y: (fila + 0.2 + Math.random() * 0.6) * alto / filas
+                        });
+                    }
+                }
+
+                nodos.forEach(function (inicio, indice) {
+                    nodos.slice(indice + 1).forEach(function (fin) {
+                        var distancia = Math.hypot(fin.x - inicio.x, fin.y - inicio.y);
+                        if (distancia < 230) {
+                            rutas.push({ inicio: inicio, fin: fin });
+                        }
+                    });
+                });
+
+                if (rutas.length) {
+                    var cantidadPaquetes = Math.min(22, Math.max(8, Math.floor(rutas.length / 5)));
+                    for (var indicePaquete = 0; indicePaquete < cantidadPaquetes; indicePaquete += 1) {
+                        paquetes.push({
+                            ruta: Math.floor(Math.random() * rutas.length),
+                            progreso: Math.random(),
+                            velocidad: 0.00008 + Math.random() * 0.0001,
+                            color: coloresPaquetes[indicePaquete % coloresPaquetes.length]
+                        });
+                    }
+                }
+
+                dibujar();
+            }
+
+            function animar(tiempo) {
+                var delta = ultimoTiempo ? Math.min(tiempo - ultimoTiempo, 40) : 0;
+                ultimoTiempo = tiempo;
+
+                paquetes.forEach(function (paquete) {
+                    paquete.progreso += delta * paquete.velocidad;
+                    if (paquete.progreso >= 1) {
+                        paquete.progreso -= 1;
+                        paquete.ruta = Math.floor(Math.random() * rutas.length);
+                    }
+                });
+
+                dibujar();
+                animacionId = window.requestAnimationFrame(animar);
+            }
+
+            function iniciarAnimacion() {
+                if (!movimientoReducido.matches && !document.hidden && !animacionId) {
+                    ultimoTiempo = 0;
+                    animacionId = window.requestAnimationFrame(animar);
+                }
+            }
+
+            function detenerAnimacion() {
+                if (animacionId) {
+                    window.cancelAnimationFrame(animacionId);
+                    animacionId = 0;
+                }
+            }
+
+            window.addEventListener('resize', ajustarCanvas);
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    detenerAnimacion();
+                } else {
+                    iniciarAnimacion();
+                }
+            });
+            movimientoReducido.addEventListener('change', function () {
+                detenerAnimacion();
+                dibujar();
+                iniciarAnimacion();
+            });
+
+            ajustarCanvas();
+            iniciarAnimacion();
+        })();
+    </script>
 </body>
 </html>
