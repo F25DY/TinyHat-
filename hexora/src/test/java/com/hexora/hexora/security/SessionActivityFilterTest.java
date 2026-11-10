@@ -12,7 +12,9 @@ import com.hexora.hexora.repository.UsuarioRepository;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -113,6 +115,22 @@ class SessionActivityFilterTest {
         verify(fixture.auditService).sessionExpired(fixture.principal, fixture.request, "PRINCIPAL_REVOKED");
     }
 
+    @Test
+    void sessionRevokedDuringSuspensionStaysExpiredAfterAccountReactivation() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, START);
+        fixture.session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, START + 1_500L);
+        when(fixture.cuentaRepository.findSessionsRevokedAtById(20L)).thenReturn(
+            Optional.of(LocalDateTime.ofInstant(Instant.ofEpochMilli(START + 1_000L), ZoneOffset.UTC)));
+        fixture.clock.advanceMillis(2_000L);
+
+        MockHttpServletResponse response = fixture.filterRequest("/api/network/status");
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("SESSION_EXPIRED");
+        verify(fixture.auditService).sessionExpired(fixture.principal, fixture.request, "PRINCIPAL_REVOKED");
+    }
+
     private static final class Fixture {
         private final MutableClock clock = new MutableClock(START);
         private final TinyHatSecurityProperties properties = new TinyHatSecurityProperties();
@@ -150,6 +168,7 @@ class SessionActivityFilterTest {
                 auditService,
                 new ObjectMapper());
             session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, START);
+            session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, START);
             session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, START);
             request.setSession(session);
             SecurityContextHolder.getContext().setAuthentication(authentication(principal));

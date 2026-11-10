@@ -1,3 +1,6 @@
+ALTER TABLE cuenta
+    ADD COLUMN sesiones_revocadas_en DATETIME(6) DEFAULT NULL;
+
 CREATE TABLE token_seguridad (
     id BIGINT NOT NULL AUTO_INCREMENT,
     tipo VARCHAR(20) NOT NULL,
@@ -27,4 +30,3 @@ CREATE TABLE token_seguridad (
         FOREIGN KEY (organizacion_id) REFERENCES organizacion_cliente (id_empresa)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-

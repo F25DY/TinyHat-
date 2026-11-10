@@ -3,6 +3,8 @@ package com.hexora.network.controller;
 import jakarta.persistence.EntityNotFoundException;
 import com.hexora.network.service.ScanRateLimitException;
 import com.hexora.network.service.NetworkDiscoveryException;
+import com.hexora.network.service.NetworkCapabilityDisabledException;
+import com.hexora.network.service.NetworkScopeRejectedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -16,6 +18,26 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class NetworkApiExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkApiExceptionHandler.class);
+
+    @ExceptionHandler(NetworkScopeRejectedException.class)
+    public ResponseEntity<Map<String, String>> scopeRejected(
+        NetworkScopeRejectedException exception,
+        HttpServletRequest request
+    ) {
+        LOGGER.warn("Network endpoint {} rejected operation: {}",
+            request.getRequestURI(), exception.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(NetworkCapabilityDisabledException.class)
+    public ResponseEntity<Map<String, String>> capabilityDisabled(
+        NetworkCapabilityDisabledException exception,
+        HttpServletRequest request
+    ) {
+        LOGGER.warn("Network endpoint {} denied: {}", request.getRequestURI(), exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", exception.getMessage()));
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> invalidRequest(

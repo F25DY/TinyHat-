@@ -13,6 +13,7 @@ import com.hexora.hexora.repository.UsuarioRepository;
 import com.hexora.hexora.service.Capability;
 import com.hexora.hexora.service.PermissionService;
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,6 +43,7 @@ public class UserRegistrationService {
     private final SessionRegistry sessionRegistry;
     private final TinyHatSecurityProperties securityProperties;
     private final PermissionService permissionService;
+    private final String publicBaseUrl;
 
     public UserRegistrationService(
         CuentaRepository cuentaRepository,
@@ -54,7 +56,10 @@ public class UserRegistrationService {
         AuditService auditService,
         SessionRegistry sessionRegistry,
         TinyHatSecurityProperties securityProperties,
-        PermissionService permissionService
+        PermissionService permissionService,
+        @org.springframework.beans.factory.annotation.Value(
+            "${tinyhat.security.public-base-url:http://127.0.0.1:8080}"
+        ) String publicBaseUrl
     ) {
         this.cuentaRepository = cuentaRepository;
         this.usuarioRepository = usuarioRepository;
@@ -67,6 +72,7 @@ public class UserRegistrationService {
         this.sessionRegistry = sessionRegistry;
         this.securityProperties = securityProperties;
         this.permissionService = permissionService;
+        this.publicBaseUrl = validatePublicBaseUrl(publicBaseUrl);
     }
 
     @Transactional
@@ -271,20 +277,24 @@ public class UserRegistrationService {
     }
 
     private String buildUrl(HttpServletRequest request, String path) {
-        if (request == null) {
-            return "https://localhost:8443" + path;
+        String contextPath = request == null ? "" : request.getContextPath();
+        return publicBaseUrl + contextPath + path;
+    }
+
+    private String validatePublicBaseUrl(String value) {
+        URI uri = URI.create(value);
+        if (!uri.isAbsolute()
+            || uri.getHost() == null
+            || uri.getUserInfo() != null
+            || uri.getQuery() != null
+            || uri.getFragment() != null
+            || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) {
+            throw new IllegalStateException("tinyhat.security.public-base-url must be an absolute HTTP(S) URL");
         }
-        String scheme = request.getScheme();
-        String serverName = request.getServerName();
-        int serverPort = request.getServerPort();
-        String contextPath = request.getContextPath();
-        StringBuilder url = new StringBuilder();
-        url.append(scheme).append("://").append(serverName);
-        if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
-            url.append(":").append(serverPort);
+        String normalized = uri.toString();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
         }
-        url.append(contextPath).append(path);
-        return url.toString();
+        return normalized;
     }
 }
-

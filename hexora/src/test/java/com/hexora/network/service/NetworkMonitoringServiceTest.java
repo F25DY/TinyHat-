@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 
@@ -77,6 +78,15 @@ class NetworkMonitoringServiceTest {
     @Mock
     private ThreadPoolTaskExecutor portProbeExecutor;
 
+    @Mock
+    private NetworkScopeGuard networkScopeGuard;
+
+    @Mock
+    private NetworkCapabilityGuard networkCapabilityGuard;
+
+    @Mock
+    private NetworkScanLockService scanLockService;
+
     private NetworkMonitorProperties properties;
     private NetworkMonitoringService service;
 
@@ -93,6 +103,9 @@ class NetworkMonitoringServiceTest {
             discoverySnapshotRepository,
             monitoredPortRepository,
             properties,
+            networkScopeGuard,
+            networkCapabilityGuard,
+            scanLockService,
             localNetworkDiscoveryService,
             transactionManager,
             portProbeExecutor
@@ -103,6 +116,7 @@ class NetworkMonitoringServiceTest {
     void marksAnArpDiscoveredDeviceOfflineOnTheFirstMissingScan() {
         NetworkDetectedDevice device = new NetworkDetectedDevice();
         device.setAddress("192.168.1.25");
+        device.setProyectoId(9L);
         device.setMacAddress("00:11:22:33:44:55");
         device.setHostName("NAS");
         device.setSubnet("192.168.1.0/24");
@@ -117,11 +131,13 @@ class NetworkMonitoringServiceTest {
             Instant.parse("2026-10-27T12:01:00Z"),
             List.of()
         ));
-        when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of());
-        when(detectedDeviceRepository.findAll()).thenReturn(List.of(device));
-        when(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc()).thenReturn(List.of(device));
+        when(hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(9L)).thenReturn(List.of());
+        when(detectedDeviceRepository.findAllByProyectoIdOrderByLastDetectedAtDesc(9L))
+            .thenReturn(List.of(device));
 
-        TenantContext.runAs(1L, () -> service.synchronizeDetectedDevices());
+        TenantContext.runAs(1L, () -> {
+            service.synchronizeDetectedDevices(9L);
+        });
 
         assertEquals(NetworkHostStatus.OFFLINE, device.getStatus());
         assertEquals(1, device.getConsecutiveMisses());
@@ -136,10 +152,12 @@ class NetworkMonitoringServiceTest {
             Instant.parse("2026-10-27T12:01:00Z"),
             List.of()
         ));
-        when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of());
-        when(detectedDeviceRepository.findAll()).thenReturn(List.of());
+        when(hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(9L)).thenReturn(List.of());
+        when(detectedDeviceRepository.findAllByProyectoIdOrderByLastDetectedAtDesc(9L)).thenReturn(List.of());
 
-        TenantContext.runAs(1L, () -> service.discoverLocalNetwork());
+        TenantContext.runAs(1L, () -> {
+            service.discoverLocalNetwork(9L);
+        });
 
         ArgumentCaptor<NetworkDiscoverySnapshot> snapshotCaptor =
             ArgumentCaptor.forClass(NetworkDiscoverySnapshot.class);
@@ -152,6 +170,7 @@ class NetworkMonitoringServiceTest {
     @Test
     void showsOnlyDevicesSeenInTheCurrentSubnetAndKeepsOldDevicesOutOfTheSnapshot() {
         NetworkDetectedDevice staleDevice = new NetworkDetectedDevice();
+        staleDevice.setProyectoId(9L);
         staleDevice.setAddress("172.20.10.2");
         staleDevice.setHostName("old-network-device");
         staleDevice.setSubnet("172.20.10.0/28");
@@ -170,25 +189,36 @@ class NetworkMonitoringServiceTest {
             Instant.parse("2026-10-27T12:01:00Z"),
             List.of(new NeighborEntry("192.168.1.25", "00:11:22:33:44:55", "ICMP + ARP"))
         ));
-        when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of(registeredHost));
-        when(detectedDeviceRepository.findByAddressIgnoreCase("192.168.1.25")).thenReturn(Optional.empty());
+        when(hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(9L))
+            .thenReturn(List.of(registeredHost));
+        when(detectedDeviceRepository.findByProyectoIdAndAddressIgnoreCase(9L, "192.168.1.25"))
+            .thenReturn(Optional.empty());
+        when(networkScopeGuard.isAuthorizedAddress(1L, 9L, "192.168.1.25")).thenReturn(true);
         when(detectedDeviceRepository.save(any())).thenAnswer(invocation -> {
             NetworkDetectedDevice saved = invocation.getArgument(0);
             knownDevices.removeIf(device -> device.getAddress().equalsIgnoreCase(saved.getAddress()));
             knownDevices.add(saved);
             return saved;
         });
-        when(detectedDeviceRepository.findAll()).thenAnswer(invocation -> new java.util.ArrayList<>(knownDevices));
-        when(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc()).thenReturn(knownDevices);
+        when(detectedDeviceRepository.findAllByProyectoIdOrderByLastDetectedAtDesc(9L))
+            .thenAnswer(invocation -> new java.util.ArrayList<>(knownDevices));
 
-        var update = TenantContext.runAs(1L, service::discoverLocalNetwork);
+        var update = TenantContext.runAs(
+            1L,
+            (java.util.function.Supplier<com.hexora.network.model.NetworkInventoryUpdateDto>)
+                () -> service.discoverLocalNetwork(9L)
+        );
 
         assertEquals(1, update.devices().size());
         assertEquals("192.168.1.25", update.devices().getFirst().address());
         assertEquals(NetworkHostStatus.OFFLINE, staleDevice.getStatus());
+        assertEquals(9L, knownDevices.stream()
+            .filter(device -> "192.168.1.25".equals(device.getAddress()))
+            .findFirst().orElseThrow().getProyectoId());
         ArgumentCaptor<NetworkDiscoverySnapshot> snapshotCaptor =
             ArgumentCaptor.forClass(NetworkDiscoverySnapshot.class);
         verify(discoverySnapshotRepository).save(snapshotCaptor.capture());
+        assertEquals(9L, snapshotCaptor.getValue().getProyectoId());
         List<NetworkDiscoverySnapshotDevice> savedDevices = snapshotCaptor.getValue().getDevices();
         assertEquals(1, savedDevices.size());
         assertEquals("192.168.1.25", savedDevices.getFirst().getAddress());
@@ -271,6 +301,25 @@ class NetworkMonitoringServiceTest {
     }
 
     @Test
+    void doesNotReassignAHostFromAnotherProjectDuringRegistration() {
+        NetworkHost host = new NetworkHost();
+        host.setId(7L);
+        host.setAddress("192.168.1.25");
+        host.setDisplayName("Existing device");
+        host.setProyectoId(10L);
+        host.setManagedByUi(true);
+        when(hostRepository.findByAddressIgnoreCase("192.168.1.25")).thenReturn(Optional.of(host));
+
+        assertThrows(
+            EntityNotFoundException.class,
+            () -> TenantContext.runAs(1L,
+                () -> service.registerHost("New name", "192.168.1.25", List.of(80), 11L)));
+
+        verify(hostRepository, never()).save(any(NetworkHost.class));
+        verifyNoInteractions(monitoredPortRepository);
+    }
+
+    @Test
     void registersPrivateLanDevicesWithTheirConfiguredPorts() {
         when(hostRepository.findByAddressIgnoreCase("192.168.1.25")).thenReturn(Optional.empty());
         when(hostRepository.save(any(NetworkHost.class))).thenAnswer((Answer<NetworkHost>) invocation -> {
@@ -279,7 +328,10 @@ class NetworkMonitoringServiceTest {
             return host;
         });
 
-        var result = service.registerHost(" NAS ", "192.168.1.25", List.of(22, 443));
+        var result = TenantContext.runAs(
+            1L,
+            () -> service.registerHost(" NAS ", "192.168.1.25", List.of(22, 443), 9L)
+        );
 
         assertEquals("NAS", result.name());
         assertEquals("192.168.1.25", result.address());
@@ -301,7 +353,7 @@ class NetworkMonitoringServiceTest {
         List<Integer> ports = java.util.stream.IntStream.rangeClosed(1, 33).boxed().toList();
 
         assertThrows(IllegalArgumentException.class, () ->
-            service.registerHost("Workstation", "192.168.1.25", ports));
+            service.registerHost("Workstation", "192.168.1.25", ports, 9L));
 
         verifyNoInteractions(hostRepository, scanRepository, portResultRepository, eventRepository, monitoredPortRepository);
     }
@@ -409,6 +461,9 @@ class NetworkMonitoringServiceTest {
             discoverySnapshotRepository,
             monitoredPortRepository,
             properties,
+            networkScopeGuard,
+            networkCapabilityGuard,
+            scanLockService,
             localNetworkDiscoveryService,
             transactionManager,
             portProbeExecutor

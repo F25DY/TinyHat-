@@ -13,9 +13,15 @@ public interface NetworkEventRepository extends JpaRepository<NetworkEvent, Long
 
     List<NetworkEvent> findTop20ByOrderByCreatedAtDesc();
 
+    List<NetworkEvent> findTop20ByHost_ProyectoIdOrderByCreatedAtDesc(Long proyectoId);
+
     @Modifying
     @Query("delete from NetworkEvent event where event.host.id = :hostId")
     int deleteAllForHost(@Param("hostId") Long hostId);
+
+    @Modifying
+    @Query("delete from NetworkEvent event where event.host.proyectoId = :projectId")
+    int deleteAllForProject(@Param("projectId") Long projectId);
 
     @Modifying
     @Query("delete from NetworkEvent event where event.scan.id in :scanIds")

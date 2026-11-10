@@ -3,6 +3,7 @@ package com.hexora.hexora.security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -35,6 +36,18 @@ public class ProfileSecurityGuard implements BeanFactoryPostProcessor, Environme
         boolean secureCookie = environment.getProperty(
             "server.servlet.session.cookie.secure", Boolean.class, true);
         String mfaKey = environment.getProperty("tinyhat.security.mfa.key");
+        String publicBaseUrl = environment.getProperty("tinyhat.security.public-base-url");
+        String mailHost = environment.getProperty("spring.mail.host");
+        String mailUsername = environment.getProperty("spring.mail.username");
+        String mailPassword = environment.getProperty("spring.mail.password");
+        String mailFrom = environment.getProperty("tinyhat.mail.from");
+        boolean smtpAuth = environment.getProperty("spring.mail.properties.mail.smtp.auth", Boolean.class, true);
+        boolean smtpStartTls = environment.getProperty(
+            "spring.mail.properties.mail.smtp.starttls.enable", Boolean.class, true);
+        boolean smtpStartTlsRequired = environment.getProperty(
+            "spring.mail.properties.mail.smtp.starttls.required", Boolean.class, true);
+        boolean smtpServerIdentityCheck = environment.getProperty(
+            "spring.mail.properties.mail.smtp.ssl.checkserveridentity", Boolean.class, true);
 
         List<String> violations = new ArrayList<>();
         if (!hasText(environment.getProperty("spring.datasource.username"))) {
@@ -68,6 +81,19 @@ public class ProfileSecurityGuard implements BeanFactoryPostProcessor, Environme
             }
             if (!secureCookie) {
                 violations.add("the session cookie must be Secure");
+            }
+            if (!isHttpsPublicBaseUrl(publicBaseUrl)) {
+                violations.add("PUBLIC_BASE_URL must be an absolute HTTPS URL");
+            }
+            if (!hasText(mailHost) || !hasText(mailUsername) || !hasText(mailPassword)) {
+                violations.add("SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD must be configured");
+            }
+            if (!isValidEmailAddress(mailFrom)) {
+                violations.add("SMTP_FROM must be a valid email address");
+            }
+            if (!smtpAuth || !smtpStartTls || !smtpStartTlsRequired || !smtpServerIdentityCheck) {
+                violations.add(
+                    "SMTP authentication, required STARTTLS, and server identity checks must be enabled");
             }
         }
 
@@ -106,5 +132,36 @@ public class ProfileSecurityGuard implements BeanFactoryPostProcessor, Environme
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private boolean isHttpsPublicBaseUrl(String value) {
+        if (!hasText(value)) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(value);
+            return uri.isAbsolute()
+                && "https".equalsIgnoreCase(uri.getScheme())
+                && uri.getHost() != null
+                && uri.getUserInfo() == null
+                && uri.getQuery() == null
+                && uri.getFragment() == null;
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private boolean isValidEmailAddress(String value) {
+        if (!hasText(value)) {
+            return false;
+        }
+        try {
+            jakarta.mail.internet.InternetAddress address =
+                new jakarta.mail.internet.InternetAddress(value, true);
+            address.validate();
+            return address.getAddress().equals(value);
+        } catch (jakarta.mail.internet.AddressException exception) {
+            return false;
+        }
     }
 }

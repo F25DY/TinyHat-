@@ -3,7 +3,7 @@
 ## Fase 1 — Configuración segura, secretos y perfiles
 
 - Se conservan Spring Boot 4.0.6, Spring Framework 7 y Hibernate 7 del proyecto; no se fuerza una actualización a las versiones del plan, que asume Boot 3/Security 6/Hibernate 6. Las APIs y pruebas deben ajustarse a las versiones instaladas.
-- Las credenciales de base de datos, la clave de NVD, el correo de MyMemory y la clave MFA se leen de variables de entorno o del `.env` local no versionado. No se registran secretos.
+- Las credenciales de base de datos, SMTP, la clave de NVD, el correo de MyMemory y la clave MFA se leen de variables de entorno o del `.env` local no versionado. No se registran secretos.
 - La carpeta raíz `.gitignore` del repositorio contiene artefactos previamente versionados y no es un archivo de reglas. Por ello, las reglas de exclusión se añadieron a `hexora/.gitignore`, junto al proyecto Maven, sin alterar ni eliminar esos artefactos preexistentes.
 - La migración V2 contiene datos ficticios. Por autorización expresa, permanece intacta. La siembra heredada vive dentro de Flyway y no puede controlarse con `@Profile` ni con `tinyhat.demo.seed.enabled`; `baseline-on-migrate` solo baselina esquemas no vacíos, por lo que no evita que V2 se ejecute en una base realmente nueva. Esta desviación debe resolverse antes de desplegar producción con una base vacía, sin reescribir V2. No se aplicaron migraciones en esta fase.
 

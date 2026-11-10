@@ -264,7 +264,10 @@ public class SecurityConfiguration {
 					"/api/network/gateway",
 					"/api/network/discoveries/latest",
 					"/api/network/discoveries/history",
-					"/api/network/status"
+					"/api/network/status",
+					"/api/network/authorized-ranges",
+					"/api/network/projects",
+					"/api/network/projects/*/authorized-ranges"
 				).hasRole("AUDITOR")
 				.anyRequest().denyAll())
 			.exceptionHandling(exceptions -> exceptions
@@ -407,6 +410,7 @@ public class SecurityConfiguration {
 				throw new IllegalStateException("Authenticated session was not created");
 			}
 			session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+			session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, now);
 			session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
 			loginAttemptService.recordSuccess(request.getParameter("email"));
 			if (securityProperties.getMfa().isRequired()) {

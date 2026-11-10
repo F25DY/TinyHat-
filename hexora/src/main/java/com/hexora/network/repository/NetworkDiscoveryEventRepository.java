@@ -13,6 +13,10 @@ public interface NetworkDiscoveryEventRepository extends JpaRepository<NetworkDi
 
     List<NetworkDiscoveryEvent> findTop20ByOrderByCreatedAtDesc();
 
+    List<NetworkDiscoveryEvent> findAllByDevice_ProyectoIdOrderByCreatedAtDesc(Long proyectoId, Pageable pageable);
+
+    List<NetworkDiscoveryEvent> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
     @Query("""
         select event.id from NetworkDiscoveryEvent event
         where event.cuentaId = :cuentaId and event.createdAt < :cutoff
@@ -26,4 +30,13 @@ public interface NetworkDiscoveryEventRepository extends JpaRepository<NetworkDi
     @Modifying
     @Query("delete from NetworkDiscoveryEvent event where event.cuentaId = :cuentaId")
     int deleteAllForAccount(@Param("cuentaId") Long cuentaId);
+
+    @Modifying
+    @Query("""
+        delete from NetworkDiscoveryEvent event
+        where event.device.id in (
+            select device.id from NetworkDetectedDevice device where device.proyectoId = :proyectoId
+        )
+        """)
+    int deleteAllForProject(@Param("proyectoId") Long proyectoId);
 }

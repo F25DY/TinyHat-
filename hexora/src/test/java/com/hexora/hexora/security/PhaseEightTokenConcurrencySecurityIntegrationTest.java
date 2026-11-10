@@ -131,6 +131,16 @@ class PhaseEightTokenConcurrencySecurityIntegrationTest extends IsolatedMySqlTes
             rawToken, "%" + rawToken + "%"
         );
         assertThat(matchesInTokens).isEqualTo(0);
+        String rawTokenPattern = "%" + rawToken + "%";
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM audit_event WHERE CAST(detalle AS CHAR) LIKE ? "
+                + "OR correlation_id LIKE ? OR user_agent LIKE ? OR recurso_public_id LIKE ?",
+            Integer.class,
+            rawTokenPattern,
+            rawTokenPattern,
+            rawTokenPattern,
+            rawTokenPattern
+        )).isZero();
 
         // Verify that only the 64-char hash is stored
         String storedHash = jdbcTemplate.queryForObject(
@@ -143,4 +153,3 @@ class PhaseEightTokenConcurrencySecurityIntegrationTest extends IsolatedMySqlTes
         assertThat(storedHash).isNotEqualTo(rawToken);
     }
 }
-

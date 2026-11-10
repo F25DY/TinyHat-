@@ -1,5 +1,40 @@
 # Security implementation deviations
 
+## 2026-11-09 — Inicio de Fase 10
+
+- Se asignó V27 a la Fase 10 para rangos de red autorizados por proyecto, bloqueos de escaneo y la asociación opcional de hosts existentes a un proyecto. La migración solo se validó en una base desechable mediante las pruebas web de red; no se aplicó a la BD compartida.
+- Se inició la protección fail-closed de escaneos y descubrimientos: destino IPv4, interfaz y rango vigente deben coincidir con el proyecto; se exige la capacidad `modulo_red` y se agregaron límites por prefijo y bloqueos/cooldown persistentes. Se endureció el handshake WebSocket para requerir sesión autenticada, MFA y capacidad de red, y se desactivó el descubrimiento automático que no puede demostrar un proyecto autorizado.
+- Se corrigió el orden de validación de hosts: un host fuera de la allowlist conserva el resultado de no encontrado antes de que se compruebe el vínculo a proyecto. Las pruebas focalizadas de red pasan: 39 pruebas, 0 fallos, 0 errores.
+- Ver [reporte de avance de Fase 10](./reports/fase-10.md). No ejecutar V27 contra la BD compartida sin respaldo, aprobación y ventana de migración.
+
+## 2026-11-09 — Continuación de Fase 10: aislamiento por proyecto
+
+- Se completaron la selección del proyecto visible, declaración/listado de rangos y el envío del proyecto en las operaciones principales de monitorización. Las lecturas de inventario, gateway, snapshots y eventos de detección consultan el proyecto asociado; los eventos WebSocket revalidan permisos al entregar cada actualización.
+- V27 también separa inventario detectado e historial mediante `proyecto_id`. Los datos históricos ambiguos permanecen sin proyecto y no se exponen por coincidencia de dirección/subred. La migración y el nuevo aislamiento se verificaron en la base MySQL desechable; no se ejecutó en la base compartida.
+- El estado local del navegador se separa por proyecto y la interfaz limpia los datos visibles al cambiar de selección. Se agregaron pruebas contra la filtración entre proyectos que autorizan la misma subred.
+- Las pruebas ejercitan concurrencia y expiración del cooldown con MySQL desechable, y controles WebSocket de MFA, origen wildcard, tamaño/mensajes, terminación de sesión y revalidación de permisos. Se añadieron también rechazos cross-project de lectura, mutación/borrado de hosts y puertos, historial de escaneos y limpieza de eventos.
+- Las rutas HTTP de escaneo y descubrimiento registran resultados de éxito, rechazo por alcance/cooldown y errores de descubrimiento.
+- Regresión focalizada: **96 pruebas, 0 fallos, 0 errores y 1 omitida; BUILD SUCCESS**. `node --check` pasó en ambos scripts de monitorización.
+- Fase 10 **sigue en curso y no está aprobada**. Pendientes: cobertura extendida de locks y handshake real, instrumentación del escáner sin tráfico, auditoría de scheduler/retención y revisión de paginación del historial. El scheduler no debe descubrir dispositivos automáticamente hasta completar el contexto de proyecto y sus controles.
+
+## 2026-11-09 — Decisión de Fase 9 y validación focalizada de SMTP
+
+- El documento rector adjunto define Fase 9 como OAuth2/OIDC con `identidad_externa`, PKCE, asociación explícita y MFA; SMTP no es su alcance.
+- Por decisión del usuario, no se incorporará OAuth2/OIDC: se prioriza mantener el inicio de sesión actual con MFA obligatorio y evitar sumar otra frontera de autenticación sin necesidad. No se implementó flujo OAuth ni se creó infraestructura adicional.
+- La implementación SMTP se conserva como trabajo complementario iniciado por una interpretación incorrecta de Fase 9. No debe contarse como fase aprobada ni como cumplimiento de F9-CA1–F9-CA8.
+- La validación focalizada SMTP pasó: `SmtpNotifierTest`, `ProfileSecurityGuardMfaTest` y `ProfileSecurityGuardConsoleNotifierTest`, **10 pruebas, 0 fallos, 0 errores**. Se verificaron los cuatro mensajes, contenido UTF-8/enlaces, propagación de fallos de envío y la aceptación/rechazo de guardas SMTP para `prod`. Son pruebas unitarias y de configuración; no se configuró un relay real ni se confirmó entrega externa.
+- El documento reserva V26 para identidades externas, pero V26 ya fue usada por Fase 8 para tokens y revocación persistente (V24 ya correspondía a normalización de puertos y V25 a MFA). No editar V26. V27 se asignó posteriormente a Fase 10; si en el futuro se reconsidera OAuth, revisar primero el mapa de migraciones y usar la siguiente versión libre.
+- Fase 0 tampoco tiene el `00-inventario.md` requerido en el árbol revisado; Fase 4 y la confirmación de cuota oficial NVD en Fase 6 conservan salvedades en sus informes. La suite actual pasó con 143 pruebas, 0 fallos, 0 errores y 1 omitida; ello no cierra esos puntos documentales/de alcance.
+- Ver [reporte corregido de Fase 9](./reports/fase-09.md) para la decisión de no incorporar OAuth y la revisión de Fases 0–8.
+
+## 2026-11-09 — Fase 8: registro, invitaciones y recuperación
+
+- Se completaron rutas y servicios para registro/verificación, invitaciones a organización, recuperación de contraseña y operaciones CLI de propietario. Se ajustó el consumo atómico de tokens para filtrar también por tipo y se corrigió el uso del `Clock` inyectado.
+- Los enlaces dependen de `PUBLIC_BASE_URL` en vez del `Host` recibido; producción requiere HTTPS. Las operaciones de propietario exigen `--tinyhat.ops.enabled=true` y `spring.main.web-application-type=none`.
+- Fase 8 usa V26, pues V25 ya se asignó a MFA. V26 crea tokens de seguridad y el marcador persistente `cuenta.sesiones_revocadas_en`, requerido para revocar sesiones entre instancias. OAuth/OIDC no se implementará. V27 se asignó posteriormente a Fase 10. Flyway validó y aplicó V26 en un MySQL 8.0.46 desechable de Testcontainers; no se tocó la BD compartida.
+- Las 9 pruebas de integración Fase 8 pasaron. En esa validación también pasó la suite completa: 136 pruebas, 0 fallos, 0 errores y 1 omitida. La validación completa de migración histórica hasta V25 y la seguridad de Fase 3 también pasan. La persistencia del marcador permite rechazar sesiones no registradas localmente tras reactivación. SMTP no era parte del alcance de Fase 8 ni de Fase 9 OAuth; `PUBLIC_BASE_URL` debe configurarse para el dominio HTTPS real.
+- Ver [reporte de Fase 8](./reports/fase-08.md) para criterios, alcance y resultados de validación.
+
 ## 2026-11-09 — Fase 7: MFA obligatorio con TOTP
 
 - Se implementó la inscripción y verificación TOTP con secreto de 160 bits cifrado AES-256-GCM, prevención de replay, puerta PRE_MFA y rotación de sesión al completar el segundo factor.

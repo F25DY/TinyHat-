@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component("consoleNotifier")
-@Profile({"dev", "demo", "test", "default"})
+@Profile({"dev", "demo"})
 public class ConsoleNotifier implements Notifier {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleNotifier.class);
@@ -37,4 +37,3 @@ public class ConsoleNotifier implements Notifier {
         );
     }
 }
-

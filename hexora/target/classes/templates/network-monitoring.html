@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Monitorización de red</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=10)}">
+    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=11)}">
 </head>
 <body class="network-page">
 <main class="network-shell">
@@ -22,10 +22,45 @@
         </div>
         <div class="network-header-actions">
             <button id="discover-network-button" class="network-action-button" type="button" aria-controls="detected-devices-body">Detectar dispositivos en la red</button>
-            <a class="network-action-button" th:href="@{/network-monitoring/history}" target="_blank" rel="noopener">Ver historial</a>
+            <a id="history-link" class="network-action-button" th:href="@{/network-monitoring/history}" target="_blank" rel="noopener">Ver historial</a>
             <a class="network-back" th:href="@{/dashboard}">Volver al Dashboard</a>
         </div>
     </header>
+
+    <section class="network-card">
+        <div class="section-heading">
+            <div>
+                <p class="network-eyebrow">ALCANCE AUTORIZADO</p>
+                <h2>Proyecto y rangos de red</h2>
+                <p class="management-help">Selecciona un proyecto y registra el alcance documentado antes de iniciar cualquier detección o escaneo.</p>
+            </div>
+        </div>
+        <label>
+            Proyecto
+            <select id="project-select" required>
+                <option value="">Cargando proyectos autorizados…</option>
+            </select>
+        </label>
+        <form id="authorized-range-form" class="device-form">
+            <label>
+                Rango IPv4 autorizado (CIDR)
+                <input id="authorized-range-cidr" type="text" maxlength="18" placeholder="192.168.1.0/24" required>
+            </label>
+            <label>
+                Referencia de autorización
+                <input id="authorization-reference" type="text" maxlength="255" placeholder="Ticket, contrato o aprobación" required>
+            </label>
+            <label>
+                Vigente hasta (opcional)
+                <input id="authorization-expiry" type="datetime-local">
+            </label>
+            <button type="submit">Registrar rango</button>
+        </form>
+        <p id="authorization-message" class="network-message" role="status" aria-live="polite"></p>
+        <div id="authorized-range-list" class="device-list">
+            <p class="empty-state">Selecciona un proyecto para consultar sus rangos.</p>
+        </div>
+    </section>
 
     <section class="network-card scan-panel">
         <div>
@@ -298,6 +333,6 @@
         </div>
     </section>
 </main>
-<script th:src="@{/js/network-monitoring.js(v=17)}" defer></script>
+<script th:src="@{/js/network-monitoring.js(v=18)}" defer></script>
 </body>
 </html>

@@ -10,4 +10,6 @@ public interface NetworkHostRepository extends JpaRepository<NetworkHost, Long> 
     Optional<NetworkHost> findByAddressIgnoreCase(String address);
 
     List<NetworkHost> findAllByEnabledTrueOrderByDisplayNameAsc();
+
+    List<NetworkHost> findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(Long proyectoId);
 }

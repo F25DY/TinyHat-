@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Historial de detecciones</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=9)}">
+    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=11)}">
 </head>
 <body class="network-page">
 <main class="network-shell">
@@ -21,10 +21,18 @@
             <p class="network-subtitle">Resultados guardados cada vez que detectas dispositivos en la red.</p>
         </div>
         <div class="network-header-actions">
-            <button id="clear-history-button" class="network-action-button" type="button">Borrar todo el historial</button>
-            <a class="network-action-button" th:href="@{/network-monitoring}">Volver a dispositivos actuales</a>
+            <a id="current-devices-link" class="network-action-button" th:href="@{/network-monitoring}">Volver a dispositivos actuales</a>
         </div>
     </header>
+
+    <section class="network-card">
+        <label>
+            Proyecto
+            <select id="history-project-select" required>
+                <option value="">Cargando proyectos autorizados…</option>
+            </select>
+        </label>
+    </section>
 
     <section class="network-card" aria-labelledby="availability-heading">
         <div class="section-heading">
@@ -52,6 +60,6 @@
     </p>
     <div id="discovery-history-list" class="discovery-history-list"></div>
 </main>
-<script th:src="@{/js/network-monitoring-history.js(v=5)}" defer></script>
+<script th:src="@{/js/network-monitoring-history.js(v=6)}" defer></script>
 </body>
 </html>

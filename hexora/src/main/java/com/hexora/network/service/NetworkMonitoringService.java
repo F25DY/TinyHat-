@@ -56,12 +56,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -101,12 +99,13 @@ public class NetworkMonitoringService {
     private final NetworkDiscoverySnapshotRepository discoverySnapshotRepository;
     private final MonitoredPortRepository monitoredPortRepository;
     private final NetworkMonitorProperties properties;
+    private final NetworkScopeGuard networkScopeGuard;
+    private final NetworkCapabilityGuard networkCapabilityGuard;
     private final NetworkReachabilityProbe reachabilityProbe = new NetworkReachabilityProbe();
     private final LocalNetworkDiscoveryService localNetworkDiscoveryService;
     private final TransactionTemplate transactionTemplate;
     private final ThreadPoolTaskExecutor portProbeExecutor;
-    private final ConcurrentMap<Long, Long> nextManualScanAt = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Long, ReentrantLock> scanLocks = new ConcurrentHashMap<>();
+    private final NetworkScanLockService scanLockService;
     private final ReentrantReadWriteLock historyLock = new ReentrantReadWriteLock(true);
 
     public NetworkMonitoringService(
@@ -119,6 +118,9 @@ public class NetworkMonitoringService {
         NetworkDiscoverySnapshotRepository discoverySnapshotRepository,
         MonitoredPortRepository monitoredPortRepository,
         NetworkMonitorProperties properties,
+        NetworkScopeGuard networkScopeGuard,
+        NetworkCapabilityGuard networkCapabilityGuard,
+        NetworkScanLockService scanLockService,
         LocalNetworkDiscoveryService localNetworkDiscoveryService,
         PlatformTransactionManager transactionManager,
         @Qualifier("networkPortProbeExecutor") ThreadPoolTaskExecutor portProbeExecutor
@@ -132,6 +134,9 @@ public class NetworkMonitoringService {
         this.discoverySnapshotRepository = discoverySnapshotRepository;
         this.monitoredPortRepository = monitoredPortRepository;
         this.properties = properties;
+        this.networkScopeGuard = networkScopeGuard;
+        this.networkCapabilityGuard = networkCapabilityGuard;
+        this.scanLockService = scanLockService;
         this.localNetworkDiscoveryService = localNetworkDiscoveryService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.portProbeExecutor = portProbeExecutor;
@@ -157,10 +162,18 @@ public class NetworkMonitoringService {
 
     @Transactional
     public NetworkInventoryUpdateDto discoverLocalNetwork() {
+        throw new NetworkScopeRejectedException("A project-scoped authorization is required for discovery");
+    }
+
+    @Transactional
+    public NetworkInventoryUpdateDto discoverLocalNetwork(long projectId) {
+        long accountId = TenantContext.requireTenantId();
+        networkCapabilityGuard.requireEnabled(accountId);
+        networkScopeGuard.requireAuthorizedInterface(accountId, projectId);
         historyLock.readLock().lock();
         try {
-            NetworkInventoryUpdateDto update = synchronizeDetectedDevices();
-            saveDiscoverySnapshot(update);
+            NetworkInventoryUpdateDto update = synchronizeDetectedDevices(projectId);
+            saveDiscoverySnapshot(update, projectId);
             return update;
         } finally {
             historyLock.readLock().unlock();
@@ -170,6 +183,29 @@ public class NetworkMonitoringService {
     @Transactional(readOnly = true)
     public List<NetworkDetectedDeviceDto> getDetectedDevices() {
         return mapDetectedDevices(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc());
+    }
+
+    @Transactional(readOnly = true)
+    public List<NetworkDetectedDeviceDto> getDetectedDevices(long projectId) {
+        long accountId = TenantContext.requireTenantId();
+        List<NetworkDetectedDevice> devices = detectedDeviceRepository
+            .findAllByProyectoIdOrderByLastDetectedAtDesc(projectId)
+            .stream()
+            .filter(device -> networkScopeGuard.isAuthorizedAddress(accountId, projectId, device.getAddress()))
+            .toList();
+        return mapDetectedDevices(devices, projectId);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<NetworkDiscoverySnapshotDto> getLatestDiscoverySnapshot(long projectId) {
+        long accountId = TenantContext.requireTenantId();
+        return discoverySnapshotRepository.findAllByProyectoIdOrderByObservedAtDesc(
+                projectId,
+                PageRequest.of(0, MAX_DISCOVERY_HISTORY))
+            .stream()
+            .filter(snapshot -> networkScopeGuard.isAuthorizedSubnet(accountId, projectId, snapshot.getSubnet()))
+            .findFirst()
+            .map(snapshot -> toScopedSnapshotDto(snapshot, accountId, projectId));
     }
 
     @Transactional(readOnly = true)
@@ -238,8 +274,23 @@ public class NetworkMonitoringService {
             .toList();
     }
 
-    private void saveDiscoverySnapshot(NetworkInventoryUpdateDto update) {
+    @Transactional(readOnly = true)
+    public List<NetworkDiscoverySnapshotDto> getDiscoveryHistory(int limit, long projectId) {
+        int boundedLimit = Math.max(1, Math.min(limit, MAX_DISCOVERY_HISTORY));
+        long accountId = TenantContext.requireTenantId();
+        return discoverySnapshotRepository.findAllByProyectoIdOrderByObservedAtDesc(
+                projectId,
+                PageRequest.of(0, Math.min(MAX_DISCOVERY_HISTORY, boundedLimit * 4)))
+            .stream()
+            .filter(snapshot -> networkScopeGuard.isAuthorizedSubnet(accountId, projectId, snapshot.getSubnet()))
+            .limit(boundedLimit)
+            .map(snapshot -> toScopedSnapshotDto(snapshot, accountId, projectId))
+            .toList();
+    }
+
+    private void saveDiscoverySnapshot(NetworkInventoryUpdateDto update, long projectId) {
         NetworkDiscoverySnapshot snapshot = new NetworkDiscoverySnapshot();
+        snapshot.setProyectoId(projectId);
         snapshot.setSubnet(update.subnet());
         snapshot.setSource(update.source());
         snapshot.setObservedAt(LocalDateTime.ofInstant(update.observedAt(), ZoneOffset.UTC));
@@ -288,12 +339,51 @@ public class NetworkMonitoringService {
         );
     }
 
+    private NetworkDiscoverySnapshotDto toScopedSnapshotDto(
+        NetworkDiscoverySnapshot snapshot,
+        long accountId,
+        long projectId
+    ) {
+        List<NetworkDetectedDeviceDto> devices = snapshot.getDevices().stream()
+            .filter(device -> networkScopeGuard.isAuthorizedAddress(accountId, projectId, device.getAddress()))
+            .map(device -> new NetworkDetectedDeviceDto(
+                device.getId(),
+                device.getHostName(),
+                device.getAddress(),
+                device.getMacAddress(),
+                device.getDetectionMethod(),
+                device.getStatus(),
+                device.isRegistered(),
+                device.getFirstDetectedAt(),
+                device.getLastDetectedAt(),
+                device.getConsecutiveMisses(),
+                device.isGateway(),
+                device.getGatewayAddress()
+            ))
+            .toList();
+        return new NetworkDiscoverySnapshotDto(
+            snapshot.getId(),
+            snapshot.getSubnet(),
+            snapshot.getSource(),
+            snapshot.getObservedAt().toInstant(ZoneOffset.UTC),
+            devices
+        );
+    }
+
     @Transactional
     public synchronized NetworkInventoryUpdateDto synchronizeDetectedDevices() {
-        TenantContext.requireTenantId();
+        throw new NetworkScopeRejectedException("A project-scoped authorization is required for discovery");
+    }
+
+    @Transactional
+    public synchronized NetworkInventoryUpdateDto synchronizeDetectedDevices(long projectId) {
+        long accountId = TenantContext.requireTenantId();
+        networkCapabilityGuard.requireEnabled(accountId);
+        networkScopeGuard.requireAuthorizedInterface(accountId, projectId);
         LocalNetworkSnapshot snapshot = localNetworkDiscoveryService.readCurrentNeighbors();
         LocalDateTime observedAt = LocalDateTime.ofInstant(snapshot.observedAt(), ZoneOffset.UTC);
-        Map<String, NetworkHost> registeredHosts = hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc().stream()
+        Map<String, NetworkHost> registeredHosts = hostRepository
+            .findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(projectId).stream()
             .collect(Collectors.toMap(host -> host.getAddress().toLowerCase(), host -> host, (left, right) -> left));
         Set<String> observedAddresses = new HashSet<>();
         boolean changed = false;
@@ -301,7 +391,7 @@ public class NetworkMonitoringService {
 
         for (NeighborEntry entry : snapshot.devices()) {
             observedAddresses.add(entry.address().toLowerCase());
-            NetworkDetectedDevice device = findDetectedDevice(entry);
+            NetworkDetectedDevice device = findDetectedDevice(entry, projectId);
             boolean isGateway = (defaultGateway != null && defaultGateway.equalsIgnoreCase(entry.address()))
                 || (entry.detectionMethod() != null && entry.detectionMethod().contains("Puerta de enlace"));
             String deviceGatewayAddress = isGateway ? entry.address() : defaultGateway;
@@ -309,6 +399,7 @@ public class NetworkMonitoringService {
             if (device == null) {
                 device = new NetworkDetectedDevice();
                 device.setAddress(entry.address());
+                device.setProyectoId(projectId);
                 device.setMacAddress(entry.macAddress());
                 device.setSubnet(snapshot.subnet());
                 device.setHostName(resolveDetectedName(entry.address(), registeredHosts));
@@ -370,7 +461,8 @@ public class NetworkMonitoringService {
             detectedDeviceRepository.save(device);
         }
 
-        for (NetworkDetectedDevice device : detectedDeviceRepository.findAll()) {
+        for (NetworkDetectedDevice device : detectedDeviceRepository
+            .findAllByProyectoIdOrderByLastDetectedAtDesc(projectId)) {
             if (!observedAddresses.contains(device.getAddress().toLowerCase())) {
                 device.setConsecutiveMisses(device.getConsecutiveMisses() + 1);
                 if (device.getStatus() == NetworkHostStatus.ONLINE) {
@@ -384,7 +476,7 @@ public class NetworkMonitoringService {
             }
         }
 
-        List<NetworkDetectedDeviceDto> currentDevices = getDetectedDevices().stream()
+        List<NetworkDetectedDeviceDto> currentDevices = getDetectedDevices(projectId).stream()
             .filter(device -> device.status() == NetworkHostStatus.ONLINE)
             .filter(device -> observedAddresses.contains(device.address().toLowerCase()))
             .toList();
@@ -424,15 +516,17 @@ public class NetworkMonitoringService {
         discoveryEventRepository.save(event);
     }
 
-    private NetworkDetectedDevice findDetectedDevice(NeighborEntry entry) {
-        NetworkDetectedDevice byAddress = detectedDeviceRepository.findByAddressIgnoreCase(entry.address())
+    private NetworkDetectedDevice findDetectedDevice(NeighborEntry entry, long projectId) {
+        NetworkDetectedDevice byAddress = detectedDeviceRepository
+            .findByProyectoIdAndAddressIgnoreCase(projectId, entry.address())
             .orElse(null);
         if (byAddress != null) {
             return byAddress;
         }
         return entry.macAddress() == null
             ? null
-            : detectedDeviceRepository.findFirstByMacAddressIgnoreCase(entry.macAddress()).orElse(null);
+            : detectedDeviceRepository.findFirstByProyectoIdAndMacAddressIgnoreCase(projectId, entry.macAddress())
+                .orElse(null);
     }
 
     private String resolveDetectedName(String address, Map<String, NetworkHost> registeredHosts) {
@@ -459,6 +553,29 @@ public class NetworkMonitoringService {
 
     private List<NetworkDetectedDeviceDto> mapDetectedDevices(List<NetworkDetectedDevice> devices) {
         Set<String> registeredAddresses = hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc().stream()
+            .map(host -> host.getAddress().toLowerCase())
+            .collect(Collectors.toSet());
+        return devices.stream()
+            .map(device -> new NetworkDetectedDeviceDto(
+                device.getId(),
+                device.getHostName(),
+                device.getAddress(),
+                device.getMacAddress(),
+                device.getDetectionMethod(),
+                device.getStatus(),
+                registeredAddresses.contains(device.getAddress().toLowerCase()),
+                device.getFirstDetectedAt(),
+                device.getLastDetectedAt(),
+                device.getConsecutiveMisses(),
+                device.isGateway(),
+                device.getGatewayAddress()
+            ))
+            .toList();
+    }
+
+    private List<NetworkDetectedDeviceDto> mapDetectedDevices(List<NetworkDetectedDevice> devices, long projectId) {
+        Set<String> registeredAddresses = hostRepository
+            .findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(projectId).stream()
             .map(host -> host.getAddress().toLowerCase())
             .collect(Collectors.toSet());
         return devices.stream()
@@ -525,8 +642,48 @@ public class NetworkMonitoringService {
             .map(this::toDetectedDeviceDto);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<NetworkDetectedDeviceDto> findGateway(long projectId) {
+        long accountId = TenantContext.requireTenantId();
+        Optional<String> activeGatewayAddress = localNetworkDiscoveryService.findGatewayAddress();
+        if (activeGatewayAddress.isPresent()) {
+            String address = activeGatewayAddress.get();
+            if (!networkScopeGuard.isAuthorizedAddress(accountId, projectId, address)) {
+                return Optional.empty();
+            }
+            return detectedDeviceRepository.findByProyectoIdAndAddressIgnoreCase(projectId, address)
+                .filter(device -> networkScopeGuard.isAuthorizedAddress(accountId, projectId, device.getAddress()))
+                .map(device -> toDetectedDeviceDto(device, projectId));
+        }
+        return detectedDeviceRepository.findAllByProyectoIdAndGatewayTrueOrderByLastDetectedAtDesc(projectId).stream()
+            .filter(device -> networkScopeGuard.isAuthorizedAddress(accountId, projectId, device.getAddress()))
+            .findFirst()
+            .map(device -> toDetectedDeviceDto(device, projectId));
+    }
+
     private NetworkDetectedDeviceDto toDetectedDeviceDto(NetworkDetectedDevice device) {
         Set<String> registeredAddresses = hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc().stream()
+            .map(host -> host.getAddress().toLowerCase())
+            .collect(Collectors.toSet());
+        return new NetworkDetectedDeviceDto(
+            device.getId(),
+            device.getHostName(),
+            device.getAddress(),
+            device.getMacAddress(),
+            device.getDetectionMethod(),
+            device.getStatus(),
+            registeredAddresses.contains(device.getAddress().toLowerCase()),
+            device.getFirstDetectedAt(),
+            device.getLastDetectedAt(),
+            device.getConsecutiveMisses(),
+            device.isGateway(),
+            device.getGatewayAddress()
+        );
+    }
+
+    private NetworkDetectedDeviceDto toDetectedDeviceDto(NetworkDetectedDevice device, long projectId) {
+        Set<String> registeredAddresses = hostRepository
+            .findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(projectId).stream()
             .map(host -> host.getAddress().toLowerCase())
             .collect(Collectors.toSet());
         return new NetworkDetectedDeviceDto(
@@ -612,7 +769,41 @@ public class NetworkMonitoringService {
     }
 
     @Transactional
+    public void clearHostHistory(Long hostId, long projectId) {
+        NetworkHost host = requireManagedHost(hostId, projectId);
+        eventRepository.deleteAllForHost(hostId);
+        portResultRepository.deleteAllForHost(hostId);
+        scanRepository.deleteAllForHost(hostId);
+        resetHostStatus(host);
+        hostRepository.save(host);
+    }
+
+    @Transactional
+    public void clearProjectHistory(long projectId) {
+        historyLock.writeLock().lock();
+        try {
+            List<NetworkHost> hosts = hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(projectId);
+            eventRepository.deleteAllForProject(projectId);
+            discoveryEventRepository.deleteAllForProject(projectId);
+            portResultRepository.deleteAllForProject(projectId);
+            scanRepository.deleteAllForProject(projectId);
+            resetHostStatuses(hosts);
+        } finally {
+            historyLock.writeLock().unlock();
+        }
+    }
+
+    @Transactional
     public void deleteSelectedScans(List<Long> scanIds) {
+        deleteSelectedScans(scanIds, null);
+    }
+
+    @Transactional
+    public void deleteSelectedScans(List<Long> scanIds, long projectId) {
+        deleteSelectedScans(scanIds, Long.valueOf(projectId));
+    }
+
+    private void deleteSelectedScans(List<Long> scanIds, Long projectId) {
         if (scanIds == null || scanIds.isEmpty() || scanIds.size() > 40
             || scanIds.stream().anyMatch(id -> id == null || id < 1)
             || new HashSet<>(scanIds).size() != scanIds.size()) {
@@ -620,6 +811,10 @@ public class NetworkMonitoringService {
         }
         List<NetworkScan> scans = scanRepository.findAllById(scanIds);
         if (scans.size() != scanIds.size()) {
+            throw new EntityNotFoundException("One or more selected scan records were not found");
+        }
+        if (projectId != null && scans.stream().anyMatch(scan ->
+            !projectId.equals(scan.getHost().getProyectoId()))) {
             throw new EntityNotFoundException("One or more selected scan records were not found");
         }
         List<Long> existingIds = scans.stream().map(NetworkScan::getId).toList();
@@ -682,15 +877,21 @@ public class NetworkMonitoringService {
 
     @Transactional
     public NetworkHostDto registerHost(String name, String address, List<Integer> ports) {
+        return registerHost(name, address, ports, null);
+    }
+
+    @Transactional
+    public NetworkHostDto registerHost(String name, String address, List<Integer> ports, Long projectId) {
+        validateRegistrationInput(name, address, ports);
         String normalizedName = name == null ? "" : name.trim();
         String normalizedAddress = address == null ? "" : address.trim();
-        if (normalizedName.isBlank() || normalizedName.length() > 100) {
-            throw new IllegalArgumentException("Device name must contain between 1 and 100 characters");
+        List<Integer> validatedPorts = List.copyOf(ports);
+        if (projectId == null) {
+            throw new NetworkScopeRejectedException("A project with an authorized range is required");
         }
-        if (!isPrivateIpv4Address(normalizedAddress)) {
-            throw new IllegalArgumentException("Enter a private IPv4 address from your local network");
-        }
-        List<Integer> validatedPorts = validateConfiguredPorts(ports);
+        long accountId = TenantContext.requireTenantId();
+        networkCapabilityGuard.requireEnabled(accountId);
+        networkScopeGuard.requireAuthorizedTarget(accountId, projectId, normalizedAddress);
         if (properties.getAllowedHosts().stream().anyMatch(target ->
             target.getAddress().trim().equalsIgnoreCase(normalizedAddress))) {
             throw new IllegalArgumentException("This device is already managed by the operator configuration");
@@ -698,11 +899,16 @@ public class NetworkMonitoringService {
 
         NetworkHost host = hostRepository.findByAddressIgnoreCase(normalizedAddress)
             .orElseGet(NetworkHost::new);
+        if (host.getId() != null && host.getProyectoId() != null
+            && !projectId.equals(host.getProyectoId())) {
+            throw new EntityNotFoundException("Configured network host was not found");
+        }
         if (host.getId() != null && !host.isManagedByUi()) {
             throw new IllegalArgumentException("This address is reserved for a configured network device");
         }
         host.setDisplayName(normalizedName);
         host.setAddress(normalizedAddress);
+        host.setProyectoId(projectId);
         host.setEnabled(true);
         host.setManagedByUi(true);
         host.setStatus(NetworkHostStatus.OFFLINE);
@@ -712,6 +918,24 @@ public class NetworkMonitoringService {
         host = hostRepository.save(host);
         replaceMonitoredPorts(host, validatedPorts);
         return toDto(host);
+    }
+
+    public void validateRegistrationInput(String name, String address, List<Integer> ports) {
+        String normalizedName = name == null ? "" : name.trim();
+        String normalizedAddress = address == null ? "" : address.trim();
+        if (normalizedName.isBlank() || normalizedName.length() > 100) {
+            throw new IllegalArgumentException("Device name must contain between 1 and 100 characters");
+        }
+        if (!isPrivateIpv4Address(normalizedAddress)) {
+            throw new IllegalArgumentException("Enter a private IPv4 address from your local network");
+        }
+        validateConfiguredPorts(ports);
+    }
+
+    public void validateScanParameters(Integer startPort, Integer endPort) {
+        if (startPort != null || endPort != null) {
+            resolvePorts(startPort, endPort);
+        }
     }
 
     @Transactional
@@ -735,6 +959,12 @@ public class NetworkMonitoringService {
     }
 
     @Transactional
+    public MonitoredPortDto addMonitoredPort(Long hostId, Integer port, long projectId) {
+        requireManagedHost(hostId, projectId);
+        return addMonitoredPort(hostId, port);
+    }
+
+    @Transactional
     public MonitoredPortDto setMonitoredPortEnabled(Long hostId, Integer port, Boolean enabled) {
         if (enabled == null) {
             throw new IllegalArgumentException("Port monitoring state is required");
@@ -747,11 +977,28 @@ public class NetworkMonitoringService {
     }
 
     @Transactional
+    public MonitoredPortDto setMonitoredPortEnabled(
+        Long hostId,
+        Integer port,
+        Boolean enabled,
+        long projectId
+    ) {
+        requireManagedHost(hostId, projectId);
+        return setMonitoredPortEnabled(hostId, port, enabled);
+    }
+
+    @Transactional
     public void removeMonitoredPort(Long hostId, Integer port) {
         NetworkHost host = requireManagedHost(hostId);
         MonitoredPort monitoredPort = monitoredPortRepository.findByHost_IdAndPort(hostId, port)
             .orElseThrow(() -> new EntityNotFoundException("Monitored port was not found"));
         monitoredPortRepository.delete(monitoredPort);
+    }
+
+    @Transactional
+    public void removeMonitoredPort(Long hostId, Integer port, long projectId) {
+        requireManagedHost(hostId, projectId);
+        removeMonitoredPort(hostId, port);
     }
 
     @Transactional
@@ -763,10 +1010,26 @@ public class NetworkMonitoringService {
     }
 
     @Transactional
+    public NetworkHostDto updateMonitoredPorts(Long hostId, List<Integer> ports, long projectId) {
+        requireManagedHost(hostId, projectId);
+        return updateMonitoredPorts(hostId, ports);
+    }
+
+    @Transactional
     public void removeManagedHost(Long hostId) {
         NetworkHost host = hostRepository.findById(hostId)
             .filter(NetworkHost::isEnabled)
             .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
+        if (!host.isManagedByUi()) {
+            throw new IllegalArgumentException("Only devices added from this page can be removed here");
+        }
+        host.setEnabled(false);
+        hostRepository.save(host);
+    }
+
+    @Transactional
+    public void removeManagedHost(Long hostId, long projectId) {
+        NetworkHost host = requireManagedHost(hostId, projectId);
         if (!host.isManagedByUi()) {
             throw new IllegalArgumentException("Only devices added from this page can be removed here");
         }
@@ -783,18 +1046,39 @@ public class NetworkMonitoringService {
         }
         historyLock.readLock().lock();
         try {
-            ReentrantLock lock = scanLocks.computeIfAbsent(hostId, ignored -> new ReentrantLock());
-            if (!lock.tryLock()) {
-                throw new ScanRateLimitException("A scan for this host is already running");
+            NetworkHost host = hostRepository.findById(hostId)
+                .filter(NetworkHost::isEnabled)
+                .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
+            requireConfiguredHost(host);
+            Long projectId = host.getProyectoId();
+            if (projectId == null) {
+                throw new NetworkScopeRejectedException("A project with an authorized range is required");
             }
-            try {
-                return scanHostInternal(hostId, startPort, endPort);
-            } finally {
-                lock.unlock();
+            NetworkScanDto result = scanLockService.executeWithGlobalAndProjectLocks(
+                host.getCuentaId(),
+                projectId,
+                () -> scanHostInternal(hostId, startPort, endPort)
+            );
+            if (result == null) {
+                throw new ScanRateLimitException("Another network scan is already running");
             }
+            return result;
         } finally {
             historyLock.readLock().unlock();
         }
+    }
+
+    @Transactional(readOnly = true)
+    public void validateManualScanScope(Long hostId, long projectId, long accountId) {
+        NetworkHost host = hostRepository.findById(hostId)
+            .filter(NetworkHost::isEnabled)
+            .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
+        requireConfiguredHost(host);
+        if (!Long.valueOf(projectId).equals(host.getProyectoId())) {
+            throw new NetworkScopeRejectedException("The selected project does not own this network host");
+        }
+        networkCapabilityGuard.requireEnabled(accountId);
+        networkScopeGuard.requireAuthorizedTarget(accountId, projectId, host.getAddress());
     }
 
     private NetworkScanDto scanHostInternal(Long hostId, Integer startPort, Integer endPort) {
@@ -802,6 +1086,8 @@ public class NetworkMonitoringService {
             .filter(NetworkHost::isEnabled)
             .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
         requireConfiguredHost(host);
+        networkCapabilityGuard.requireEnabled(host.getCuentaId());
+        networkScopeGuard.requireAuthorizedTarget(host.getCuentaId(), host.getProyectoId(), host.getAddress());
         List<Integer> ports = startPort == null && endPort == null
             ? monitoredPortRepository.findAllByHost_IdAndEnabledTrueOrderByPortAsc(hostId)
                 .stream().map(MonitoredPort::getPort).toList()
@@ -905,6 +1191,16 @@ public class NetworkMonitoringService {
     }
 
     public NetworkScanDto scanManually(Long hostId, Integer startPort, Integer endPort) {
+        return scanManually(hostId, null, startPort, endPort, null);
+    }
+
+    public NetworkScanDto scanManually(
+        Long hostId,
+        Long projectId,
+        Integer startPort,
+        Integer endPort,
+        Long userId
+    ) {
         if (hostId == null) {
             throw new IllegalArgumentException("hostId is required");
         }
@@ -915,18 +1211,12 @@ public class NetworkMonitoringService {
             .filter(NetworkHost::isEnabled)
             .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
         requireConfiguredHost(host);
+        if (projectId == null || !projectId.equals(host.getProyectoId())) {
+            throw new NetworkScopeRejectedException("The selected project does not own this network host");
+        }
 
-        long currentTime = System.nanoTime();
-        AtomicBoolean accepted = new AtomicBoolean();
-        nextManualScanAt.compute(hostId, (id, nextAvailable) -> {
-            if (nextAvailable == null || currentTime - nextAvailable >= 0) {
-                accepted.set(true);
-                return currentTime + TimeUnit.SECONDS.toNanos(15);
-            }
-            return nextAvailable;
-        });
-        if (!accepted.get()) {
-            throw new ScanRateLimitException("Wait before starting another manual scan for this host");
+        if (!scanLockService.acquireProjectCooldown(host.getCuentaId(), projectId, userId)) {
+            throw new ScanRateLimitException("Wait before starting another manual scan for this project");
         }
         return scanHost(hostId, startPort, endPort);
     }
@@ -940,6 +1230,14 @@ public class NetworkMonitoringService {
     }
 
     @Transactional(readOnly = true)
+    public List<NetworkHostDto> getHosts(long projectId) {
+        return hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(projectId)
+            .stream()
+            .map(this::toDto)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<NetworkScanDto> getHistory(Long hostId, int limit) {
         int boundedLimit = Math.max(1, Math.min(limit, 100));
         PageRequest page = PageRequest.of(0, boundedLimit);
@@ -947,6 +1245,19 @@ public class NetworkMonitoringService {
             ? scanRepository.findAllByOrderByStartedAtDesc(page)
             : scanRepository.findAllByHost_IdOrderByStartedAtDesc(hostId, page);
         return scans.getContent().stream().map(this::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<NetworkScanDto> getHistory(Long hostId, int limit, long projectId) {
+        int boundedLimit = Math.max(1, Math.min(limit, 100));
+        return scanRepository.findAllByProjectAndOptionalHost(
+                projectId,
+                hostId,
+                PageRequest.of(0, boundedLimit))
+            .getContent()
+            .stream()
+            .map(this::toDto)
+            .toList();
     }
 
     @Transactional(readOnly = true)
@@ -973,6 +1284,42 @@ public class NetworkMonitoringService {
             eventRepository.findTop20ByOrderByCreatedAtDesc().stream().map(this::toDto),
             discoveryEventRepository.findTop20ByOrderByCreatedAtDesc().stream().map(this::toDto)
         )
+            .sorted(Comparator.comparing(NetworkEventDto::createdAt).reversed())
+            .limit(20)
+            .toList();
+        return new NetworkDashboardDto(hosts.size(), online, offline, openPorts, hostDtos, recentScans, recentEvents);
+    }
+
+    @Transactional(readOnly = true)
+    public NetworkDashboardDto getStatus(long projectId) {
+        long accountId = TenantContext.requireTenantId();
+        List<NetworkHost> hosts = hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(projectId);
+        List<NetworkHostDto> hostDtos = hosts.stream().map(this::toDto).toList();
+        Map<Long, NetworkScan> latestScans = hosts.isEmpty()
+            ? Map.of()
+            : scanRepository.findLatestByHostIds(hosts.stream().map(NetworkHost::getId).toList()).stream()
+                .collect(Collectors.toMap(scan -> scan.getHost().getId(), scan -> scan));
+        List<NetworkScanDto> recentScans = hosts.stream()
+            .map(host -> latestScans.get(host.getId()))
+            .filter(java.util.Objects::nonNull)
+            .map(this::toDto)
+            .toList();
+        int online = (int) hosts.stream().filter(host -> host.getStatus() == NetworkHostStatus.ONLINE).count();
+        int offline = (int) hosts.stream().filter(host -> host.getStatus() == NetworkHostStatus.OFFLINE).count();
+        int openPorts = (int) recentScans.stream()
+            .flatMap(scan -> scan.ports().stream())
+            .filter(port -> port.status() == PortStatus.OPEN)
+            .count();
+        List<NetworkEventDto> scanEvents = eventRepository
+            .findTop20ByHost_ProyectoIdOrderByCreatedAtDesc(projectId).stream()
+            .map(this::toDto)
+            .toList();
+        List<NetworkEventDto> discoveryEvents = discoveryEventRepository
+            .findAllByDevice_ProyectoIdOrderByCreatedAtDesc(projectId, PageRequest.of(0, 100)).stream()
+            .filter(event -> networkScopeGuard.isAuthorizedAddress(accountId, projectId, event.getAddress()))
+            .map(this::toDto)
+            .toList();
+        List<NetworkEventDto> recentEvents = Stream.concat(scanEvents.stream(), discoveryEvents.stream())
             .sorted(Comparator.comparing(NetworkEventDto::createdAt).reversed())
             .limit(20)
             .toList();
@@ -1250,6 +1597,14 @@ public class NetworkMonitoringService {
             .filter(NetworkHost::isEnabled)
             .orElseThrow(() -> new EntityNotFoundException("Configured network host was not found"));
         requireConfiguredHost(host);
+        return host;
+    }
+
+    private NetworkHost requireManagedHost(Long hostId, long projectId) {
+        NetworkHost host = requireManagedHost(hostId);
+        if (!Long.valueOf(projectId).equals(host.getProyectoId())) {
+            throw new EntityNotFoundException("Configured network host was not found");
+        }
         return host;
     }
 

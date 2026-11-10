@@ -11,6 +11,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.Optional;
 import tools.jackson.databind.ObjectMapper;
@@ -24,6 +27,8 @@ import org.springframework.util.AntPathMatcher;
 public final class SessionActivityFilter extends OncePerRequestFilter {
 
     public static final String CREATED_AT_ATTRIBUTE = SessionActivityFilter.class.getName() + ".createdAt";
+    public static final String ORIGINAL_CREATED_AT_ATTRIBUTE =
+        SessionActivityFilter.class.getName() + ".originalCreatedAt";
     public static final String LAST_ACTIVITY_ATTRIBUTE = SessionActivityFilter.class.getName() + ".lastActivity";
 
     private final TinyHatSecurityProperties properties;
@@ -72,8 +77,13 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
 
         long now = clock.millis();
         Long createdAt = timestamp(session.getAttribute(CREATED_AT_ATTRIBUTE));
+        Long originalCreatedAt = timestamp(session.getAttribute(ORIGINAL_CREATED_AT_ATTRIBUTE));
+        if (originalCreatedAt == null && createdAt != null) {
+            originalCreatedAt = createdAt;
+            session.setAttribute(ORIGINAL_CREATED_AT_ATTRIBUTE, originalCreatedAt);
+        }
         Long lastActivity = timestamp(session.getAttribute(LAST_ACTIVITY_ATTRIBUTE));
-        String expiredReason = expirationReason(principal, createdAt, lastActivity, now);
+        String expiredReason = expirationReason(principal, createdAt, originalCreatedAt, lastActivity, now);
         if (expiredReason != null) {
             expireSession(request, response, session, principal, expiredReason);
             return;
@@ -88,9 +98,11 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
     private String expirationReason(
             TinyHatPrincipal principal,
             Long createdAt,
+            Long originalCreatedAt,
             Long lastActivity,
             long now) {
-        if (createdAt == null || lastActivity == null || createdAt > now || lastActivity > now) {
+        if (createdAt == null || originalCreatedAt == null || lastActivity == null
+                || createdAt > now || originalCreatedAt > now || lastActivity > now) {
             return "INVALID_SESSION_METADATA";
         }
 
@@ -113,6 +125,17 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
                 || !principal.getRol().equals(user.get().getRol())
                 || !Objects.equals(principal.getOrganizacionId(), user.get().getOrganizacionId())) {
             return "PRINCIPAL_REVOKED";
+        }
+        Optional<LocalDateTime> sessionsRevokedAt =
+            cuentaRepository.findSessionsRevokedAtById(principal.getCuentaId());
+        if (sessionsRevokedAt.isPresent()) {
+            LocalDateTime sessionStartedAt = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(originalCreatedAt),
+                ZoneOffset.UTC
+            );
+            if (!sessionStartedAt.isAfter(sessionsRevokedAt.get())) {
+                return "PRINCIPAL_REVOKED";
+            }
         }
 
         return null;

@@ -220,6 +220,7 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
         MockHttpSession session = new MockHttpSession();
         long now = clock.millis();
         session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+        session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, now);
         session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
         session.setAttribute(MfaAuthenticationService.LAST_REAUTH_ATTRIBUTE, now);
 
@@ -278,6 +279,7 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
         MockHttpSession session = new MockHttpSession();
         long now = clock.millis();
         session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+        session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, now);
         session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
         session.setAttribute(MfaAuthenticationService.LAST_REAUTH_ATTRIBUTE, now);
 
@@ -304,7 +306,7 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
         // Previous session must now be expired / rejected on protected route
         mockMvc.perform(get("/dashboard").session(session))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/login?expired"));
+            .andExpect(redirectedUrl("/login?replaced"));
     }
 
     @Test
@@ -364,6 +366,7 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
         MockHttpSession session = new MockHttpSession();
         long now = clock.millis();
         session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+        session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, now);
         session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
 
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
@@ -375,6 +378,18 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
         session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
         sessionRegistry.registerNewSession(session.getId(), principal);
 
+        MockHttpSession crossInstanceSession = new MockHttpSession();
+        crossInstanceSession.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, now);
+        crossInstanceSession.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, now);
+        crossInstanceSession.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, now);
+        SecurityContext crossInstanceSecurityContext = SecurityContextHolder.createEmptyContext();
+        crossInstanceSecurityContext.setAuthentication(
+            org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, principal.getAuthorities()
+            )
+        );
+        crossInstanceSession.setAttribute("SPRING_SECURITY_CONTEXT", crossInstanceSecurityContext);
+
         // Verify session works before suspension
         mockMvc.perform(get("/dashboard").session(session))
             .andExpect(status().isOk());
@@ -385,11 +400,12 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
 
         Cuenta updatedCuenta = cuentaRepository.findById(cuenta.getId()).orElseThrow();
         assertThat(updatedCuenta.getEstado()).isEqualTo("SUSPENDIDA");
+        assertThat(cuentaRepository.findSessionsRevokedAtById(cuenta.getId())).isPresent();
 
         // 1. Existing session is expired and rejected
         mockMvc.perform(get("/dashboard").session(session))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/login?expired"));
+            .andExpect(redirectedUrl("/login?replaced"));
 
         // 2. New login attempt is rejected
         mockMvc.perform(post("/login")
@@ -398,6 +414,10 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
                 .param("password", password))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/login?error"));
+
+        assertThat(ownerOpsService.reactivateCuenta(cuenta.getPublicId())).isTrue();
+        mockMvc.perform(get("/dashboard").session(crossInstanceSession))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/login?expired"));
     }
 }
-

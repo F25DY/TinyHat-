@@ -14,7 +14,11 @@ public interface NetworkDiscoverySnapshotRepository extends JpaRepository<Networ
 
     Optional<NetworkDiscoverySnapshot> findFirstByOrderByObservedAtDesc();
 
+    Optional<NetworkDiscoverySnapshot> findFirstByProyectoIdOrderByObservedAtDesc(Long proyectoId);
+
     List<NetworkDiscoverySnapshot> findAllByOrderByObservedAtDesc(Pageable pageable);
+
+    List<NetworkDiscoverySnapshot> findAllByProyectoIdOrderByObservedAtDesc(Long proyectoId, Pageable pageable);
 
     @Query("""
         select snapshot.id from NetworkDiscoverySnapshot snapshot

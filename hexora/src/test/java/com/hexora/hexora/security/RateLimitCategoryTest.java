@@ -16,6 +16,10 @@ class RateLimitCategoryTest {
         assertEquals(RateLimitCategory.AUTH, classify("/oauth2/callback/provider", properties));
         assertEquals(RateLimitCategory.API_GENERAL, classify("/login", properties));
         assertEquals(RateLimitCategory.REGISTRO, classify("/registro", properties));
+        assertEquals(
+            RateLimitCategory.REGISTRO,
+            classify("/api/organizaciones/organization-public-id/invitaciones", properties)
+        );
         assertEquals(RateLimitCategory.MFA, classify("/mfa/verify", properties));
         assertEquals(RateLimitCategory.TOKEN, classify("/recuperar-contrasena", properties));
         assertEquals(RateLimitCategory.CVE_SEARCH, classify("/api/cves/buscar", properties));

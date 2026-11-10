@@ -7,7 +7,6 @@ import com.hexora.network.service.NetworkMonitorProperties;
 import com.hexora.network.service.NetworkMonitoringService;
 import com.hexora.network.service.NetworkScheduledTaskLock;
 import com.hexora.network.service.ScanRateLimitException;
-import com.hexora.network.websocket.NetworkMonitorWebSocketHandler;
 import com.hexora.hexora.repository.CuentaRepository;
 import com.hexora.hexora.security.TenantTaskExecutor;
 import jakarta.persistence.EntityNotFoundException;
@@ -25,7 +24,6 @@ public class NetworkMonitoringScheduler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkMonitoringScheduler.class);
     private final NetworkMonitoringService monitoringService;
-    private final NetworkMonitorWebSocketHandler webSocketHandler;
     private final NetworkMonitorProperties properties;
     private final NetworkScheduledTaskLock taskLock;
     private final CuentaRepository cuentaRepository;
@@ -33,14 +31,12 @@ public class NetworkMonitoringScheduler {
 
     public NetworkMonitoringScheduler(
         NetworkMonitoringService monitoringService,
-        NetworkMonitorWebSocketHandler webSocketHandler,
         NetworkMonitorProperties properties,
         NetworkScheduledTaskLock taskLock,
         CuentaRepository cuentaRepository,
         TenantTaskExecutor tenantTaskExecutor
     ) {
         this.monitoringService = monitoringService;
-        this.webSocketHandler = webSocketHandler;
         this.properties = properties;
         this.taskLock = taskLock;
         this.cuentaRepository = cuentaRepository;
@@ -64,7 +60,6 @@ public class NetworkMonitoringScheduler {
             for (Long hostId : monitoringService.getConfiguredHostIds()) {
                 try {
                     NetworkScanDto scan = monitoringService.scanHost(hostId, null, null);
-                    webSocketHandler.publish(scan);
                 } catch (IllegalStateException | EntityNotFoundException | DataAccessException
                     | NetworkDiscoveryException | ScanRateLimitException exception) {
                     LOGGER.error(
@@ -90,14 +85,9 @@ public class NetworkMonitoringScheduler {
     }
 
     private void discoverConnectedDevicesLocked() {
-        forEachActiveAccount("Automatic local network discovery", accountId -> {
-            try {
-                NetworkInventoryUpdateDto update = monitoringService.synchronizeDetectedDevices();
-                webSocketHandler.publish(update);
-            } catch (IllegalStateException | DataAccessException | NetworkDiscoveryException exception) {
-                LOGGER.error("Automatic local network discovery failed for account {}", accountId, exception);
-            }
-        });
+        LOGGER.warn(
+            "Automatic network discovery is disabled until it can run with an explicit authorized project scope"
+        );
     }
 
     @Scheduled(fixedDelayString = "${hexora.network.retention-cleanup-interval-ms:900000}")

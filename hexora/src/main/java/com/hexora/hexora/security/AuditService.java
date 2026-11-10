@@ -66,6 +66,35 @@ public class AuditService {
 	}
 
 	@Transactional
+	public void networkEvent(
+		String eventName,
+		String result,
+		TinyHatPrincipal principal,
+		HttpServletRequest request,
+		String projectPublicId,
+		String cidr,
+		String reason
+	) {
+		AuditEvent event = new AuditEvent();
+		event.setEvento(eventName);
+		event.setResultado(result);
+		event.setCuentaId(principal.getCuentaId());
+		event.setUsuarioId(principal.getUserId());
+		event.setOrganizacionId(principal.getOrganizacionId());
+		event.setIp(request.getRemoteAddr());
+		event.setUserAgent(limit(request.getHeader("User-Agent"), 512));
+		event.setRecursoTipo("NETWORK_SCOPE");
+		event.setRecursoPublicId(projectPublicId);
+		event.setCorrelationId(MDC.get(CorrelationIdFilter.MDC_KEY));
+		event.setDetalle(Map.of(
+			"projectPublicId", projectPublicId,
+			"cidr", cidr == null ? "" : cidr,
+			"reason", reason == null ? "" : limit(reason, 160)
+		));
+		auditEventRepository.save(event);
+	}
+
+	@Transactional
 	public void rateLimited(String category, String subject, String clientIp, HttpServletRequest request) {
 		TinyHatPrincipal principal = principal(request);
 		AuditEvent event = new AuditEvent();

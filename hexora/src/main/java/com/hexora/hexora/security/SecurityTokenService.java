@@ -92,7 +92,7 @@ public class SecurityTokenService {
         String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
         String hashToken = hashToken(rawToken);
 
-        LocalDateTime now = LocalDateTime.now(clock.getZone()).withNano(0);
+        LocalDateTime now = LocalDateTime.now(clock).withNano(0);
         LocalDateTime expiraEn = now.plus(duration);
 
         TokenSeguridad tokenEntity = new TokenSeguridad(
@@ -116,7 +116,7 @@ public class SecurityTokenService {
             return Optional.empty();
         }
         String hash = hashToken(rawToken);
-        LocalDateTime now = LocalDateTime.now(clock.getZone());
+        LocalDateTime now = LocalDateTime.now(clock);
         return tokenRepository.findByHashTokenAndTipo(hash, expectedTipo)
             .filter(t -> t.getUsadoEn() == null && t.getExpiraEn().isAfter(now));
     }
@@ -127,9 +127,9 @@ public class SecurityTokenService {
             return Optional.empty();
         }
         String hash = hashToken(rawToken);
-        LocalDateTime now = LocalDateTime.now(clock.getZone());
+        LocalDateTime now = LocalDateTime.now(clock);
 
-        int rowsUpdated = tokenRepository.markTokenAsUsed(hash, now);
+        int rowsUpdated = tokenRepository.markTokenAsUsed(hash, expectedTipo, now);
         if (rowsUpdated != 1) {
             return Optional.empty();
         }
@@ -142,7 +142,7 @@ public class SecurityTokenService {
         if (usuarioId == null) {
             return 0;
         }
-        LocalDateTime now = LocalDateTime.now(clock.getZone());
+        LocalDateTime now = LocalDateTime.now(clock);
         return tokenRepository.invalidatePendingTokensForUser(usuarioId, now);
     }
 
@@ -157,4 +157,3 @@ public class SecurityTokenService {
         }
     }
 }
-

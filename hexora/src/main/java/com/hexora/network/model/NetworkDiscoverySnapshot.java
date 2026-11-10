@@ -42,6 +42,9 @@ public class NetworkDiscoverySnapshot implements TenantScopedEntity {
     @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
+    @Column(name = "proyecto_id")
+    private Long proyectoId;
+
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
     private String publicId;
 
@@ -79,6 +82,14 @@ public class NetworkDiscoverySnapshot implements TenantScopedEntity {
 
     public Long getCuentaId() {
         return cuentaId;
+    }
+
+    public Long getProyectoId() {
+        return proyectoId;
+    }
+
+    public void setProyectoId(Long proyectoId) {
+        this.proyectoId = proyectoId;
     }
 
     @Override

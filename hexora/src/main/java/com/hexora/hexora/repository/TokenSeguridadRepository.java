@@ -18,11 +18,21 @@ public interface TokenSeguridadRepository extends JpaRepository<TokenSeguridad, 
     List<TokenSeguridad> findByUsuarioIdAndUsadoEnIsNull(Long usuarioId);
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE TokenSeguridad t SET t.usadoEn = :usedAt WHERE t.hashToken = :hashToken AND t.usadoEn IS NULL AND t.expiraEn > :usedAt")
-    int markTokenAsUsed(@Param("hashToken") String hashToken, @Param("usedAt") LocalDateTime usedAt);
+    @Query("""
+        UPDATE TokenSeguridad t
+           SET t.usadoEn = :usedAt
+         WHERE t.hashToken = :hashToken
+           AND t.tipo = :tipo
+           AND t.usadoEn IS NULL
+           AND t.expiraEn > :usedAt
+        """)
+    int markTokenAsUsed(
+        @Param("hashToken") String hashToken,
+        @Param("tipo") String tipo,
+        @Param("usedAt") LocalDateTime usedAt
+    );
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE TokenSeguridad t SET t.usadoEn = :invalidatedAt WHERE t.usuarioId = :usuarioId AND t.usadoEn IS NULL")
     int invalidatePendingTokensForUser(@Param("usuarioId") Long usuarioId, @Param("invalidatedAt") LocalDateTime invalidatedAt);
 }
-

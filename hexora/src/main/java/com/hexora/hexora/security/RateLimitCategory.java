@@ -31,7 +31,15 @@ enum RateLimitCategory {
             || ("/login".equals(path) && "POST".equalsIgnoreCase(request.getMethod()))) {
             return AUTH;
         }
-        if (matches(path, "/registro", "/registro/**", "/invitacion/**", "/api/registro", "/api/registro/**")) {
+        if (matches(
+            path,
+            "/registro",
+            "/registro/**",
+            "/invitacion/**",
+            "/api/registro",
+            "/api/registro/**",
+            "/api/organizaciones/*/invitaciones"
+        )) {
             return REGISTRO;
         }
         if (matches(path, "/mfa/**")) {

@@ -4,6 +4,7 @@ import com.hexora.hexora.dto.RecuperarRequest;
 import com.hexora.hexora.dto.RegistroForm;
 import com.hexora.hexora.dto.ResetPasswordForm;
 import com.hexora.hexora.model.TokenSeguridad;
+import com.hexora.hexora.security.PasswordPolicyViolationException;
 import com.hexora.hexora.security.ScopedNotFoundException;
 import com.hexora.hexora.security.SecurityTokenService;
 import com.hexora.hexora.security.TinyHatSecurityProperties;
@@ -12,10 +13,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
+@PreAuthorize("permitAll()")
 public class UserAccountLifecycleWebController {
 
     private final UserRegistrationService registrationService;
@@ -62,10 +68,20 @@ public class UserAccountLifecycleWebController {
 
     @PostMapping(value = "/registro")
     public String registerForm(
-        @ModelAttribute RegistroForm form,
+        @Valid @ModelAttribute("form") RegistroForm form,
+        BindingResult bindingResult,
+        Model model,
         HttpServletRequest request
     ) {
-        registrationService.registerAuditor(form, request);
+        if (bindingResult.hasErrors()) {
+            return "registro";
+        }
+        try {
+            registrationService.registerAuditor(form, request);
+        } catch (PasswordPolicyViolationException exception) {
+            model.addAttribute("error", exception.getMessage());
+            return "registro";
+        }
         return "redirect:/login?registered";
     }
 
@@ -174,5 +190,10 @@ public class UserAccountLifecycleWebController {
         registrationService.resetPassword(token, password, request);
         return "redirect:/login?reset";
     }
-}
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidLifecycleRequest(IllegalArgumentException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("message", "La solicitud no es válida o el token ya no está vigente."));
+    }
+}

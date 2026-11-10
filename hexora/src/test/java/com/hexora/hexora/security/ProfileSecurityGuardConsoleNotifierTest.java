@@ -34,6 +34,7 @@ class ProfileSecurityGuardConsoleNotifierTest {
                 "server.ssl.enabled=true",
                 "tinyhat.security.csp.report-only=false",
                 "tinyhat.security.network.allow-public-ranges=false",
+                "tinyhat.security.public-base-url=https://hexora.example.com",
                 "tinyhat.demo.seed.enabled=false",
                 "server.servlet.session.cookie.secure=true"
             )
@@ -43,4 +44,3 @@ class ProfileSecurityGuardConsoleNotifierTest {
                 .hasMessageContaining("development-only components must not be active"));
     }
 }
-

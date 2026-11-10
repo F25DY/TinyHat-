@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.mysql.MySQLContainer;
 
 @SpringBootTest(properties = {
-	"spring.jpa.hibernate.ddl-auto=validate",
+	"spring.jpa.hibernate.ddl-auto=none",
 	"spring.flyway.clean-disabled=true",
 	"spring.flyway.target=25",
 	"hexora.network.discovery-enabled=false",

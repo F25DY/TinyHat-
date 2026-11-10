@@ -2,7 +2,8 @@ package com.hexora.hexora.security;
 
 import com.hexora.hexora.model.Cuenta;
 import com.hexora.hexora.repository.CuentaRepository;
-import com.hexora.hexora.repository.UsuarioRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
@@ -13,20 +14,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class OwnerOpsService {
 
     private final CuentaRepository cuentaRepository;
-    private final UsuarioRepository usuarioRepository;
     private final SessionRegistry sessionRegistry;
     private final AuditService auditService;
+    private final Clock clock;
 
     public OwnerOpsService(
         CuentaRepository cuentaRepository,
-        UsuarioRepository usuarioRepository,
         SessionRegistry sessionRegistry,
-        AuditService auditService
+        AuditService auditService,
+        Clock clock
     ) {
         this.cuentaRepository = cuentaRepository;
-        this.usuarioRepository = usuarioRepository;
         this.sessionRegistry = sessionRegistry;
         this.auditService = auditService;
+        this.clock = clock;
     }
 
     @Transactional
@@ -38,7 +39,11 @@ public class OwnerOpsService {
             return false;
         }
         cuenta.setEstado("SUSPENDIDA");
-        cuentaRepository.save(cuenta);
+        cuentaRepository.saveAndFlush(cuenta);
+        int updatedRows = cuentaRepository.markSessionsRevoked(cuenta.getId(), LocalDateTime.now(clock));
+        if (updatedRows != 1) {
+            throw new IllegalStateException("Could not persist the account session revocation timestamp");
+        }
         expireSessionsForAccount(cuenta.getId());
         auditService.opsCommand("SUSPEND_CUENTA", publicId, "OK");
         return true;
@@ -71,4 +76,3 @@ public class OwnerOpsService {
         }
     }
 }
-

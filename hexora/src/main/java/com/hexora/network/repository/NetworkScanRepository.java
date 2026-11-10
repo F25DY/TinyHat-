@@ -16,6 +16,17 @@ public interface NetworkScanRepository extends JpaRepository<NetworkScan, Long> 
 
     Slice<NetworkScan> findAllByHost_IdOrderByStartedAtDesc(Long hostId, Pageable pageable);
 
+    @Query("""
+        select scan from NetworkScan scan
+        where scan.host.proyectoId = :projectId
+            and (:hostId is null or scan.host.id = :hostId)
+        order by scan.startedAt desc
+        """)
+    Slice<NetworkScan> findAllByProjectAndOptionalHost(
+        @Param("projectId") Long projectId,
+        @Param("hostId") Long hostId,
+        Pageable pageable);
+
     Optional<NetworkScan> findFirstByHost_IdOrderByStartedAtDesc(Long hostId);
 
         @Query("""
@@ -43,6 +54,10 @@ public interface NetworkScanRepository extends JpaRepository<NetworkScan, Long> 
     @Modifying
     @Query("delete from NetworkScan scan where scan.host.id = :hostId")
     int deleteAllForHost(@Param("hostId") Long hostId);
+
+    @Modifying
+    @Query("delete from NetworkScan scan where scan.host.proyectoId = :projectId")
+    int deleteAllForProject(@Param("projectId") Long projectId);
 
     @Modifying
     @Query("delete from NetworkScan scan where scan.cuentaId = :cuentaId")
