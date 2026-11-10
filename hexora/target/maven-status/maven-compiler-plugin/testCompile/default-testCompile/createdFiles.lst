@@ -1,8 +1,1 @@
 com\hexora\hexora\HexoraApplicationTests.class
-com\hexora\network\service\LocalNetworkDiscoveryServiceTest.class
-com\hexora\network\service\NetworkMonitoringServiceTest.class
-com\hexora\network\controller\NetworkMonitoringWebTest.class
-com\hexora\network\service\NmapHostDiscoveryTest.class
-com\hexora\network\scheduler\NetworkMonitoringSchedulerTest.class
-com\hexora\network\service\LocalNeighborPresenceTrackerTest.class
-com\hexora\network\service\NetworkReachabilityProbeTest.class

@@ -1,17 +1,27 @@
 package com.hexora.hexora.model;
 
-import jakarta.annotation.Generated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 @Entity
-@Table(name = "empresa")
-
-public class Empresa {
+@Table(name = "organizacion_cliente")
+@FilterDef(
+    name = "accountFilter",
+    parameters = @ParamDef(name = "tenantId", type = Long.class),
+    applyToLoadByKey = true
+)
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class Empresa implements TenantScopedEntity {
 
     //Creamos columnas
 
@@ -28,6 +38,12 @@ public class Empresa {
     
     @Column(length = 80)
     private String sector;
+
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     //Constructores
     public Empresa() {
@@ -72,6 +88,28 @@ public class Empresa {
 
     public void setSector(String sector) {
         this.sector = sector;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 
 }

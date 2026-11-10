@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Crear Proyecto</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
@@ -54,9 +55,11 @@
 
             </div>
 
-            <a th:href="@{/}" class="boton-cerrar-sesion">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
+            </form>
 
         </div>
     </aside>
@@ -68,44 +71,46 @@
             </a>
 
             <div class="titulos-nuevo">
-                <h1 class="titulo-pagina">Crear Nuevo Proyecto</h1>
-                <p class="subtitulo">Configura un nuevo proyecto de auditoría o pentesting</p>
+                <h1 class="titulo-pagina" th:text="${editing} ? 'Editar Proyecto' : 'Crear Nuevo Proyecto'">Crear Nuevo Proyecto</h1>
+                <p class="subtitulo" th:text="${editing} ? 'Actualiza los datos del proyecto de auditoría o pentesting' : 'Configura un nuevo proyecto de auditoría o pentesting'">
+                    Configura un nuevo proyecto de auditoría o pentesting
+                </p>
             </div>
         </header>
 
         <section class="tarjeta-blanca contenedor-formulario">
             <h3 class="seccion-form-titulo">Información Básica</h3>
 
-            <form th:action="@{/proyectos/guardar}" method="post" id="form-nuevo-proyecto" class="form-proyecto">
+            <form th:action="${formAction}" th:object="${proyectoForm}" method="post" id="form-nuevo-proyecto" class="form-proyecto">
                 <div class="grid-form">
                     <div class="campo-grupo">
                         <label for="nombreEmpresa">Empresa / Auditoría <span class="requerido">*</span></label>
-                        <input type="text" id="nombreEmpresa" name="nombreEmpresa" placeholder="Ej: Banco Nacional" required>
+                        <input type="text" th:field="*{nombreEmpresa}" placeholder="Ej: Banco Nacional" required>
                     </div>
 
                     <div class="campo-grupo">
                         <label for="nit">NIT</label>
-                        <input type="text" id="nit" name="nit" placeholder="Ej: 123456789">
+                        <input type="text" th:field="*{nit}" placeholder="Ej: 123456789">
                     </div>
 
                     <div class="campo-grupo">
                         <label for="sector">Sector</label>
-                        <input type="text" id="sector" name="sector" placeholder="Ej: Financiero">
+                        <input type="text" th:field="*{sector}" placeholder="Ej: Financiero">
                     </div>
 
                     <div class="campo-grupo">
                         <label for="nombre">Nombre del Proyecto <span class="requerido">*</span></label>
-                        <input type="text" id="nombre" name="nombre" placeholder="Ej: Auditoría Sistema Bancario" required>
+                        <input type="text" th:field="*{nombre}" placeholder="Ej: Auditoría Sistema Bancario" required>
                     </div>
 
                     <div class="campo-grupo">
                         <label for="tipoAuditoria">Tipo de Auditoría <span class="requerido">*</span></label>
-                        <input type="text" id="tipoAuditoria" name="tipoAuditoria" placeholder="Ej: Auditoría Interna" required>
+                        <input type="text" th:field="*{tipoAuditoria}" placeholder="Ej: Auditoría Interna" required>
                     </div>
 
                     <div class="campo-grupo">
                         <label for="estado">Estado <span class="requerido">*</span></label>
-                        <select id="estado" name="estado" required>
+                        <select th:field="*{estado}" required>
                             <option value="">Seleccionar estado</option>
                             <option value="Planificado">Planificado</option>
                             <option value="En Progreso">En progreso</option>
@@ -115,18 +120,20 @@
 
                     <div class="campo-grupo">
                         <label for="fechaInicio">Fecha de Inicio <span class="requerido">*</span></label>
-                        <input type="date" id="fechaInicio" name="fechaInicio" required>
+                        <input type="date" th:field="*{fechaInicio}" required>
                     </div>
 
                     <div class="campo-grupo">
                         <label for="fechaFin">Fecha de Finalización</label>
-                        <input type="date" id="fechaFin" name="fechaFin">
+                        <input type="date" th:field="*{fechaFin}">
                     </div>
                 </div>
 
                 <div class="acciones-formulario">
                     <a th:href="@{/proyectos}" class="btn-cancelar">Cancelar</a>
-                    <button type="submit" class="btn-guardar">Crear Proyecto</button>
+                    <button type="submit" class="btn-guardar" th:text="${editing} ? 'Actualizar Proyecto' : 'Crear Proyecto'">
+                        Crear Proyecto
+                    </button>
                 </div>
             </form>
         </section>

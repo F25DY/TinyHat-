@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Códigos de recuperación</title>
+</head>
+<body>
+<main>
+    <h1>Guarda tus códigos de recuperación</h1>
+    <p>Se muestran una sola vez. Cada código puede utilizarse una sola vez.</p>
+    <ul>
+        <li th:each="code : ${recoveryCodes}" th:text="${code}"></li>
+    </ul>
+    <a th:href="@{/dashboard}">Continuar</a>
+</main>
+</body>
+</html>

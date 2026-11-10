@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class ProyectoView {
 
-    private final Long id;
+    private final String id;
     private final String nombre;
     private final String empresa;
     private final String estado;
@@ -16,7 +16,7 @@ public class ProyectoView {
     private final Map<String, Long> metricas;
 
     public ProyectoView(
-            Long id,
+            String id,
             String nombre,
             String empresa,
             String estado,
@@ -34,7 +34,7 @@ public class ProyectoView {
         this.metricas = metricas;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
@@ -68,13 +68,13 @@ public class ProyectoView {
 
     public static class DepartamentoView {
 
-        private final Long id;
+        private final String id;
         private final String nombre;
         private final String descripcion;
         private final long vulnerabilidades;
         private final long criticas;
 
-        public DepartamentoView(Long id, String nombre, String descripcion, long vulnerabilidades, long criticas) {
+        public DepartamentoView(String id, String nombre, String descripcion, long vulnerabilidades, long criticas) {
             this.id = id;
             this.nombre = nombre;
             this.descripcion = descripcion;
@@ -82,7 +82,7 @@ public class ProyectoView {
             this.criticas = criticas;
         }
 
-        public Long getId() {
+        public String getId() {
             return id;
         }
 

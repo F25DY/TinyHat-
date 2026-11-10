@@ -9,11 +9,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name= "auditoria")
-public class Auditoria {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class Auditoria implements TenantScopedEntity {
 
     //Definimos Id
     @Id
@@ -37,8 +42,14 @@ public class Auditoria {
     private String estado;
 
     @ManyToOne
-    @JoinColumn(name = "empresa_id", nullable = false)
+    @JoinColumn(name = "organizacion_cliente_id", nullable = false)
     private Empresa empresa;
+
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     //@ManyToOne
     //@JoinColumn(name = "auditor", nullable = false)
@@ -123,6 +134,28 @@ public class Auditoria {
 
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 
     

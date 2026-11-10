@@ -1,31 +1,38 @@
 package com.hexora.hexora.controller;
 
-import java.time.LocalDate;
-import java.text.Normalizer;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-
+import com.hexora.hexora.dto.ProyectoForm;
 import com.hexora.hexora.dto.ProyectoView;
 import com.hexora.hexora.dto.ProyectoView.DepartamentoView;
+import com.hexora.hexora.model.AreaAuditable;
+import com.hexora.hexora.model.AsignacionAuditorProyecto;
+import com.hexora.hexora.model.AsignacionAuditorProyectoId;
 import com.hexora.hexora.model.Auditoria;
 import com.hexora.hexora.model.Empresa;
 import com.hexora.hexora.model.Vulnerabilidad;
 import com.hexora.hexora.repository.AreaAuditableRepository;
+import com.hexora.hexora.repository.AsignacionAuditorProyectoRepository;
 import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.repository.EmpresaRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
-
-import org.springframework.web.bind.annotation.PostMapping;
+import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.service.PermissionService;
+import jakarta.validation.Valid;
+import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-
 
 @Controller
 @RequestMapping("/proyectos")
@@ -35,213 +42,241 @@ public class ProyectosController {
     private final EmpresaRepository empresaRepository;
     private final AreaAuditableRepository areaAuditableRepository;
     private final VulnerabilidadRepository vulnerabilidadRepository;
+    private final PermissionService permissionService;
+    private final AsignacionAuditorProyectoRepository asignacionRepository;
 
-    
     public ProyectosController(
             AuditoriaRepository auditoriaRepository,
             EmpresaRepository empresaRepository,
             AreaAuditableRepository areaAuditableRepository,
-            VulnerabilidadRepository vulnerabilidadRepository) {
+            VulnerabilidadRepository vulnerabilidadRepository,
+            PermissionService permissionService,
+            AsignacionAuditorProyectoRepository asignacionRepository) {
         this.auditoriaRepository = auditoriaRepository;
         this.empresaRepository = empresaRepository;
         this.areaAuditableRepository = areaAuditableRepository;
         this.vulnerabilidadRepository = vulnerabilidadRepository;
+        this.permissionService = permissionService;
+        this.asignacionRepository = asignacionRepository;
     }
 
     @GetMapping({"", "/"})
-    public String listarProyectos(Model model) {
-        model.addAttribute("auditorias", auditoriaRepository.findAll());
-        model.addAttribute("empresas", empresaRepository.findAll());
+    @PreAuthorize("hasAnyRole('AUDITOR', 'CLIENTE_ADMIN')")
+    public String listarProyectos(
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            Model model) {
+        model.addAttribute("auditorias", permissionService.proyectosVisibles(principal));
+        model.addAttribute("empresas", empresasVisibles(principal));
+        model.addAttribute("canManageProjects", "AUDITOR".equals(principal.getRol()));
         return "proyectos";
     }
-    
+
     @GetMapping("/nuproyectos")
-    public String crearProyecto() {
+    @PreAuthorize("hasRole('AUDITOR')")
+    public String crearProyecto(Model model) {
+        model.addAttribute("proyectoForm", new ProyectoForm());
+        model.addAttribute("editing", false);
+        model.addAttribute("formAction", "/proyectos/guardar");
         return "nuproyectos";
     }
 
     @PostMapping("/guardar")
+    @PreAuthorize("hasRole('AUDITOR')")
     @Transactional
     public String guardarProyectos(
-        @RequestParam String nombreEmpresa,
-        @RequestParam(required=false) String nit,
-        @RequestParam(required = false) String sector,
-
-        @RequestParam String nombre,
-        @RequestParam String tipoAuditoria,
-        @RequestParam String fechaInicio,
-        @RequestParam (required=false)String fechaFin,
-        @RequestParam String estado
-    ) {
-        Empresa empresa = new Empresa();
-        empresa.setNombre(nombreEmpresa);
-        empresa.setNit(nit);
-        empresa.setSector(sector);
-        empresaRepository.save(empresa);
-        
-        Auditoria auditoria = new Auditoria();
-        auditoria.setNombre(nombre);
-        auditoria.setTipoAuditoria(tipoAuditoria);
-        LocalDate inicio = LocalDate.parse(fechaInicio);
-        auditoria.setFechaInico(inicio);
-
-        if (fechaFin != null && !fechaFin.isEmpty()) {
-            auditoria.setFechaFin(LocalDate.parse(fechaFin));
-        } else {
-            auditoria.setFechaFin(inicio);
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @Valid @ModelAttribute("proyectoForm") ProyectoForm form,
+            BindingResult bindingResult,
+            Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("editing", false);
+            model.addAttribute("formAction", "/proyectos/guardar");
+            return "nuproyectos";
         }
+        Empresa empresa = new Empresa();
+        actualizarOrganizacion(empresa, form);
+        empresa.setCuentaId(principal.getCuentaId());
+        empresaRepository.save(empresa);
 
-        auditoria.setEstado(estado);
+        Auditoria auditoria = new Auditoria();
+        auditoria.setNombre(form.getNombre());
+        auditoria.setTipoAuditoria(form.getTipoAuditoria());
+        auditoria.setFechaInico(form.getFechaInicio());
+        auditoria.setFechaFin(form.getFechaFin() == null ? form.getFechaInicio() : form.getFechaFin());
+        auditoria.setEstado(form.getEstado());
         auditoria.setEmpresa(empresa);
+        auditoria.setCuentaId(principal.getCuentaId());
         auditoriaRepository.save(auditoria);
-        
+        AsignacionAuditorProyecto assignment = new AsignacionAuditorProyecto(
+                new AsignacionAuditorProyectoId(
+                        principal.getUserId(), auditoria.getIdAuditoria(), principal.getCuentaId()),
+                LocalDateTime.now(ZoneOffset.UTC));
+        asignacionRepository.save(assignment);
+
         return "redirect:/proyectos";
     }
-    
-    @GetMapping("/{id}")
-    public String detalleProyecto(@PathVariable Long id, Model model) {
-        Auditoria auditoria = auditoriaRepository.findById(id).orElseThrow(() -> new RuntimeException("Auditoría no encontrada"));
 
+    @GetMapping("/{publicId}")
+    @PreAuthorize("hasAnyRole('AUDITOR', 'CLIENTE_ADMIN')")
+    @Transactional(readOnly = true)
+    public String detalleProyecto(
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String publicId,
+            Model model) {
+        Auditoria auditoria = permissionService.requireProyecto(principal, publicId);
         Empresa empresa = auditoria.getEmpresa();
-        var departamentos = areaAuditableRepository.findByAuditoria(auditoria);
-        var vulnerabilidades = departamentos.stream()
-                .flatMap(departamento -> vulnerabilidadRepository.findByAreaAuditable(departamento).stream())
-                .toList();
-        var metricas = Map.of(
-                "critico", contarRiesgo(vulnerabilidades, "Critico"),
-                "alto", contarRiesgo(vulnerabilidades, "Alto"),
-                "medio", contarRiesgo(vulnerabilidades, "Medio"),
-                "bajo", contarRiesgo(vulnerabilidades, "Bajo")
-        );
-        var departamentosView = departamentos.stream()
-                .map(departamento -> {
-                    var vulnerabilidadesDepartamento = vulnerabilidadRepository.findByAreaAuditable(departamento);
+        List<AreaAuditable> areas = areaAuditableRepository.findByAuditoriaAndCuentaId(
+                auditoria, principal.getCuentaId());
+        boolean auditor = "AUDITOR".equals(principal.getRol());
+
+        List<Vulnerabilidad> findings = auditor
+                ? areas.stream()
+                    .flatMap(area -> vulnerabilidadRepository
+                            .findByAreaAuditableAndCuentaId(area, principal.getCuentaId()).stream())
+                    .toList()
+                : List.of();
+
+        Map<String, Long> metrics = Map.of(
+                "critico", countRisk(findings, "Critico"),
+                "alto", countRisk(findings, "Alto"),
+                "medio", countRisk(findings, "Medio"),
+                "bajo", countRisk(findings, "Bajo"));
+        List<DepartamentoView> areasView = areas.stream()
+                .map(area -> {
+                    List<Vulnerabilidad> areaFindings = auditor
+                            ? vulnerabilidadRepository.findByAreaAuditableAndCuentaId(area, principal.getCuentaId())
+                            : List.of();
                     return new DepartamentoView(
-                            departamento.getId(),
-                            departamento.getNombre(),
-                            departamento.getDescripcion(),
-                            vulnerabilidadesDepartamento.size(),
-                            contarRiesgo(vulnerabilidadesDepartamento, "Critico"));
+                            area.getPublicId(),
+                            area.getNombre(),
+                            area.getDescripcion(),
+                            areaFindings.size(),
+                            countRisk(areaFindings, "Critico"));
                 })
                 .toList();
-        var proyecto = new ProyectoView(
-                auditoria.getIdAuditoria(),
+        ProyectoView projectView = new ProyectoView(
+                auditoria.getPublicId(),
                 auditoria.getNombre(),
                 empresa.getNombre(),
                 auditoria.getEstado(),
                 auditoria.getFechaInico(),
                 auditoria.getTipoAuditoria(),
-                departamentosView,
-                metricas);
+                areasView,
+                metrics);
 
         model.addAttribute("auditoria", auditoria);
         model.addAttribute("empresa", empresa);
-        model.addAttribute("proyecto", proyecto);
-        model.addAttribute("departamentos", departamentosView);
-        model.addAttribute("areas", departamentos);
-        model.addAttribute("metricas", metricas);
+        model.addAttribute("proyecto", projectView);
+        model.addAttribute("departamentos", areasView);
+        model.addAttribute("areas", areas);
+        model.addAttribute("metricas", metrics);
+        model.addAttribute("canManageProjects", auditor);
         return "detalleproyecto";
     }
-    
-    @GetMapping("/{id}/editar")
-    public String proyectoEditar(@PathVariable Long id, Model model) {
 
-        Auditoria auditoria = auditoriaRepository.findById(id).orElseThrow(() -> new RuntimeException("Auditoría no encontrada"));
-
-        model.addAttribute("auditoria", auditoria);
-
-        return "editar-auditoria";
+    @GetMapping("/{publicId}/editar")
+    @PreAuthorize("hasRole('AUDITOR')")
+    @Transactional(readOnly = true)
+    public String proyectoEditar(
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String publicId,
+            Model model) {
+        Auditoria auditoria = permissionService.requireProyecto(principal, publicId);
+        ProyectoForm form = new ProyectoForm();
+        form.setNombreEmpresa(auditoria.getEmpresa().getNombre());
+        form.setNit(auditoria.getEmpresa().getNit());
+        form.setSector(auditoria.getEmpresa().getSector());
+        form.setNombre(auditoria.getNombre());
+        form.setTipoAuditoria(auditoria.getTipoAuditoria());
+        form.setFechaInicio(auditoria.getFechaInico());
+        form.setFechaFin(auditoria.getFechaFin());
+        form.setEstado(auditoria.getEstado());
+        model.addAttribute("proyectoForm", form);
+        model.addAttribute("proyectoPublicId", auditoria.getPublicId());
+        model.addAttribute("editing", true);
+        model.addAttribute("formAction", "/proyectos/" + auditoria.getPublicId() + "/actualizar");
+        return "nuproyectos";
     }
 
-    @PostMapping("/{id}/actualizar")
-    public String proyectoActualizar(
-        @PathVariable Long id, 
-        @RequestParam String nombreEmpresa,
-        @RequestParam(required=false) String nit,
-        @RequestParam(required = false) String sector,
-
-        @RequestParam String nombre,
-        @RequestParam String tipoAuditoria,
-        @RequestParam String fechaInicio,
-        @RequestParam (required=false)String fechaFin,
-        @RequestParam String estado
-    ) {
-        Auditoria auditoria = auditoriaRepository.findById(id).orElseThrow(() -> new RuntimeException("Proyecto no encontrado"));
-
-        Empresa empresa = auditoria.getEmpresa();
-
-        empresa.setNombre(nombreEmpresa);
-        empresa.setNit(nit);
-        empresa.setSector(sector);
-        empresaRepository.save(empresa);
-
-        auditoria.setNombre(nombre);
-        auditoria.setTipoAuditoria(tipoAuditoria);
-        auditoria.setFechaInico(LocalDate.parse(fechaInicio));
-
-        if (fechaFin != null && !fechaFin.isEmpty()) {
-            auditoria.setFechaFin(LocalDate.parse(fechaFin));
-        } else{
-            auditoria.setFechaFin(auditoria.getFechaInico());
-        }
-
-        auditoria.setEstado(estado);
-
-        auditoriaRepository.save(auditoria);
-
-        return "redirect:/proyectos/" + id;
-    }
-
-    @PostMapping("/{id}/eliminar")
+    @PostMapping("/{publicId}/actualizar")
+    @PreAuthorize("hasRole('AUDITOR')")
     @Transactional
-    public String eliminarProyecto(@PathVariable Long id) {
+    public String proyectoActualizar(
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String publicId,
+            @Valid @ModelAttribute("proyectoForm") ProyectoForm form,
+            BindingResult bindingResult,
+            Model model) {
+        Auditoria auditoria = permissionService.requireProyecto(principal, publicId);
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("proyectoForm", form);
+            model.addAttribute("proyectoPublicId", auditoria.getPublicId());
+            model.addAttribute("editing", true);
+            model.addAttribute("formAction", "/proyectos/" + auditoria.getPublicId() + "/actualizar");
+            return "nuproyectos";
+        }
+        actualizarOrganizacion(auditoria.getEmpresa(), form);
+        empresaRepository.save(auditoria.getEmpresa());
 
-        Auditoria auditoria = auditoriaRepository.findById(id).orElseThrow(() -> new RuntimeException("Proyecto no encontrado"));
+        auditoria.setNombre(form.getNombre());
+        auditoria.setTipoAuditoria(form.getTipoAuditoria());
+        auditoria.setFechaInico(form.getFechaInicio());
+        auditoria.setFechaFin(form.getFechaFin() == null ? form.getFechaInicio() : form.getFechaFin());
+        auditoria.setEstado(form.getEstado());
+        auditoriaRepository.save(auditoria);
+        return "redirect:/proyectos/" + auditoria.getPublicId();
+    }
+
+    @PostMapping("/{publicId}/eliminar")
+    @PreAuthorize("hasRole('AUDITOR')")
+    @Transactional
+    public String eliminarProyecto(
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String publicId) {
+        Auditoria auditoria = permissionService.requireProyecto(principal, publicId);
         Empresa empresa = auditoria.getEmpresa();
-
-        var departamentos = areaAuditableRepository.findByAuditoria(auditoria);
-
-        for (var departamento : departamentos) {
-            var vulnerabilidades = vulnerabilidadRepository.findByAreaAuditable(departamento);
-            vulnerabilidadRepository.deleteAll(vulnerabilidades);
+        List<AreaAuditable> areas = areaAuditableRepository.findByAuditoriaAndCuentaId(
+                auditoria, principal.getCuentaId());
+        for (AreaAuditable area : areas) {
+            vulnerabilidadRepository.deleteAll(
+                    vulnerabilidadRepository.findByAreaAuditableAndCuentaId(area, principal.getCuentaId()));
         }
         vulnerabilidadRepository.flush();
-
-        areaAuditableRepository.deleteAll(departamentos);
+        areaAuditableRepository.deleteAll(areas);
         areaAuditableRepository.flush();
-
         auditoriaRepository.delete(auditoria);
         auditoriaRepository.flush();
-
         if (empresa != null && auditoriaRepository.countByEmpresa(empresa) == 0) {
             empresaRepository.delete(empresa);
         }
-
         return "redirect:/proyectos";
     }
 
-    private long contarRiesgo(List<Vulnerabilidad> vulnerabilidades, String... niveles) {
-        return vulnerabilidades.stream()
-                .filter(vulnerabilidad -> {
-                    String nivel = vulnerabilidad.getNivelRiesgo();
-                    if (nivel == null) {
-                        return false;
-                    }
-                    String nivelNormalizado = normalizar(nivel);
-                    for (String esperado : niveles) {
-                        if (nivelNormalizado.equals(normalizar(esperado))) {
-                            return true;
-                        }
-                    }
-                    return false;
-                })
+    private List<Empresa> empresasVisibles(TinyHatPrincipal principal) {
+        if ("CLIENTE_ADMIN".equals(principal.getRol())) {
+            return empresaRepository.findByIdAndCuentaId(
+                    principal.getOrganizacionId(), principal.getCuentaId()).stream().toList();
+        }
+        return empresaRepository.findByCuentaIdOrderByNombre(principal.getCuentaId());
+    }
+
+    private void actualizarOrganizacion(Empresa empresa, ProyectoForm form) {
+        empresa.setNombre(form.getNombreEmpresa());
+        empresa.setNit(form.getNit());
+        empresa.setSector(form.getSector());
+    }
+
+    private long countRisk(List<Vulnerabilidad> findings, String... levels) {
+        return findings.stream()
+                .filter(finding -> finding.getNivelRiesgo() != null
+                        && java.util.Arrays.stream(levels)
+                                .anyMatch(level -> normalize(level).equals(normalize(finding.getNivelRiesgo()))))
                 .count();
     }
 
-    private String normalizar(String valor) {
-        return Normalizer.normalize(valor, Normalizer.Form.NFD)
+    private String normalize(String value) {
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase();
     }
-    
 }

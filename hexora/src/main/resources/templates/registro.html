@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexora - Registro de Auditor</title>
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+</head>
+<body>
+    <main>
+        <section class="login">
+            <header>
+                <img th:src="@{/imagen/logo.png}" alt="Logo Hexora">
+                <h1>Hexora</h1>
+                <p>Crear cuenta de Auditor</p>
+            </header>
+
+            <form th:action="@{/registro}" method="post" th:object="${form}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label for="nombre">Nombre o Razón Social</label>
+                <input type="text" id="nombre" name="nombre" placeholder="Auditor o Empresa" maxlength="100">
+                <p th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}" style="color:red;"></p>
+
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" name="email" placeholder="auditor@empresa.com" required maxlength="254">
+                <p th:if="${#fields.hasErrors('email')}" th:errors="*{email}" style="color:red;"></p>
+
+                <label for="password">Contraseña (mínimo 12 caracteres)</label>
+                <input type="password" id="password" name="password" placeholder="••••••••••••" required>
+                <p th:if="${#fields.hasErrors('password')}" th:errors="*{password}" style="color:red;"></p>
+
+                <p th:if="${param.error}" style="color:red;" th:text="${param.error}">Error en el registro.</p>
+                <p th:if="${error}" style="color:red;" th:text="${error}"></p>
+
+                <button type="submit">Registrarse</button>
+            </form>
+
+            <p style="margin-top: 1rem;">
+                <a th:href="@{/login}">¿Ya tienes cuenta? Iniciar Sesión</a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="pie-pagina-login">
+        <p>Secure Access &bull; Encrypted Connection</p>
+    </footer>
+</body>
+</html>

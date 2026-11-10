@@ -1,177 +1,252 @@
 package com.hexora.hexora.controller;
 
+import com.hexora.hexora.dto.VulnerabilidadForm;
+import com.hexora.hexora.model.AreaAuditable;
+import com.hexora.hexora.model.Vulnerabilidad;
+import com.hexora.hexora.repository.VulnerabilidadRepository;
+import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.service.PermissionService;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
-
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import com.hexora.hexora.model.AreaAuditable;
-import com.hexora.hexora.model.Vulnerabilidad;
-import com.hexora.hexora.repository.AreaAuditableRepository;
-import com.hexora.hexora.repository.VulnerabilidadRepository;
-
 @Controller
+@PreAuthorize("hasRole('AUDITOR')")
 public class VulnerabilidadController {
 
+    private final PermissionService permissionService;
     private final VulnerabilidadRepository vulnerabilidadRepository;
-    private final AreaAuditableRepository areaAuditableRepository;
 
     public VulnerabilidadController(
-            VulnerabilidadRepository vulnerabilidadRepository,
-            AreaAuditableRepository areaAuditableRepository) {
+            PermissionService permissionService,
+            VulnerabilidadRepository vulnerabilidadRepository) {
+        this.permissionService = permissionService;
         this.vulnerabilidadRepository = vulnerabilidadRepository;
-        this.areaAuditableRepository = areaAuditableRepository;
     }
 
-    @GetMapping("/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva")
+    @GetMapping("/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}/vulnerabilidades/nueva")
     public String crearVulnerabilidad(
-            @PathVariable Long pid,
-            @PathVariable Long did,
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String proyectoPublicId,
+            @PathVariable String areaPublicId,
             Model model) {
-        AreaAuditable departamento = obtenerDepartamento(did);
-        Vulnerabilidad vulnerabilidad = new Vulnerabilidad();
-        vulnerabilidad.setEstado("Abierta");
-        vulnerabilidad.setNivelRiesgo("Bajo");
-        vulnerabilidad.setImpacto(BigDecimal.ZERO);
-        vulnerabilidad.setFechaDeteccion(LocalDate.now());
-
-        cargarModeloFormulario(
-                model,
-                departamento,
-                vulnerabilidad,
-                "/proyectos/" + pid + "/departamentos/" + did + "/vulnerabilidades/guardar");
+        AreaAuditable area = permissionService.requireArea(principal, proyectoPublicId, areaPublicId);
+        VulnerabilidadForm form = new VulnerabilidadForm();
+        form.setEstado("Abierta");
+        form.setFechaDeteccion(LocalDate.now());
+        form.setConfidencialidad(0);
+        form.setIntegridad(0);
+        form.setDisponibilidad(0);
+        form.setProbabilidad(0);
+        populateFormModel(model, area, form, false, formAction(area, null, false));
         return "nuvulnerabilidad";
     }
 
-    @PostMapping("/proyectos/{pid}/departamentos/{did}/vulnerabilidades/guardar")
+    @PostMapping("/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}/vulnerabilidades/guardar")
+    @Transactional
     public String guardarVulnerabilidad(
-            @PathVariable Long pid,
-            @PathVariable Long did,
-            @ModelAttribute("vulnerabilidadForm") Vulnerabilidad vulnerabilidad) {
-        AreaAuditable departamento = obtenerDepartamento(did);
-        vulnerabilidad.setAreaAuditable(departamento);
-        calcularRiesgo(vulnerabilidad);
-        vulnerabilidadRepository.save(vulnerabilidad);
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String proyectoPublicId,
+            @PathVariable String areaPublicId,
+            @Valid @ModelAttribute("vulnerabilidadForm") VulnerabilidadForm form,
+            BindingResult bindingResult,
+            Model model) {
+        AreaAuditable area = permissionService.requireArea(principal, proyectoPublicId, areaPublicId);
+        if (bindingResult.hasErrors()) {
+            populateFormModel(model, area, form, false, formAction(area, null, false));
+            return "nuvulnerabilidad";
+        }
 
-        return "redirect:/proyectos/" + pid + "/departamentos/" + did;
+        Vulnerabilidad vulnerability = new Vulnerabilidad();
+        applyForm(vulnerability, form);
+        vulnerability.setAreaAuditable(area);
+        vulnerability.setCuentaId(principal.getCuentaId());
+        calculateRisk(vulnerability);
+        vulnerabilidadRepository.save(vulnerability);
+        return "redirect:" + areaUrl(area);
     }
 
-    @GetMapping("/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar")
+    @GetMapping("/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}/vulnerabilidades/{hallazgoPublicId}/editar")
+    @Transactional(readOnly = true)
     public String editarVulnerabilidad(
-            @PathVariable Long pid,
-            @PathVariable Long did,
-            @PathVariable Long vid,
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String proyectoPublicId,
+            @PathVariable String areaPublicId,
+            @PathVariable String hallazgoPublicId,
             Model model) {
-        AreaAuditable departamento = obtenerDepartamento(did);
-        Vulnerabilidad vulnerabilidad = vulnerabilidadRepository.findById(vid)
-                .orElseThrow(() -> new IllegalArgumentException("Vulnerabilidad no encontrada"));
-
-        cargarModeloFormulario(
+        Vulnerabilidad vulnerability = permissionService.requireHallazgo(
+                principal, proyectoPublicId, areaPublicId, hallazgoPublicId);
+        populateFormModel(
                 model,
-                departamento,
-                vulnerabilidad,
-                "/proyectos/" + pid + "/departamentos/" + did + "/vulnerabilidades/" + vid + "/actualizar");
+                vulnerability.getAreaAuditable(),
+                toForm(vulnerability),
+                true,
+                formAction(vulnerability.getAreaAuditable(), vulnerability.getPublicId(), true));
         return "nuvulnerabilidad";
     }
 
-    @GetMapping("/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}")
+    @GetMapping("/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}/vulnerabilidades/{hallazgoPublicId}")
+    @Transactional(readOnly = true)
     public String detalleVulnerabilidad(
-            @PathVariable Long pid,
-            @PathVariable Long did,
-            @PathVariable Long vid,
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String proyectoPublicId,
+            @PathVariable String areaPublicId,
+            @PathVariable String hallazgoPublicId,
             Model model) {
-        AreaAuditable departamento = obtenerDepartamento(did);
-        Vulnerabilidad vulnerabilidad = vulnerabilidadRepository.findById(vid)
-                .orElseThrow(() -> new IllegalArgumentException("Vulnerabilidad no encontrada"));
-
-        model.addAttribute("proyecto", departamento.getAuditoria());
-        model.addAttribute("departamento", departamento);
-        model.addAttribute("vulnerabilidad", vulnerabilidad);
+        Vulnerabilidad vulnerability = permissionService.requireHallazgo(
+                principal, proyectoPublicId, areaPublicId, hallazgoPublicId);
+        AreaAuditable area = vulnerability.getAreaAuditable();
+        model.addAttribute("proyecto", area.getAuditoria());
+        model.addAttribute("departamento", area);
+        model.addAttribute("vulnerabilidad", vulnerability);
         model.addAttribute("historial", List.of());
         return "detallevulnerabilidad";
     }
 
-    @PostMapping("/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/actualizar")
+    @PostMapping("/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}/vulnerabilidades/{hallazgoPublicId}/actualizar")
+    @Transactional
     public String actualizarVulnerabilidad(
-            @PathVariable Long pid,
-            @PathVariable Long did,
-            @PathVariable Long vid,
-            @ModelAttribute("vulnerabilidadForm") Vulnerabilidad vulnerabilidad) {
-        AreaAuditable departamento = obtenerDepartamento(did);
-        vulnerabilidad.setId(vid);
-        vulnerabilidad.setAreaAuditable(departamento);
-        calcularRiesgo(vulnerabilidad);
-        vulnerabilidadRepository.save(vulnerabilidad);
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String proyectoPublicId,
+            @PathVariable String areaPublicId,
+            @PathVariable String hallazgoPublicId,
+            @Valid @ModelAttribute("vulnerabilidadForm") VulnerabilidadForm form,
+            BindingResult bindingResult,
+            Model model) {
+        Vulnerabilidad vulnerability = permissionService.requireHallazgo(
+                principal, proyectoPublicId, areaPublicId, hallazgoPublicId);
+        AreaAuditable area = vulnerability.getAreaAuditable();
+        if (bindingResult.hasErrors()) {
+            populateFormModel(
+                    model, area, form, true, formAction(area, vulnerability.getPublicId(), true));
+            return "nuvulnerabilidad";
+        }
 
-        return "redirect:/proyectos/" + pid + "/departamentos/" + did;
+        applyForm(vulnerability, form);
+        calculateRisk(vulnerability);
+        vulnerabilidadRepository.save(vulnerability);
+        return "redirect:" + areaUrl(area);
     }
 
-    @PostMapping("/proyectos/{pid}/departamentos/{did}/vulnerabilidades/eliminar/{vid}")
+    @PostMapping("/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}/vulnerabilidades/{hallazgoPublicId}/eliminar")
+    @Transactional
     public String eliminarVulnerabilidad(
-            @PathVariable Long pid,
-            @PathVariable Long did,
-            @PathVariable Long vid) {
-        vulnerabilidadRepository.deleteById(vid);
-        return "redirect:/proyectos/" + pid + "/departamentos/" + did;
+            @AuthenticationPrincipal TinyHatPrincipal principal,
+            @PathVariable String proyectoPublicId,
+            @PathVariable String areaPublicId,
+            @PathVariable String hallazgoPublicId) {
+        Vulnerabilidad vulnerability = permissionService.requireHallazgo(
+                principal, proyectoPublicId, areaPublicId, hallazgoPublicId);
+        String target = areaUrl(vulnerability.getAreaAuditable());
+        vulnerabilidadRepository.delete(vulnerability);
+        return "redirect:" + target;
     }
 
-    private AreaAuditable obtenerDepartamento(Long did) {
-        return areaAuditableRepository.findById(did)
-                .orElseThrow(() -> new IllegalArgumentException("Departamento no encontrado"));
+    private void populateFormModel(
+            Model model,
+            AreaAuditable area,
+            VulnerabilidadForm form,
+            boolean editing,
+            String formAction) {
+        model.addAttribute("proyecto", area.getAuditoria());
+        model.addAttribute("departamento", area);
+        model.addAttribute("vulnerabilidadForm", form);
+        model.addAttribute("editing", editing);
+        model.addAttribute("returnUrl", areaUrl(area));
+        model.addAttribute("formAction", formAction);
     }
 
-    private void calcularRiesgo(Vulnerabilidad vulnerabilidad) {
-        BigDecimal confidencialidad = BigDecimal.valueOf(vulnerabilidad.getConfidencialidad());
-        BigDecimal integridad = BigDecimal.valueOf(vulnerabilidad.getIntegridad());
-        BigDecimal disponibilidad = BigDecimal.valueOf(vulnerabilidad.getDisponibilidad());
-        BigDecimal probabilidad = BigDecimal.valueOf(vulnerabilidad.getProbabilidad());
+    private VulnerabilidadForm toForm(Vulnerabilidad vulnerability) {
+        VulnerabilidadForm form = new VulnerabilidadForm();
+        form.setNombre(vulnerability.getNombre());
+        form.setTipo(vulnerability.getTipo());
+        form.setHerramienta(vulnerability.getHerramienta());
+        form.setHost(vulnerability.getHost());
+        form.setIpAfectada(vulnerability.getIpAfectada());
+        form.setPuerto(vulnerability.getPuerto());
+        form.setServicio(vulnerability.getServicio());
+        form.setCve(vulnerability.getCve());
+        form.setConfidencialidad(vulnerability.getConfidencialidad());
+        form.setIntegridad(vulnerability.getIntegridad());
+        form.setDisponibilidad(vulnerability.getDisponibilidad());
+        form.setProbabilidad(vulnerability.getProbabilidad());
+        form.setEstado(vulnerability.getEstado());
+        form.setFechaDeteccion(vulnerability.getFechaDeteccion());
+        form.setPlanMitigacion(vulnerability.getPlanMitigacion());
+        form.setImpacto(vulnerability.getImpacto());
+        form.setNivelRiesgo(vulnerability.getNivelRiesgo());
+        return form;
+    }
 
-        BigDecimal impacto = confidencialidad
-                .add(integridad)
-                .add(disponibilidad)
+    private void applyForm(Vulnerabilidad vulnerability, VulnerabilidadForm form) {
+        vulnerability.setNombre(form.getNombre());
+        vulnerability.setTipo(form.getTipo());
+        vulnerability.setHerramienta(form.getHerramienta());
+        vulnerability.setHost(form.getHost());
+        vulnerability.setIpAfectada(form.getIpAfectada());
+        vulnerability.setPuerto(form.getPuerto());
+        vulnerability.setServicio(form.getServicio());
+        vulnerability.setCve(form.getCve());
+        vulnerability.setConfidencialidad(form.getConfidencialidad());
+        vulnerability.setIntegridad(form.getIntegridad());
+        vulnerability.setDisponibilidad(form.getDisponibilidad());
+        vulnerability.setProbabilidad(form.getProbabilidad());
+        vulnerability.setEstado(form.getEstado());
+        vulnerability.setFechaDeteccion(form.getFechaDeteccion());
+        vulnerability.setPlanMitigacion(form.getPlanMitigacion());
+    }
+
+    private void calculateRisk(Vulnerabilidad vulnerability) {
+        BigDecimal confidentiality = BigDecimal.valueOf(vulnerability.getConfidencialidad());
+        BigDecimal integrity = BigDecimal.valueOf(vulnerability.getIntegridad());
+        BigDecimal availability = BigDecimal.valueOf(vulnerability.getDisponibilidad());
+        BigDecimal probability = BigDecimal.valueOf(vulnerability.getProbabilidad());
+
+        BigDecimal impact = confidentiality
+                .add(integrity)
+                .add(availability)
                 .divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
-        BigDecimal puntaje = impacto
-                .add(probabilidad)
-                .divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
+        BigDecimal score = impact.add(probability).divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
 
-        vulnerabilidad.setImpacto(impacto);
-        vulnerabilidad.setNivelRiesgo(obtenerNivelRiesgo(puntaje));
+        vulnerability.setImpacto(impact);
+        vulnerability.setNivelRiesgo(riskLevel(score));
     }
 
-    private String obtenerNivelRiesgo(BigDecimal puntaje) {
-        if (puntaje.compareTo(BigDecimal.valueOf(7)) >= 0) {
+    private String riskLevel(BigDecimal score) {
+        if (score.compareTo(BigDecimal.valueOf(7)) >= 0) {
             return "Critico";
         }
-        if (puntaje.compareTo(BigDecimal.valueOf(5)) >= 0) {
+        if (score.compareTo(BigDecimal.valueOf(5)) >= 0) {
             return "Alto";
         }
-        if (puntaje.compareTo(BigDecimal.valueOf(3)) >= 0) {
+        if (score.compareTo(BigDecimal.valueOf(3)) >= 0) {
             return "Medio";
         }
         return "Bajo";
     }
 
-    private void cargarModeloFormulario(
-            Model model,
-            AreaAuditable departamento,
-            Vulnerabilidad vulnerabilidad,
-            String formAction) {
-        Long idProyecto = departamento.getAuditoria().getIdAuditoria();
-        Long idDepartamento = departamento.getId();
+    private String areaUrl(AreaAuditable area) {
+        return "/proyectos/" + area.getAuditoria().getPublicId()
+                + "/departamentos/" + area.getPublicId();
+    }
 
-        model.addAttribute("proyecto", departamento.getAuditoria());
-        model.addAttribute("departamento", departamento);
-        model.addAttribute("vulnerabilidadForm", vulnerabilidad);
-        model.addAttribute("idProyecto", idProyecto);
-        model.addAttribute("idDepartamento", idDepartamento);
-        model.addAttribute("returnUrl", "/proyectos/" + idProyecto + "/departamentos/" + idDepartamento);
-        model.addAttribute("formAction", formAction);
+    private String formAction(AreaAuditable area, String findingPublicId, boolean editing) {
+        String base = areaUrl(area) + "/vulnerabilidades";
+        if (!editing) {
+            return base + "/guardar";
+        }
+        return base + "/" + findingPublicId + "/actualizar";
     }
 }

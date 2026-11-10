@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Departamento</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
@@ -45,9 +46,11 @@
                     <span class="correo-usuario">analista@gmail.com</span>
                 </div>
             </div>
-            <a th:href="@{/}" class="boton-cerrar-sesion">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
+            </form>
         </div>
     </aside>
 
@@ -55,17 +58,23 @@
 
         <!-- Header: nombre del departamento + proyecto + botón agregar vulnerabilidad -->
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos/{id}(id=${proyecto.id})}" class="link-volver">
+            <a th:href="@{/proyectos/{id}(id=${proyecto.publicId})}" class="link-volver">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div class="titulos-nuevo">
                 <h1 class="titulo-pagina" th:text="${departamento.nombre}">Nombre Departamento</h1>
                 <p class="subtitulo" th:text="${proyecto.nombre}">Nombre Proyecto</p>
             </div>
-            <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.id}, did=${departamento.id})}"
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}"
                 style="text-decoration: none;">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Agregar Vulnerabilidad
+                </button>
+            </a>
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/editar(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+                style="text-decoration: none;">
+                <button class="btn-crear">
+                    <i class="fa-solid fa-pen-to-square"></i> Editar área
                 </button>
             </a>
         </header>
@@ -133,7 +142,7 @@
 
                     <!-- Nombre clickeable que lleva al detalle de la vulnerabilidad -->
                     <td class="nombre-destacado">
-                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.id}, did=${departamento.id}, vid=${vuln.id})}"
+                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
                             style="text-decoration: none; color: inherit;">
                             <span th:text="${vuln.nombre}"></span>
                         </a>
@@ -167,13 +176,13 @@
                     <td class="acciones-tabla">
 
                         <!-- Botón editar -->
-                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.id}, did=${departamento.id}, vid=${vuln.id})}"
+                        <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
                            class="btn-icono btn-editar">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </a>
 
                         <!-- Botón eliminar (corrección del docente) -->
-                        <form th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/eliminar/{vid}(pid=${proyecto.id}, did=${departamento.id}, vid=${vuln.id})}"
+                        <form th:if="${canManageProjects}" th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/eliminar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
                               method="post" style="display: inline;">
                             <button type="submit" class="btn-icono btn-eliminar"
                                     onclick="return confirm('¿Estás seguro de eliminar esta vulnerabilidad?')">

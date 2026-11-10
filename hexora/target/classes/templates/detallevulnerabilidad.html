@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Vulnerabilidad</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
@@ -40,7 +41,7 @@
     <main class="contenido-principal">
 
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos/{pid}/departamentos/{did}(pid=${proyecto.id}, did=${departamento.id})}"
+            <a th:href="@{/proyectos/{pid}/departamentos/{did}(pid=${proyecto.publicId}, did=${departamento.publicId})}"
                class="link-volver">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
@@ -60,7 +61,7 @@
                     <span th:text="${departamento.nombre}"></span>
                 </p>
             </div>
-            <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.id}, did=${departamento.id}, vid=${vulnerabilidad.id})}"
+            <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vulnerabilidad.publicId})}"
                style="text-decoration: none;">
                 <button class="btn-crear">
                     <i class="fa-solid fa-pen-to-square"></i> Editar

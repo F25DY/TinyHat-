@@ -7,18 +7,26 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
+import com.hexora.hexora.model.PublicIds;
+import com.hexora.hexora.model.TenantScopedEntity;
+import com.hexora.hexora.model.TenantScopedEntityListener;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "network_detected_device")
-public class NetworkDetectedDevice {
+@Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
+@EntityListeners(TenantScopedEntityListener.class)
+public class NetworkDetectedDevice implements TenantScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 45)
+    @Column(nullable = false, length = 45)
     private String address;
 
     @Column(name = "mac_address", length = 17)
@@ -54,6 +62,15 @@ public class NetworkDetectedDevice {
 
     @Column(name = "gateway_address", length = 45)
     private String gatewayAddress;
+
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
+    private Long cuentaId;
+
+    @Column(name = "proyecto_id")
+    private Long proyectoId;
+
+    @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
+    private String publicId;
 
     public Long getId() {
         return id;
@@ -153,5 +170,35 @@ public class NetworkDetectedDevice {
 
     public void setGatewayAddress(String gatewayAddress) {
         this.gatewayAddress = gatewayAddress;
+    }
+
+    public Long getCuentaId() {
+        return cuentaId;
+    }
+
+    public Long getProyectoId() {
+        return proyectoId;
+    }
+
+    public void setProyectoId(Long proyectoId) {
+        this.proyectoId = proyectoId;
+    }
+
+    @Override
+    public void setCuentaId(Long cuentaId) {
+        this.cuentaId = cuentaId;
+    }
+
+    public String getPublicId() {
+        return publicId;
+    }
+
+    public void setPublicId(String publicId) {
+        this.publicId = publicId;
+    }
+
+    @PrePersist
+    void generatePublicId() {
+        publicId = PublicIds.ensure(publicId);
     }
 }

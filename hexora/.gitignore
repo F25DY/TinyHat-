@@ -1,1 +1,9 @@
 .env
+target/
+.env
+.env.*
+!.env.example
+*.p12
+*.jks
+application-local*.yml
+application-local*.yaml

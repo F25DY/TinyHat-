@@ -3,6 +3,7 @@ package com.hexora.hexora.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import com.hexora.hexora.service.CveService;
  */
 @RestController
 @RequestMapping("/api/cves")
+@PreAuthorize("hasRole('AUDITOR')")
 public class CveController {
 
     private final CveService cveService;

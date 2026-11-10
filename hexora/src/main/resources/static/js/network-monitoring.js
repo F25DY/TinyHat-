@@ -4,6 +4,11 @@ const offlineCount = document.querySelector("#offline-count");
 const openPortCount = document.querySelector("#open-port-count");
 const hostCards = document.querySelector("#host-cards");
 const hostSelect = document.querySelector("#host-select");
+const projectSelect = document.querySelector("#project-select");
+const historyLink = document.querySelector("#history-link");
+const authorizedRangeForm = document.querySelector("#authorized-range-form");
+const authorizedRangeList = document.querySelector("#authorized-range-list");
+const authorizationMessage = document.querySelector("#authorization-message");
 const deviceList = document.querySelector("#device-list");
 const deviceMessage = document.querySelector("#device-message");
 const portsBody = document.querySelector("#ports-body");
@@ -35,6 +40,14 @@ const reportFrequency = document.querySelector("#report-frequency");
 const clearSelectedHistoryButton = document.querySelector("#clear-selected-history-button");
 const selectAllHistoryCheckbox = document.querySelector("#select-all-history");
 const localStoragePrefix = "hexora.network-monitoring.v1";
+const defaultAlertSettings = {
+    newDevices: true,
+    addressChanges: true,
+    availability: true,
+    browserNotifications: false,
+    cooldownMinutes: 30,
+    reportFrequency: "off"
+};
 const deviceMetadataStorageKey = `${localStoragePrefix}.device-metadata`;
 const localAlertsStorageKey = `${localStoragePrefix}.alerts`;
 const inventoryBaselineStorageKey = `${localStoragePrefix}.inventory-baseline`;
@@ -47,22 +60,17 @@ let currentStatus = null;
 let currentDetectedDevices = [];
 let currentSubnet = "";
 let currentDiscoverySnapshots = [];
+let selectedProjectPublicId = new URLSearchParams(window.location.search).get("projectPublicId") || "";
+let hasActiveAuthorizedRange = false;
 let liveInventoryReceived = false;
 let refreshInProgress = false;
 let discoveryRefreshInProgress = false;
-let localDeviceMetadata = readLocalState(deviceMetadataStorageKey, {});
-let localAlerts = readLocalState(localAlertsStorageKey, []);
-let previousInventory = readLocalState(inventoryBaselineStorageKey, null);
-let previousRegisteredStates = readLocalState(registeredStatusStorageKey, null);
-let alertSettings = readLocalState(alertSettingsStorageKey, {
-    newDevices: true,
-    addressChanges: true,
-    availability: true,
-    browserNotifications: false,
-    cooldownMinutes: 30,
-    reportFrequency: "off"
-});
-let nextReportAt = readLocalState(nextReportStorageKey, null);
+let localDeviceMetadata = {};
+let localAlerts = [];
+let previousInventory = null;
+let previousRegisteredStates = null;
+let alertSettings = normalizeAlertSettings(defaultAlertSettings);
+let nextReportAt = null;
 if (!localDeviceMetadata || typeof localDeviceMetadata !== "object" || Array.isArray(localDeviceMetadata)) {
     localDeviceMetadata = {};
 }
@@ -74,27 +82,21 @@ if (!previousRegisteredStates || typeof previousRegisteredStates !== "object"
     || Array.isArray(previousRegisteredStates)) {
     previousRegisteredStates = null;
 }
-if (!alertSettings || typeof alertSettings !== "object" || Array.isArray(alertSettings)) {
-    alertSettings = {
-        newDevices: true,
-        addressChanges: true,
-        availability: true,
-        browserNotifications: false,
-        cooldownMinutes: 30,
-        reportFrequency: "off"
+if (typeof nextReportAt !== "string" || Number.isNaN(Date.parse(nextReportAt))) nextReportAt = null;
+
+function normalizeAlertSettings(settings) {
+    if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = defaultAlertSettings;
+    return {
+        newDevices: settings.newDevices !== false,
+        addressChanges: settings.addressChanges !== false,
+        availability: settings.availability !== false,
+        browserNotifications: settings.browserNotifications === true,
+        cooldownMinutes: [5, 15, 30, 60, 1440].includes(Number(settings.cooldownMinutes))
+            ? Number(settings.cooldownMinutes) : 30,
+        reportFrequency: ["off", "weekly", "monthly"].includes(settings.reportFrequency)
+            ? settings.reportFrequency : "off"
     };
 }
-alertSettings = {
-    newDevices: alertSettings.newDevices !== false,
-    addressChanges: alertSettings.addressChanges !== false,
-    availability: alertSettings.availability !== false,
-    browserNotifications: alertSettings.browserNotifications === true,
-    cooldownMinutes: [5, 15, 30, 60, 1440].includes(Number(alertSettings.cooldownMinutes))
-        ? Number(alertSettings.cooldownMinutes) : 30,
-    reportFrequency: ["off", "weekly", "monthly"].includes(alertSettings.reportFrequency)
-        ? alertSettings.reportFrequency : "off"
-};
-if (typeof nextReportAt !== "string" || Number.isNaN(Date.parse(nextReportAt))) nextReportAt = null;
 
 function readLocalState(key, fallback) {
     try {
@@ -105,6 +107,42 @@ function readLocalState(key, fallback) {
         localStorageReadFailed = true;
         return fallback;
     }
+}
+
+function projectStorageKey(key) {
+    return `${key}.${selectedProjectPublicId}`;
+}
+
+function loadProjectLocalState() {
+    if (!selectedProjectPublicId) {
+        localDeviceMetadata = {};
+        localAlerts = [];
+        previousInventory = null;
+        previousRegisteredStates = null;
+        alertSettings = normalizeAlertSettings(defaultAlertSettings);
+        nextReportAt = null;
+        return;
+    }
+    localDeviceMetadata = readLocalState(projectStorageKey(deviceMetadataStorageKey), {});
+    localAlerts = readLocalState(projectStorageKey(localAlertsStorageKey), []);
+    previousInventory = readLocalState(projectStorageKey(inventoryBaselineStorageKey), null);
+    previousRegisteredStates = readLocalState(projectStorageKey(registeredStatusStorageKey), null);
+    alertSettings = normalizeAlertSettings(
+        readLocalState(projectStorageKey(alertSettingsStorageKey), defaultAlertSettings)
+    );
+    nextReportAt = readLocalState(projectStorageKey(nextReportStorageKey), null);
+    if (!localDeviceMetadata || typeof localDeviceMetadata !== "object" || Array.isArray(localDeviceMetadata)) {
+        localDeviceMetadata = {};
+    }
+    if (!Array.isArray(localAlerts)) localAlerts = [];
+    if (!previousInventory || typeof previousInventory !== "object" || Array.isArray(previousInventory)) {
+        previousInventory = null;
+    }
+    if (!previousRegisteredStates || typeof previousRegisteredStates !== "object"
+        || Array.isArray(previousRegisteredStates)) {
+        previousRegisteredStates = null;
+    }
+    if (typeof nextReportAt !== "string" || Number.isNaN(Date.parse(nextReportAt))) nextReportAt = null;
 }
 
 function saveLocalState(key, value) {
@@ -177,7 +215,7 @@ function addLocalAlert(category, identity, title, description) {
         description,
         createdAt: new Date().toISOString()
     }, ...localAlerts].slice(0, 100);
-    saveLocalState(localAlertsStorageKey, localAlerts);
+    saveLocalState(projectStorageKey(localAlertsStorageKey), localAlerts);
     renderLocalAlerts();
     if (alertSettings.browserNotifications && "Notification" in window
         && Notification.permission === "granted") {
@@ -267,7 +305,7 @@ function trackInventoryChanges(devices, subnet) {
             status: device.status
         }))
     };
-    saveLocalState(inventoryBaselineStorageKey, previousInventory);
+    saveLocalState(projectStorageKey(inventoryBaselineStorageKey), previousInventory);
 }
 
 function trackRegisteredAvailability(hosts) {
@@ -291,7 +329,7 @@ function trackRegisteredAvailability(hosts) {
         }
     }
     previousRegisteredStates = states;
-    saveLocalState(registeredStatusStorageKey, states);
+    saveLocalState(projectStorageKey(registeredStatusStorageKey), states);
 }
 
 function escapeHtml(value) {
@@ -314,6 +352,79 @@ function formatDate(value) {
 
 function formatLatency(value) {
     return value === null || value === undefined ? "—" : `${value} ms`;
+}
+
+function scopedNetworkUrl(path) {
+    if (!selectedProjectPublicId) {
+        throw new Error("Selecciona un proyecto antes de consultar la monitorización de red.");
+    }
+    const separator = path.includes("?") ? "&" : "?";
+    return `${path}${separator}projectPublicId=${encodeURIComponent(selectedProjectPublicId)}`;
+}
+
+function updateProjectControls() {
+    const hasProject = Boolean(selectedProjectPublicId);
+    if (hasProject) {
+        historyLink.href = `/network-monitoring/history?projectPublicId=${encodeURIComponent(selectedProjectPublicId)}`;
+    }
+    authorizedRangeForm.querySelector('button[type="submit"]').disabled = !hasProject;
+    document.querySelector("#device-form").querySelector('button[type="submit"]').disabled =
+        !hasProject || !hasActiveAuthorizedRange;
+    discoverNetworkButton.disabled = !hasProject || !hasActiveAuthorizedRange || discoveryRefreshInProgress;
+    scanButton.disabled = !hasProject || !hasActiveAuthorizedRange || !currentStatus?.hostsMonitored;
+}
+
+async function loadAuthorizedRanges() {
+    hasActiveAuthorizedRange = false;
+    authorizedRangeList.innerHTML = '<p class="empty-state">Cargando rangos del proyecto seleccionado.</p>';
+    if (!selectedProjectPublicId) {
+        authorizedRangeList.innerHTML = '<p class="empty-state">Selecciona un proyecto para consultar sus rangos.</p>';
+        hasActiveAuthorizedRange = false;
+        updateProjectControls();
+        return;
+    }
+    const response = await fetch(
+        `/api/network/projects/${encodeURIComponent(selectedProjectPublicId)}/authorized-ranges`,
+        {cache: "no-store"}
+    );
+    const ranges = await readApiResponse(response, "No se pudieron cargar los rangos autorizados.");
+    if (!Array.isArray(ranges)) {
+        throw new Error("La lista de rangos autorizados devolvió un formato no válido.");
+    }
+    const now = Date.now();
+    hasActiveAuthorizedRange = ranges.some(range =>
+        !range.validUntil || Date.parse(`${range.validUntil}Z`) > now);
+    authorizedRangeList.innerHTML = ranges.length
+        ? ranges.map(range => `<article class="device-item">
+            <div class="device-item-heading">
+                <div><strong>${escapeHtml(range.cidr)}</strong><span>${escapeHtml(range.authorizationReference)}</span></div>
+                <span class="device-port-count">${range.validUntil
+                    ? `Vigente hasta ${escapeHtml(formatDate(range.validUntil))}`
+                    : "Sin vencimiento"}</span>
+            </div>
+        </article>`).join("")
+        : '<p class="empty-state">Este proyecto todavía no tiene rangos autorizados.</p>';
+    updateProjectControls();
+}
+
+async function loadNetworkProjects() {
+    const response = await fetch("/api/network/projects", {cache: "no-store"});
+    const projects = await readApiResponse(response, "No se pudieron cargar tus proyectos.");
+    if (!Array.isArray(projects)) {
+        throw new Error("La lista de proyectos devolvió un formato no válido.");
+    }
+    const previousSelection = selectedProjectPublicId;
+    projectSelect.innerHTML = projects.length
+        ? projects.map(project =>
+            `<option value="${escapeHtml(project.publicId)}">${escapeHtml(project.name)}</option>`
+        ).join("")
+        : '<option value="">No hay proyectos autorizados</option>';
+    selectedProjectPublicId = projects.some(project => project.publicId === previousSelection)
+        ? previousSelection
+        : projects[0]?.publicId || "";
+    projectSelect.value = selectedProjectPublicId;
+    projectSelect.disabled = projects.length === 0;
+    updateProjectControls();
 }
 
 function renderHosts(hosts) {
@@ -414,8 +525,9 @@ function renderDetectedInventory(devices, subnet, trackChanges = true) {
 }
 
 async function loadSavedInventory() {
+    if (!selectedProjectPublicId) return;
     try {
-        const response = await fetch("/api/network/detected-devices", {cache: "no-store"});
+        const response = await fetch(scopedNetworkUrl("/api/network/detected-devices"), {cache: "no-store"});
         const devices = await readApiResponse(response, "No se pudo cargar el inventario guardado.");
         if (!Array.isArray(devices)) {
             throw new Error("El inventario guardado devolvió un formato no válido.");
@@ -660,8 +772,12 @@ function renderSnapshotComparison(snapshots) {
 }
 
 async function refreshDiscoveryInsights() {
+    if (!selectedProjectPublicId) return;
     try {
-        const response = await fetch("/api/network/discoveries/history?limit=50", {cache: "no-store"});
+        const response = await fetch(
+            scopedNetworkUrl("/api/network/discoveries/history?limit=50"),
+            {cache: "no-store"}
+        );
         const snapshots = await readApiResponse(response, "No se pudo cargar el historial de detecciones.");
         if (!Array.isArray(snapshots)) {
             throw new Error("El historial de detecciones devolvió un formato no válido.");
@@ -685,7 +801,7 @@ function saveAlertSettings() {
         cooldownMinutes: Number(alertCooldownMinutes.value),
         reportFrequency: reportFrequency.value
     };
-    saveLocalState(alertSettingsStorageKey, alertSettings);
+    saveLocalState(projectStorageKey(alertSettingsStorageKey), alertSettings);
     syncPeriodicReportSchedule();
 }
 
@@ -765,10 +881,10 @@ function addReportInterval(date, frequency) {
 function syncPeriodicReportSchedule() {
     if (alertSettings.reportFrequency === "off") {
         nextReportAt = null;
-        saveLocalState(nextReportStorageKey, null);
+        saveLocalState(projectStorageKey(nextReportStorageKey), null);
     } else if (!nextReportAt) {
         nextReportAt = addReportInterval(new Date(), alertSettings.reportFrequency).toISOString();
-        saveLocalState(nextReportStorageKey, nextReportAt);
+        saveLocalState(projectStorageKey(nextReportStorageKey), nextReportAt);
     }
     updatePeriodicReportStatus();
 }
@@ -795,7 +911,7 @@ function setNextReportDateAfterExport() {
     if (alertSettings.reportFrequency === "off" || !nextReportAt
         || Date.now() < Date.parse(nextReportAt)) return;
     nextReportAt = addReportInterval(new Date(), alertSettings.reportFrequency).toISOString();
-    saveLocalState(nextReportStorageKey, nextReportAt);
+    saveLocalState(projectStorageKey(nextReportStorageKey), nextReportAt);
     updatePeriodicReportStatus();
 }
 
@@ -866,12 +982,13 @@ function renderChart(scans, totalHosts) {
 }
 
 async function refreshDashboard() {
+    if (!selectedProjectPublicId) return false;
     if (refreshInProgress) return false;
     refreshInProgress = true;
     try {
         const [statusResponse, historyResponse] = await Promise.all([
-            fetch("/api/network/status"),
-            fetch("/api/network/history?limit=40")
+            fetch(scopedNetworkUrl("/api/network/status")),
+            fetch(scopedNetworkUrl("/api/network/history?limit=40"))
         ]);
         if (!statusResponse.ok || !historyResponse.ok) {
             throw new Error("No se pudieron cargar los datos de monitorización de red.");
@@ -888,6 +1005,7 @@ async function refreshDashboard() {
         renderEvents(status.recentEvents);
         renderHistory(history);
         renderChart(history, status.hostsMonitored);
+        updateProjectControls();
         message.textContent = "";
         message.classList.remove("error");
         return true;
@@ -917,7 +1035,7 @@ document.querySelector("#scan-form").addEventListener("submit", async event => {
     message.textContent = "Revisando el dispositivo autorizado...";
     message.classList.remove("error");
     try {
-        const body = {hostId};
+        const body = {hostId, projectPublicId: selectedProjectPublicId};
         if (startPort && endPort) {
             body.startPort = Number(startPort);
             body.endPort = Number(endPort);
@@ -962,7 +1080,7 @@ clearSelectedHistoryButton.addEventListener("click", async () => {
     message.textContent = "Borrando revisiones seleccionadas...";
     message.classList.remove("error");
     try {
-        const response = await fetch("/api/network/history/scans", {
+        const response = await fetch(scopedNetworkUrl("/api/network/history/scans"), {
             method: "DELETE",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({scanIds})
@@ -1003,6 +1121,72 @@ async function readApiResponse(response, fallbackMessage) {
     return result;
 }
 
+authorizedRangeForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!selectedProjectPublicId) return;
+    const submitButton = authorizedRangeForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    authorizationMessage.textContent = "";
+    authorizationMessage.classList.remove("error");
+    try {
+        const validUntil = document.querySelector("#authorization-expiry").value;
+        const response = await fetch("/api/network/authorized-ranges", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                projectPublicId: selectedProjectPublicId,
+                cidr: document.querySelector("#authorized-range-cidr").value.trim(),
+                authorizationReference: document.querySelector("#authorization-reference").value.trim(),
+                validUntil: validUntil || null
+            })
+        });
+        await readApiResponse(response, "No se pudo registrar el rango autorizado.");
+        authorizedRangeForm.reset();
+        await loadAuthorizedRanges();
+        authorizationMessage.textContent = "Rango registrado y asociado al proyecto seleccionado.";
+    } catch (error) {
+        authorizationMessage.textContent = error.message;
+        authorizationMessage.classList.add("error");
+    } finally {
+        updateProjectControls();
+    }
+});
+
+projectSelect.addEventListener("change", async () => {
+    selectedProjectPublicId = projectSelect.value;
+    hasActiveAuthorizedRange = false;
+    loadProjectLocalState();
+    initializeAlertSettings();
+    syncPeriodicReportSchedule();
+    renderLocalAlerts();
+    updateProjectControls();
+    currentStatus = null;
+    currentDetectedDevices = [];
+    currentSubnet = "";
+    currentDiscoverySnapshots = [];
+    liveInventoryReceived = false;
+    hostCount.textContent = "0";
+    onlineCount.textContent = "0";
+    offlineCount.textContent = "0";
+    openPortCount.textContent = "0";
+    renderHosts([]);
+    renderPorts([]);
+    renderEvents([]);
+    renderHistory([]);
+    renderDetectedInventory([], "", false);
+    renderSnapshotComparison([]);
+    renderChart([], 0);
+    authorizationMessage.textContent = "";
+    authorizationMessage.classList.remove("error");
+    try {
+        await loadAuthorizedRanges();
+        await Promise.all([refreshDashboard(), refreshDiscoveryInsights(), loadSavedInventory()]);
+    } catch (error) {
+        authorizationMessage.textContent = error.message;
+        authorizationMessage.classList.add("error");
+    }
+});
+
 document.querySelector("#device-form").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1017,7 +1201,8 @@ document.querySelector("#device-form").addEventListener("submit", async event =>
             body: JSON.stringify({
                 name: document.querySelector("#device-name").value,
                 address: document.querySelector("#device-address").value,
-                ports: parsePorts(document.querySelector("#device-ports").value)
+                ports: parsePorts(document.querySelector("#device-ports").value),
+                projectPublicId: selectedProjectPublicId
             })
         });
         await readApiResponse(response, "No se pudo agregar el dispositivo.");
@@ -1033,7 +1218,7 @@ document.querySelector("#device-form").addEventListener("submit", async event =>
 });
 
 async function scanLocalNetwork() {
-    if (discoveryRefreshInProgress) return;
+    if (discoveryRefreshInProgress || !selectedProjectPublicId || !hasActiveAuthorizedRange) return;
     discoveryRefreshInProgress = true;
     discoverNetworkButton.disabled = true;
     discoverNetworkButton.classList.add("is-scanning");
@@ -1052,7 +1237,12 @@ async function scanLocalNetwork() {
     const progressTimer = window.setInterval(updateScanProgress, 1000);
     detectedDevicesMessage.classList.remove("error");
     try {
-        const response = await fetch("/api/network/discover", {method: "POST", cache: "no-store"});
+        const response = await fetch("/api/network/discover", {
+            method: "POST",
+            cache: "no-store",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({projectPublicId: selectedProjectPublicId})
+        });
         const result = await readApiResponse(response, "No se pudo escanear la tabla ARP local.");
         if (!Array.isArray(result.devices) || typeof result.subnet !== "string") {
             throw new Error("La detección devolvió una respuesta incompleta.");
@@ -1074,7 +1264,7 @@ async function scanLocalNetwork() {
         discoverNetworkButton.classList.remove("is-scanning");
         discoverNetworkButton.removeAttribute("aria-busy");
         discoverNetworkButton.textContent = "Detectar dispositivos en la red";
-        discoverNetworkButton.disabled = false;
+        updateProjectControls();
     }
 }
 
@@ -1096,7 +1286,7 @@ detectedDevicesBody.addEventListener("click", event => {
         label: row.querySelector("[data-device-label]").value.trim(),
         note: row.querySelector("[data-device-note]").value.trim()
     };
-    if (!saveLocalState(deviceMetadataStorageKey, localDeviceMetadata)) return;
+    if (!saveLocalState(projectStorageKey(deviceMetadataStorageKey), localDeviceMetadata)) return;
     renderDetectedInventory(currentDetectedDevices, currentSubnet);
     detectedDevicesMessage.textContent = "Etiqueta y nota guardadas solo en este navegador.";
     detectedDevicesMessage.classList.remove("error");
@@ -1104,7 +1294,7 @@ detectedDevicesBody.addEventListener("click", event => {
 
 clearLocalAlertsButton.addEventListener("click", () => {
     localAlerts = [];
-    saveLocalState(localAlertsStorageKey, localAlerts);
+    saveLocalState(projectStorageKey(localAlertsStorageKey), localAlerts);
     renderLocalAlerts();
 });
 
@@ -1125,8 +1315,8 @@ async function exportNetworkReport() {
     detectedDevicesMessage.classList.remove("error");
     try {
         const [inventoryResponse, historyResponse] = await Promise.all([
-            fetch("/api/network/detected-devices", {cache: "no-store"}),
-            fetch("/api/network/discoveries/history?limit=50", {cache: "no-store"})
+            fetch(scopedNetworkUrl("/api/network/detected-devices"), {cache: "no-store"}),
+            fetch(scopedNetworkUrl("/api/network/discoveries/history?limit=50"), {cache: "no-store"})
         ]);
         const [devices, snapshots] = await Promise.all([
             readApiResponse(inventoryResponse, "No se pudo cargar el inventario para exportar."),
@@ -1293,7 +1483,7 @@ deviceList.addEventListener("submit", async event => {
         if (!Number.isInteger(port) || port < 1 || port > 65535) {
             throw new Error("El puerto debe estar entre 1 y 65535.");
         }
-        const response = await fetch(`/api/network/devices/${form.dataset.hostId}/ports`, {
+        const response = await fetch(scopedNetworkUrl(`/api/network/devices/${form.dataset.hostId}/ports`), {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({port})
@@ -1318,7 +1508,7 @@ deviceList.addEventListener("change", async event => {
     deviceMessage.classList.remove("error");
     try {
         const response = await fetch(
-            `/api/network/devices/${checkbox.dataset.hostId}/ports/${checkbox.dataset.portEnabled}`,
+            scopedNetworkUrl(`/api/network/devices/${checkbox.dataset.hostId}/ports/${checkbox.dataset.portEnabled}`),
             {
                 method: "PUT",
                 headers: {"Content-Type": "application/json"},
@@ -1353,12 +1543,12 @@ deviceList.addEventListener("click", async event => {
     deviceMessage.textContent = "";
     deviceMessage.classList.remove("error");
     try {
-        const url = clearingHostHistory
+        const path = clearingHostHistory
             ? `/api/network/devices/${hostId}/history`
             : removingPort
                 ? `/api/network/devices/${button.dataset.hostId}/ports/${button.dataset.removePort}`
                 : `/api/network/devices/${button.dataset.removeHost}`;
-        const response = await fetch(url, {method: "DELETE"});
+        const response = await fetch(scopedNetworkUrl(path), {method: "DELETE"});
         await readApiResponse(response, "No se pudo quitar el dispositivo.");
         deviceMessage.textContent = clearingHostHistory
             ? "Historial del dispositivo borrado."
@@ -1385,7 +1575,9 @@ function connectWebSocket() {
     });
     connection.addEventListener("message", event => {
         try {
-            const update = JSON.parse(event.data);
+            const envelope = JSON.parse(event.data);
+            if (envelope.projectPublicId !== selectedProjectPublicId) return;
+            const update = envelope.update;
             if (update.type === "inventory" && Array.isArray(update.devices)) {
                 liveInventoryReceived = true;
                 renderDetectedInventory(update.devices, update.subnet);
@@ -1415,18 +1607,28 @@ window.addEventListener("resize", () => {
     if (currentStatus) renderChart(currentStatus.recentScans, currentStatus.hostsMonitored);
 });
 
-initializeAlertSettings();
-syncPeriodicReportSchedule();
-refreshDashboard();
-refreshDiscoveryInsights();
-renderLocalAlerts();
-loadSavedInventory();
-if (localStorageReadFailed) {
-    detectedDevicesMessage.textContent =
-        "No se pudo leer el almacenamiento local del navegador; las etiquetas y alertas podrían no persistir.";
-    detectedDevicesMessage.classList.add("error");
+async function initializeNetworkMonitor() {
+    try {
+        await loadNetworkProjects();
+        loadProjectLocalState();
+        initializeAlertSettings();
+        syncPeriodicReportSchedule();
+        renderLocalAlerts();
+        await loadAuthorizedRanges();
+        await Promise.all([refreshDashboard(), refreshDiscoveryInsights(), loadSavedInventory()]);
+    } catch (error) {
+        authorizationMessage.textContent = error.message;
+        authorizationMessage.classList.add("error");
+    }
+    if (localStorageReadFailed) {
+        detectedDevicesMessage.textContent =
+            "No se pudo leer el almacenamiento local del navegador; las etiquetas y alertas podrían no persistir.";
+        detectedDevicesMessage.classList.add("error");
+    }
+    connectWebSocket();
 }
-connectWebSocket();
+
+initializeNetworkMonitor();
 window.setInterval(refreshDashboard, 30_000);
 window.setInterval(refreshDiscoveryInsights, 30_000);
 window.setInterval(updatePeriodicReportStatus, 60_000);
