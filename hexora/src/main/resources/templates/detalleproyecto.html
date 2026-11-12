@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Proyecto</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/project-reports.css(v=1)}">
 </head>
 <body>
 
@@ -67,7 +67,7 @@
             </div>
             <!-- Botón que va a agregar departamento pasando el ID del proyecto -->
             <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/areas/nueva(id=${proyecto.id})}"
-                style="text-decoration:none;">
+                class="no-underline">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Agregar Departamento
                 </button>
@@ -126,13 +126,46 @@
             </article>
         </section>
 
+        <!-- Informes del proyecto (solo auditor): borradores con contenido fijo, publicación y descarga -->
+        <section id="reports-panel" class="tarjeta-blanca reports-panel" th:if="${canManageProjects}"
+                 th:attr="data-project-id=${proyecto.id}">
+            <h2>Informes</h2>
+            <p class="reports-hint">
+                Cada informe guarda una copia fija del contenido del proyecto (hallazgos, CVE, planes de mitigación y
+                matriz de riesgo) y su huella de integridad. Publicar exige confirmar tu identidad de nuevo.
+            </p>
+            <div class="reports-form">
+                <div>
+                    <label for="report-type">Tipo de informe</label>
+                    <select id="report-type">
+                        <option value="TECNICO_PDF">Informe técnico (PDF)</option>
+                        <option value="EJECUTIVO_PDF">Informe ejecutivo, lenguaje formal (PDF)</option>
+                        <option value="PLANES_MITIGACION_PDF">Planes de mitigación (PDF)</option>
+                        <option value="MATRIZ_RIESGO_XLSX">Matriz de riesgo (Excel)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="report-title">Título</label>
+                    <input type="text" id="report-title" maxlength="200" placeholder="Ej. Informe de cierre, primer trimestre">
+                </div>
+                <button type="button" id="report-create" class="btn btn-primario">Generar borrador</button>
+            </div>
+            <table class="reports-table">
+                <thead>
+                    <tr><th>Título</th><th>Tipo</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="reports-body"></tbody>
+            </table>
+            <p id="reports-message" class="reports-message" role="status"></p>
+        </section>
+
         <!-- Buscador de departamentos -->
         <section class="tarjeta-blanca contenedor-busqueda">
             <div class="campo-busqueda">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="buscador"
                        placeholder="Buscar departamentos..."
-                       onkeyup="filtrarDepartamentos()">
+                       >
             </div>
         </section>
 
@@ -141,7 +174,7 @@
 
             <!-- Mensaje si no hay departamentos -->
             <div th:if="${#lists.isEmpty(proyecto.departamentos)}" class="tarjeta-blanca">
-                <p style="text-align:center;">No hay departamentos registrados para este proyecto.</p>
+                <p class="text-centered">No hay departamentos registrados para este proyecto.</p>
             </div>
 
             <!-- Tarjeta por cada departamento -->
@@ -162,8 +195,8 @@
                 </div>
 
                 <a th:href="@{/proyectos/{pid}/departamentos/{did}(pid=${proyecto.id}, did=${dep.id})}"
-                    style="text-decoration:none;">
-                    <button class="btn btn-primario" style="width:100%; margin-top:1rem;">
+                    class="no-underline">
+                    <button class="btn btn-primario project-department-action">
                         <i class="fa-solid fa-folder-open"></i> Ver Vulnerabilidades
                     </button>
                 </a>
@@ -172,15 +205,8 @@
 
     </main>
 
-    <script>
-        function filtrarDepartamentos() {
-            const texto = document.getElementById('buscador').value.toLowerCase();
-            const tarjetas = document.querySelectorAll('.tarjeta-departamento');
-            tarjetas.forEach(t => {
-                t.style.display = t.textContent.toLowerCase().includes(texto) ? '' : 'none';
-            });
-        }
-    </script>
+    <script th:src="@{/js/project-filter.js(v=1)}" defer></script>
+    <script th:src="@{/js/project-reports.js(v=1)}" defer></script>
 
 </body>
 </html>

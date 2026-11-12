@@ -554,5 +554,17 @@ public class TinyHatSecurityProperties {
         public void setEnumerationThreshold(int enumerationThreshold) {
             this.enumerationThreshold = enumerationThreshold;
         }
+
+        /** Documented retention target for audit rows; v1 never deletes automatically. */
+        @Min(1)
+        private int retentionDays = 365;
+
+        public int getRetentionDays() {
+            return retentionDays;
+        }
+
+        public void setRetentionDays(int retentionDays) {
+            this.retentionDays = retentionDays;
+        }
     }
 }

@@ -24,7 +24,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "hexora.network.discovery-enabled=false",
-        "tinyhat.security.mfa.required=false"
+        "tinyhat.security.mfa.required=false",
+        // El servidor embebido de la prueba habla HTTP plano aunque el .env local active HTTPS.
+        "server.ssl.enabled=false"
     })
 class PhaseFiveSessionHttpIntegrationTest extends IsolatedMySqlTestDatabase {
 

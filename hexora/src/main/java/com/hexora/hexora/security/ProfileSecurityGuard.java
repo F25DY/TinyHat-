@@ -56,6 +56,11 @@ public class ProfileSecurityGuard implements BeanFactoryPostProcessor, Environme
         if (!hasText(environment.getProperty("spring.datasource.password"))) {
             violations.add("DB_PASSWORD must be configured");
         }
+        String runtimeDbUser = environment.getProperty("spring.datasource.username");
+        String flywayDbUser = environment.getProperty("spring.flyway.user");
+        if (production && (!hasText(flywayDbUser) || flywayDbUser.equals(runtimeDbUser))) {
+            violations.add("Flyway must use a separate database user from the runtime datasource");
+        }
         if (mfaRequired && !MfaKeyValidator.isValid(mfaKey)) {
             violations.add("TINYHAT_MFA_KEY must be a Base64-encoded 32-byte key when MFA is required");
         }

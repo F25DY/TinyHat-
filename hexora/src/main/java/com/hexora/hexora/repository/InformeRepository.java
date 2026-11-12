@@ -38,6 +38,13 @@ public interface InformeRepository extends JpaRepository<Informe, Long> {
             @Param("usuarioId") Long usuarioId,
             @Param("rol") String rol);
 
+    List<Informe> findByCuentaIdAndProyectoIdOrderByCreadoEnDesc(Long cuentaId, Long proyectoId);
+
+    List<Informe> findByCuentaIdAndProyectoIdAndEstadoOrderByPublicadoEnDesc(
+            Long cuentaId,
+            Long proyectoId,
+            String estado);
+
     List<Informe> findByCuentaIdAndOrganizacionIdAndEstadoOrderByPublicadoEnDesc(
             Long cuentaId,
             Long organizacionId,

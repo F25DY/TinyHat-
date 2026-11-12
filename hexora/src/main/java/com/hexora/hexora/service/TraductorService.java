@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
+import com.hexora.hexora.model.Cve;
+import com.hexora.hexora.security.SecureRestClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +32,9 @@ public class TraductorService {
 
     private static final String URL_MYMEMORY = "https://api.mymemory.translated.net/get";
     private static final int MAX_BYTES = 450; // el límite real es 500; dejamos margen
+    private static final int MAX_TRANSLATED_CHARS = 20_000;
+    private static final Pattern CVE_ID_PATTERN =
+        Pattern.compile("^CVE-\\d{4}-\\d{4,19}$", Pattern.CASE_INSENSITIVE);
 
     private final RestClient restClient;
     private final String email;
@@ -36,12 +42,23 @@ public class TraductorService {
     // MYMEMORY_EMAIL sale del .env. Es opcional: con correo el límite diario sube de 5.000 a 50.000 caracteres.
     public TraductorService(@Value("${MYMEMORY_EMAIL:}") String email) {
         this.email = email == null ? "" : email.trim();
-        this.restClient = RestClient.builder().baseUrl(URL_MYMEMORY).build();
+        this.restClient = SecureRestClientFactory.create(
+            URL_MYMEMORY, "api.mymemory.translated.net", 64 * 1024);
     }
 
-    /** Devuelve la traducción, o vacío si algo falló (nunca lanza error hacia afuera). */
-    public Optional<String> aEspanol(String texto) {
+    /** Traduce solo la descripción de un CVE validado procedente del catálogo NVD. */
+    public Optional<String> aEspanol(Cve cve) {
+        if (cve == null
+            || cve.getCodigoCve() == null
+            || !CVE_ID_PATTERN.matcher(cve.getCodigoCve()).matches()) {
+            return Optional.empty();
+        }
+        String texto = cve.getDescripcion();
         if (texto == null || texto.isBlank()) {
+            return Optional.empty();
+        }
+        if (texto.length() > MAX_TRANSLATED_CHARS) {
+            log.warn("Se omitió una descripción CVE que excede el límite de traducción");
             return Optional.empty();
         }
 
@@ -56,6 +73,10 @@ public class TraductorService {
                 resultado.append(' ');
             }
             resultado.append(traducido.get());
+            if (resultado.length() > MAX_TRANSLATED_CHARS) {
+                log.warn("Se omitió una respuesta de traducción que excede el límite configurado");
+                return Optional.empty();
+            }
         }
         return Optional.of(resultado.toString());
     }
@@ -75,6 +96,9 @@ public class TraductorService {
                         return uri.build(Map.of("q", trozo, "par", "en|es", "email", email));
                     })
                     .retrieve()
+                    .onStatus(status -> status.is3xxRedirection(), (request, response) -> {
+                        throw new IllegalStateException("MyMemory redirects are not accepted");
+                    })
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {
                     });
 
@@ -96,8 +120,8 @@ public class TraductorService {
                 return Optional.empty();
             }
             return Optional.of(limpiar(t));
-        } catch (RestClientException e) {
-            log.warn("No se pudo consultar MyMemory: {}", e.getMessage());
+        } catch (RestClientException | IllegalStateException e) {
+            log.warn("No se pudo consultar MyMemory ({})", e.getClass().getSimpleName());
             return Optional.empty();
         }
     }

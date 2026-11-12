@@ -26,6 +26,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import tools.jackson.databind.ObjectMapper;
 
@@ -106,6 +107,9 @@ class SessionActivityFilterTest {
     @Test
     void suspendedUserIsRevokedOnTheNextRequest() throws Exception {
         Fixture fixture = new Fixture();
+        SessionInformation sessionInformation = mock(SessionInformation.class);
+        when(fixture.sessionRegistry.getAllSessions(fixture.principal, false))
+            .thenReturn(List.of(sessionInformation));
         when(fixture.user.getEstado()).thenReturn("SUSPENDIDO");
 
         MockHttpServletResponse response = fixture.filterRequest("/api/network/status");
@@ -113,6 +117,7 @@ class SessionActivityFilterTest {
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentAsString()).contains("SESSION_EXPIRED");
         verify(fixture.auditService).sessionExpired(fixture.principal, fixture.request, "PRINCIPAL_REVOKED");
+        verify(fixture.sessionTerminationEventPublisher).expireAndPublish(sessionInformation);
     }
 
     @Test
@@ -137,6 +142,8 @@ class SessionActivityFilterTest {
         private final UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
         private final CuentaRepository cuentaRepository = mock(CuentaRepository.class);
         private final SessionRegistry sessionRegistry = mock(SessionRegistry.class);
+        private final SessionTerminationEventPublisher sessionTerminationEventPublisher =
+            mock(SessionTerminationEventPublisher.class);
         private final AuditService auditService = mock(AuditService.class);
         private final Usuario user = mock(Usuario.class);
         private final Cuenta account = mock(Cuenta.class);
@@ -165,6 +172,7 @@ class SessionActivityFilterTest {
                 usuarioRepository,
                 cuentaRepository,
                 sessionRegistry,
+                sessionTerminationEventPublisher,
                 auditService,
                 new ObjectMapper());
             session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, START);

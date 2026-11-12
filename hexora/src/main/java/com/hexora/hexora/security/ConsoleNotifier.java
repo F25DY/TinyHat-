@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 @Profile({"dev", "demo"})
 public class ConsoleNotifier implements Notifier {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleNotifier.class);
+    // Dedicated logger: console only, never masked and never written to the log file (see logback-spring.xml).
+    private static final Logger LOGGER = LoggerFactory.getLogger("tinyhat.notifier.console");
 
     @Override
     public void sendVerificationEmail(String email, String verificationUrl) {

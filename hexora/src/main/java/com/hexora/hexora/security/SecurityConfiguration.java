@@ -10,6 +10,7 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,13 +46,19 @@ public class SecurityConfiguration {
 
 	private final ObjectMapper objectMapper;
 	private final String sessionCookieName;
+	private final String contentSecurityPolicy;
+	private final boolean cspReportOnly;
 
 	public SecurityConfiguration(
 		ObjectMapper objectMapper,
+		TinyHatSecurityProperties securityProperties,
 		@Value("${server.servlet.session.cookie.name:JSESSIONID}") String sessionCookieName
 	) {
 		this.objectMapper = objectMapper;
 		this.sessionCookieName = sessionCookieName;
+		this.contentSecurityPolicy = ContentSecurityPolicy.directives(
+			securityProperties.getWs().getAllowedOrigins());
+		this.cspReportOnly = securityProperties.getCsp().isReportOnly();
 	}
 
 	@Bean
@@ -113,6 +120,7 @@ public class SecurityConfiguration {
 		com.hexora.hexora.repository.UsuarioRepository usuarioRepository,
 		com.hexora.hexora.repository.CuentaRepository cuentaRepository,
 		SessionRegistry sessionRegistry,
+		SessionTerminationEventPublisher sessionTerminationEventPublisher,
 		AuditService auditService
 	) {
 		return new SessionActivityFilter(
@@ -121,6 +129,7 @@ public class SecurityConfiguration {
 			usuarioRepository,
 			cuentaRepository,
 			sessionRegistry,
+			sessionTerminationEventPublisher,
 			auditService,
 			objectMapper
 		);
@@ -215,6 +224,7 @@ public class SecurityConfiguration {
 		TinyHatSecurityProperties securityProperties,
 		ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
 		ApiAccessDeniedHandler apiAccessDeniedHandler,
+		AuditService auditService,
 		TenantContextFilter tenantContextFilter,
 		SessionActivityFilter sessionActivityFilter,
 		IpRateLimitFilter ipRateLimitFilter,
@@ -232,17 +242,32 @@ public class SecurityConfiguration {
 				session.sessionFixation(fixation -> fixation.changeSessionId());
 				session.maximumSessions(securityProperties.getSession().getMaxPerUser())
 					.maxSessionsPreventsLogin(false)
-					.expiredSessionStrategy(event -> writeJsonError(
-						objectMapper,
-						event.getRequest(),
-						event.getResponse(),
-						HttpStatus.UNAUTHORIZED,
-						"SESSION_REPLACED"
-					))
+					.expiredSessionStrategy(event -> {
+						auditService.sessionReplaced(event.getSessionInformation().getPrincipal(), event.getRequest());
+						writeJsonError(
+							objectMapper,
+							event.getRequest(),
+							event.getResponse(),
+							HttpStatus.UNAUTHORIZED,
+							"SESSION_REPLACED"
+						);
+					})
 					.sessionRegistry(sessionRegistry);
 			})
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers("/api/agent/**").denyAll()
+				.requestMatchers(
+					HttpMethod.GET,
+					"/api/proyectos/*/informes",
+					"/api/informes/*",
+					"/api/informes/*/contenido",
+					"/api/informes/*/descarga"
+				).hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
+				.requestMatchers(
+					"/api/proyectos/*/informes",
+					"/api/informes/*/publicar",
+					"/api/informes/*/despublicar"
+				).hasRole("AUDITOR")
 				.requestMatchers(
 					"/api/organizaciones/*/invitaciones",
 					"/api/cves/buscar",
@@ -267,7 +292,8 @@ public class SecurityConfiguration {
 					"/api/network/status",
 					"/api/network/authorized-ranges",
 					"/api/network/projects",
-					"/api/network/projects/*/authorized-ranges"
+					"/api/network/projects/*/authorized-ranges",
+					"/api/network/projects/*/continuous-monitoring"
 				).hasRole("AUDITOR")
 				.anyRequest().denyAll())
 			.exceptionHandling(exceptions -> exceptions
@@ -310,7 +336,10 @@ public class SecurityConfiguration {
 				session.sessionFixation(fixation -> fixation.changeSessionId());
 				session.maximumSessions(securityProperties.getSession().getMaxPerUser())
 					.maxSessionsPreventsLogin(false)
-					.expiredUrl("/login?replaced")
+					.expiredSessionStrategy(event -> {
+						auditService.sessionReplaced(event.getSessionInformation().getPrincipal(), event.getRequest());
+						event.getResponse().sendRedirect(event.getRequest().getContextPath() + "/login?replaced");
+					})
 					.sessionRegistry(sessionRegistry);
 			})
 			.authorizeHttpRequests(authorize -> authorize
@@ -389,7 +418,24 @@ public class SecurityConfiguration {
 			.contentTypeOptions(Customizer.withDefaults())
 			.frameOptions(frame -> frame.deny())
 			.referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.NO_REFERRER))
-			.cacheControl(Customizer.withDefaults());
+			.cacheControl(Customizer.withDefaults())
+			.httpStrictTransportSecurity(hsts -> hsts
+				.maxAgeInSeconds(31_536_000)
+				.includeSubDomains(false))
+			.contentSecurityPolicy(csp -> {
+				csp.policyDirectives(contentSecurityPolicy);
+				if (cspReportOnly) {
+					csp.reportOnly();
+				}
+			});
+		headers.addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter(
+			"Permissions-Policy",
+			"camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		));
+		headers.addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter(
+			"Cross-Origin-Opener-Policy",
+			"same-origin"
+		));
 	}
 
 	private AuthenticationSuccessHandler loginSuccessHandler(

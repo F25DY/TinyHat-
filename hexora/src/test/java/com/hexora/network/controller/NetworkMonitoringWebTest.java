@@ -66,6 +66,11 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
 
     @BeforeEach
     void createAuditorPrincipal() {
+        jdbcTemplate.update("UPDATE capacidad_cuenta SET habilitada = TRUE WHERE cuenta_id = 1");
+        jdbcTemplate.update(
+            "INSERT INTO capacidad_cuenta (cuenta_id, capacidad, habilitada) "
+                + "VALUES (1, 'monitoreo_continuo', TRUE) "
+                + "ON DUPLICATE KEY UPDATE habilitada = TRUE");
         String email = "network-test-" + UUID.randomUUID() + "@example.test";
         jdbcTemplate.update(
             "INSERT INTO usuario "
@@ -105,6 +110,18 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
     }
 
     @Test
+    void rejectsAnUnauthenticatedWebSocketHandshake() throws Exception {
+        mockMvc.perform(get("/ws/network")
+                .header("Origin", "https://localhost:8443")
+                .header("Upgrade", "websocket")
+                .header("Connection", "Upgrade")
+                .header("Sec-WebSocket-Version", "13")
+                .header("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/login"));
+    }
+
+    @Test
     void servesDiscoveryHistoryInItsOwnPage() throws Exception {
         performAsAuditor(get("/network-monitoring/history"))
             .andExpect(status().isOk())
@@ -112,6 +129,29 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Historial de detecciones")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Disponibilidad estimada")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("history-project-select")));
+    }
+
+    @Test
+    void rendersProjectAndOrganizationNamesAsEscapedText() throws Exception {
+        String payload = "<img src=\"http://127.0.0.1:9/track\">";
+        Long organizationId = jdbcTemplate.queryForObject(
+            "SELECT organizacion_cliente_id FROM auditoria WHERE id_auditoria = ?",
+            Long.class,
+            projectId);
+        jdbcTemplate.update(
+            "UPDATE auditoria SET nombre = ? WHERE id_auditoria = ?",
+            payload,
+            projectId);
+        jdbcTemplate.update(
+            "UPDATE organizacion_cliente SET nombre = ? WHERE id_empresa = ?",
+            payload,
+            organizationId);
+
+        performAsAuditor(get("/proyectos/" + projectPublicId))
+            .andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("&lt;img src=")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(
+                org.hamcrest.Matchers.containsString(payload))));
     }
 
     @Test
@@ -295,7 +335,92 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
         performAsAuditor(get("/api/network/projects"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].publicId").value(projectPublicId))
-            .andExpect(jsonPath("$[0].name").value("Network test project"));
+            .andExpect(jsonPath("$[0].name").value("Network test project"))
+            .andExpect(jsonPath("$[0].continuousMonitoringEnabled").value(false));
+    }
+
+    @Test
+    void enablesAndDisablesContinuousMonitoringOnlyForAnAssignedProject() throws Exception {
+        performAsAuditor(put("/api/network/projects/" + projectPublicId + "/continuous-monitoring").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"enabled\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.continuousMonitoringEnabled").value(true));
+        org.junit.jupiter.api.Assertions.assertTrue(jdbcTemplate.queryForObject(
+            "SELECT monitoreo_continuo_habilitado FROM auditoria WHERE id_auditoria = ?",
+            Boolean.class,
+            projectId));
+
+        performAsAuditor(put("/api/network/projects/" + projectPublicId + "/continuous-monitoring").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"enabled\":false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.continuousMonitoringEnabled").value(false));
+        org.junit.jupiter.api.Assertions.assertFalse(jdbcTemplate.queryForObject(
+            "SELECT monitoreo_continuo_habilitado FROM auditoria WHERE id_auditoria = ?",
+            Boolean.class,
+            projectId));
+    }
+
+    @Test
+    void doesNotAllowContinuousMonitoringWithoutTheAccountCapability() throws Exception {
+        jdbcTemplate.update(
+            "UPDATE capacidad_cuenta SET habilitada = FALSE "
+                + "WHERE cuenta_id = 1 AND capacidad = 'monitoreo_continuo'");
+
+        performAsAuditor(put("/api/network/projects/" + projectPublicId + "/continuous-monitoring").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"enabled\":true}"))
+            .andExpect(status().isForbidden());
+
+        org.junit.jupiter.api.Assertions.assertFalse(jdbcTemplate.queryForObject(
+            "SELECT monitoreo_continuo_habilitado FROM auditoria WHERE id_auditoria = ?",
+            Boolean.class,
+            projectId));
+    }
+
+    @Test
+    void rejectsAProjectScanWithoutAnAuthorizedRangeAndAuditsTheRejectedTarget() throws Exception {
+        long hostId = insertWithGeneratedId(
+            "INSERT INTO network_host "
+                + "(display_name, address, status, enabled, managed_by_ui, consecutive_failures, "
+                + "cuenta_id, proyecto_id, public_id) "
+                + "VALUES ('Scoped test host', '192.168.10.31', 'OFFLINE', TRUE, TRUE, 0, 1, ?, ?)",
+            projectId,
+            UUID.randomUUID().toString());
+
+        performAsAuditor(post("/api/network/scan").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"hostId\":" + hostId + ",\"projectPublicId\":\"" + projectPublicId + "\"}"))
+            .andExpect(status().isUnprocessableEntity());
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM audit_event WHERE evento = 'SCAN_REJECTED' "
+                + "AND recurso_public_id = ? AND usuario_id = ? "
+                + "AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.cidr')) = '192.168.10.31/32'",
+            Integer.class,
+            projectPublicId,
+            principal.getUserId()));
+        org.junit.jupiter.api.Assertions.assertEquals(0, jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM network_scan WHERE host_id = ?",
+            Integer.class,
+            hostId));
+    }
+
+    @Test
+    void rejectsNetworkApiCallsWhenTheNetworkCapabilityIsDisabled() throws Exception {
+        jdbcTemplate.update(
+            "UPDATE capacidad_cuenta SET habilitada = FALSE WHERE cuenta_id = 1 AND capacidad = 'modulo_red'");
+        int existingScans = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM network_scan", Integer.class);
+
+        performAsAuditor(get("/api/network/projects"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.error").value("ACCESS_DENIED"))
+            .andExpect(jsonPath("$.correlationId").isString());
+
+        org.junit.jupiter.api.Assertions.assertEquals(existingScans, jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM network_scan",
+            Integer.class));
     }
 
     @Test
@@ -326,6 +451,16 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
     }
 
     @Test
+    void rejectsHistoryLimitsAboveOneHundredWithAGenericValidationError() throws Exception {
+        performAsAuditor(get("/api/network/history")
+                .param("limit", "101")
+                .param("projectPublicId", projectPublicId))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.correlationId").isString());
+    }
+
+    @Test
     void monitoringPageShowsTheAutomaticScanActionAndDetectedInventory() throws Exception {
         performAsAuditor(get("/network-monitoring"))
             .andExpect(status().isOk())
@@ -341,8 +476,8 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"hostId\":1,\"startPort\":1,\"endPort\":129}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error").value(
-                "Port range must be valid, ascending, and no larger than 128 ports"));
+            .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.correlationId").isString());
     }
 
     @Test
@@ -351,7 +486,8 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"External host\",\"address\":\"8.8.8.8\",\"ports\":[443]}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error").value("Enter a private IPv4 address from your local network"));
+            .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.correlationId").isString());
     }
 
     @Test
@@ -360,7 +496,8 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"\",\"address\":\"192.168.1.25\",\"ports\":[443]}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error").value("Device name must contain between 1 and 100 characters"));
+            .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.correlationId").isString());
     }
 
     @Test

@@ -46,7 +46,7 @@ public class LoginAttemptFilter extends OncePerRequestFilter {
         }
 
         if (auditGate.shouldAudit("login-lockout:" + ip)) {
-            auditService.rateLimited("auth", ip, ip, request);
+            auditService.throttled(ip, retryAfter, request);
         }
         response.sendRedirect(request.getContextPath() + "/login?error");
     }

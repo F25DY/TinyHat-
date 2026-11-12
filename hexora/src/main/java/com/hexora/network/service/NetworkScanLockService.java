@@ -87,7 +87,7 @@ public class NetworkScanLockService {
         try (PreparedStatement statement = connection.prepareStatement("SELECT RELEASE_LOCK(?)")) {
             statement.setString(1, lockName);
             try (ResultSet result = statement.executeQuery()) {
-                if (!result.next()) {
+                if (!result.next() || result.getInt(1) != 1) {
                     throw new SQLException("Could not release network scan lock " + lockName);
                 }
             }

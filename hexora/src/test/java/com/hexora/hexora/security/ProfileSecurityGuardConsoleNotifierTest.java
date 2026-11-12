@@ -21,6 +21,8 @@ class ProfileSecurityGuardConsoleNotifierTest {
         .withUserConfiguration(ProfileSecurityGuard.class, TestConfig.class)
         .withPropertyValues(
             "spring.datasource.username=test",
+            "spring.flyway.user=migrator",
+            "spring.flyway.password=migrator",
             "spring.datasource.password=test"
         );
 

@@ -25,20 +25,20 @@
                 <label for="contraseña">Contraseña</label>
                 <input type="password" id="contraseña" name="password" placeholder="••••••••" required>
 
-                <p th:if="${param.error}" style="color:red;">Credenciales no válidas.</p>
-                <p th:if="${param.expired}" style="color:red;">La sesión terminó. Inicia sesión de nuevo.</p>
-                <p th:if="${param.replaced}" style="color:red;">Tu sesión se cerró porque iniciaste sesión en otro lugar.</p>
-                <p th:if="${param.registered}" style="color:green;">Registro completado. Por favor, revisa tu correo para verificar tu cuenta.</p>
-                <p th:if="${param.verified}" style="color:green;">Correo verificado exitosamente. Ya puedes iniciar sesión.</p>
-                <p th:if="${param.reset}" style="color:green;">Contraseña restablecida exitosamente. Inicia sesión con tu nueva contraseña.</p>
-                <p th:if="${param.invited}" style="color:green;">Invitación completada. Ya puedes iniciar sesión.</p>
-                <p th:if="${param.invalidToken}" style="color:red;">El enlace no es válido o ha expirado.</p>
+                <p th:if="${param.error}" class="feedback-error">Credenciales no válidas.</p>
+                <p th:if="${param.expired}" class="feedback-error">La sesión terminó. Inicia sesión de nuevo.</p>
+                <p th:if="${param.replaced}" class="feedback-error">Tu sesión se cerró porque iniciaste sesión en otro lugar.</p>
+                <p th:if="${param.registered}" class="feedback-success">Registro completado. Por favor, revisa tu correo para verificar tu cuenta.</p>
+                <p th:if="${param.verified}" class="feedback-success">Correo verificado exitosamente. Ya puedes iniciar sesión.</p>
+                <p th:if="${param.reset}" class="feedback-success">Contraseña restablecida exitosamente. Inicia sesión con tu nueva contraseña.</p>
+                <p th:if="${param.invited}" class="feedback-success">Invitación completada. Ya puedes iniciar sesión.</p>
+                <p th:if="${param.invalidToken}" class="feedback-error">El enlace no es válido o ha expirado.</p>
 
                 <button type="submit">Iniciar Sesión</button>
 
             </form>
 
-            <p style="margin-top: 1rem;">
+            <p class="spaced-paragraph">
                 <a th:href="@{/recuperar}">¿Olvidaste tu contraseña?</a> &bull;
                 <a th:href="@{/registro}">Registrarse como Auditor</a>
             </p>

@@ -3,9 +3,6 @@
    Global Stylesheet
    ============================================= */
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
-
 /* =============================================
    CSS VARIABLES
    ============================================= */
@@ -3156,3 +3153,53 @@ main {
 .progreso-80 { width: 80%; }
 .progreso-90 { width: 90%; }
 .progreso-100 { width: 100%; }
+
+.no-underline {
+  text-decoration: none;
+}
+
+.inherit-color {
+  color: inherit;
+}
+
+.inline-form {
+  display: inline;
+}
+
+.text-centered {
+  text-align: center;
+}
+
+.project-department-action {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.project-public-link {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.readonly-input {
+  background-color: #eee;
+}
+
+.spaced-paragraph {
+  margin-top: 1rem;
+}
+
+.feedback-error {
+  color: red;
+}
+
+.feedback-success {
+  color: green;
+}
+
+.grid-full-row {
+  grid-column: 1 / -1;
+}
+
+.risk-meter {
+  width: 100%;
+}

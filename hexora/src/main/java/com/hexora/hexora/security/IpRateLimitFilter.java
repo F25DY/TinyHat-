@@ -62,7 +62,7 @@ public class IpRateLimitFilter extends OncePerRequestFilter {
             long loginRetryAfter = loginAttemptService.retryAfterSeconds(request.getParameter("email"), ip);
             if (loginRetryAfter > 0) {
                 if (auditGate.shouldAudit("login-lockout:" + ip)) {
-                    auditService.rateLimited("auth", ip, ip, request);
+                    auditService.throttled(ip, loginRetryAfter, request);
                 }
                 response.sendRedirect(request.getContextPath() + "/login?error");
                 return;

@@ -9,6 +9,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.hibernate.annotations.Filter;
 
 @Entity
@@ -16,6 +17,9 @@ import org.hibernate.annotations.Filter;
 @Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
 @EntityListeners(TenantScopedEntityListener.class)
 public class Informe implements TenantScopedEntity {
+
+    public static final String ESTADO_BORRADOR = "BORRADOR";
+    public static final String ESTADO_PUBLICADO = "PUBLICADO";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,6 +40,18 @@ public class Informe implements TenantScopedEntity {
     @Column(nullable = false, length = 40)
     private String tipo;
 
+    @Column(nullable = false, length = 200)
+    private String titulo = "";
+
+    @Column(nullable = false, length = 20)
+    private String audiencia = "TECNICO";
+
+    @Column(nullable = false, length = 10)
+    private String formato = "PDF";
+
+    @Column(name = "esquema_version", nullable = false)
+    private int esquemaVersion = 1;
+
     @Column(nullable = false, length = 20)
     private String estado;
 
@@ -48,7 +64,17 @@ public class Informe implements TenantScopedEntity {
     @Column(name = "hash_contenido", length = 64, columnDefinition = "CHAR(64)")
     private String hashContenido;
 
-    protected Informe() {
+    /** Immutable JSON snapshot of the report content; its SHA-256 is {@link #hashContenido}. */
+    @Column(name = "contenido_json", columnDefinition = "LONGTEXT")
+    private String contenidoJson;
+
+    @Column(name = "creado_en", nullable = false, updatable = false)
+    private LocalDateTime creadoEn;
+
+    @Column(name = "creado_por", updatable = false)
+    private Long creadoPor;
+
+    public Informe() {
     }
 
     public Long getId() {
@@ -96,6 +122,38 @@ public class Informe implements TenantScopedEntity {
         this.tipo = tipo;
     }
 
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
+
+    public String getAudiencia() {
+        return audiencia;
+    }
+
+    public void setAudiencia(String audiencia) {
+        this.audiencia = audiencia;
+    }
+
+    public String getFormato() {
+        return formato;
+    }
+
+    public void setFormato(String formato) {
+        this.formato = formato;
+    }
+
+    public int getEsquemaVersion() {
+        return esquemaVersion;
+    }
+
+    public void setEsquemaVersion(int esquemaVersion) {
+        this.esquemaVersion = esquemaVersion;
+    }
+
     public String getEstado() {
         return estado;
     }
@@ -128,8 +186,31 @@ public class Informe implements TenantScopedEntity {
         this.hashContenido = hashContenido;
     }
 
+    public String getContenidoJson() {
+        return contenidoJson;
+    }
+
+    public void setContenidoJson(String contenidoJson) {
+        this.contenidoJson = contenidoJson;
+    }
+
+    public LocalDateTime getCreadoEn() {
+        return creadoEn;
+    }
+
+    public Long getCreadoPor() {
+        return creadoPor;
+    }
+
+    public void setCreadoPor(Long creadoPor) {
+        this.creadoPor = creadoPor;
+    }
+
     @PrePersist
-    void generatePublicId() {
+    void prepareForInsert() {
         publicId = PublicIds.ensure(publicId);
+        if (creadoEn == null) {
+            creadoEn = LocalDateTime.now(ZoneOffset.UTC);
+        }
     }
 }

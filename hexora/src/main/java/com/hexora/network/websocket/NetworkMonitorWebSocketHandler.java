@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import com.hexora.hexora.security.TenantContext;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import com.hexora.hexora.security.SessionTerminatedEvent;
@@ -28,6 +29,7 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 public class NetworkMonitorWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkMonitorWebSocketHandler.class);
+    private static final int MAX_MESSAGES_PER_CONNECTION = 1_000;
     private final ObjectMapper objectMapper;
     private final NetworkCapabilityGuard capabilityGuard;
     private final PermissionService permissionService;
@@ -77,7 +79,9 @@ public class NetworkMonitorWebSocketHandler extends TextWebSocketHandler {
             principal.getCuentaId(),
             id,
             principal,
+            authentication,
             visibleProjectIds,
+            new AtomicInteger(),
             safeSession));
     }
 
@@ -127,12 +131,23 @@ public class NetworkMonitorWebSocketHandler extends TextWebSocketHandler {
                 || !entry.getValue().projectPublicIds().contains(projectPublicId)) {
                 continue;
             }
+            if (!capabilityGuard.isEnabled(entry.getValue().authentication())) {
+                sessions.remove(entry.getKey());
+                closeRevokedSession(entry.getKey(), entry.getValue().session());
+                continue;
+            }
             try {
                 permissionService.requireProyecto(entry.getValue().principal(), projectPublicId);
             } catch (ScopedNotFoundException exception) {
                 continue;
             }
             try {
+                if (entry.getValue().sentMessages().incrementAndGet() > MAX_MESSAGES_PER_CONNECTION) {
+                    sessions.remove(entry.getKey());
+                    entry.getValue().session().close(
+                        new CloseStatus(1008, "Connection message limit exceeded"));
+                    continue;
+                }
                 entry.getValue().session().sendMessage(new TextMessage(json));
             } catch (IOException exception) {
                 sessions.remove(entry.getKey());
@@ -145,11 +160,22 @@ public class NetworkMonitorWebSocketHandler extends TextWebSocketHandler {
     private record ProjectUpdate(String projectPublicId, Object update) {
     }
 
+    private void closeRevokedSession(String sessionId, WebSocketSession session) {
+        try {
+            session.close(CloseStatus.POLICY_VIOLATION);
+        } catch (IOException exception) {
+            LOGGER.warn("Could not close WebSocket session after network capability revocation {}", sessionId,
+                exception);
+        }
+    }
+
     private record TenantSession(
         long tenantId,
         String httpSessionId,
         TinyHatPrincipal principal,
+        Authentication authentication,
         java.util.Set<String> projectPublicIds,
+        AtomicInteger sentMessages,
         WebSocketSession session
     ) {
     }

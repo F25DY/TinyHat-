@@ -16,6 +16,7 @@ import com.hexora.network.model.AuthorizedNetworkRangeDto;
 import com.hexora.network.model.AuthorizedNetworkRangeRequest;
 import com.hexora.network.model.ProjectNetworkRequest;
 import com.hexora.network.model.NetworkProjectDto;
+import com.hexora.network.model.NetworkMonitoringPreferenceRequest;
 import com.hexora.network.service.AuthorizedNetworkRangeService;
 import com.hexora.network.service.NetworkDiscoveryException;
 import com.hexora.network.service.NetworkMonitoringService;
@@ -25,6 +26,9 @@ import com.hexora.hexora.security.TinyHatPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -40,10 +44,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping("/api/network")
 @PreAuthorize("hasRole('AUDITOR') and @networkCapabilityGuard.isEnabled(authentication)")
+@Validated
 public class NetworkMonitoringController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkMonitoringController.class);
@@ -63,7 +69,7 @@ public class NetworkMonitoringController {
 
     @PostMapping("/authorized-ranges")
     public ResponseEntity<AuthorizedNetworkRangeDto> declareAuthorizedRange(
-        @RequestBody AuthorizedNetworkRangeRequest request,
+        @Valid @RequestBody AuthorizedNetworkRangeRequest request,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
     ) {
@@ -91,9 +97,24 @@ public class NetworkMonitoringController {
         return authorizedRangeService.visibleProjects(principal);
     }
 
+    @PutMapping("/projects/{projectPublicId}/continuous-monitoring")
+    public NetworkProjectDto setContinuousMonitoring(
+        @PathVariable String projectPublicId,
+        @Valid @RequestBody NetworkMonitoringPreferenceRequest request,
+        @AuthenticationPrincipal TinyHatPrincipal principal,
+        HttpServletRequest httpRequest
+    ) {
+        logEndpoint("PUT", httpRequest);
+        if (request == null) {
+            throw new IllegalArgumentException("Continuous monitoring preference is required");
+        }
+        return authorizedRangeService.setContinuousMonitoring(
+            principal, projectPublicId, request.enabled(), httpRequest);
+    }
+
     @PostMapping("/scan")
     public ResponseEntity<NetworkScanDto> scan(
-        @RequestBody NetworkScanRequest request,
+        @Valid @RequestBody NetworkScanRequest request,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
     ) {
@@ -106,10 +127,12 @@ public class NetworkMonitoringController {
             throw new IllegalArgumentException("projectPublicId is required");
         }
         long projectId = authorizedRangeService.requireProjectId(principal, request.projectPublicId());
+        String targetCidr = "";
         try {
+            targetCidr = monitoringService.manualScanTargetCidr(request.hostId(), projectId);
             monitoringService.validateManualScanScope(request.hostId(), projectId, principal.getCuentaId());
             authorizedRangeService.recordNetworkEvent(
-                "SCAN_STARTED", "OK", principal, httpRequest, request.projectPublicId(), "", "");
+                "SCAN_STARTED", "OK", principal, httpRequest, request.projectPublicId(), targetCidr, "");
             NetworkScanDto result = monitoringService.scanManually(
                 request.hostId(),
                 projectId,
@@ -118,18 +141,18 @@ public class NetworkMonitoringController {
                 principal.getUserId()
             );
             authorizedRangeService.recordNetworkEvent(
-                "SCAN_COMPLETED", "OK", principal, httpRequest, request.projectPublicId(), "", "");
+                "SCAN_COMPLETED", "OK", principal, httpRequest, request.projectPublicId(), targetCidr, "");
             webSocketHandler.publish(request.projectPublicId(), result);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (com.hexora.network.service.NetworkScopeRejectedException exception) {
             authorizedRangeService.recordNetworkEvent(
                 "SCAN_REJECTED", "DENEGADO", principal, httpRequest,
-                request.projectPublicId(), "", exception.getMessage());
+                request.projectPublicId(), targetCidr, exception.getMessage());
             throw exception;
         } catch (ScanRateLimitException exception) {
             authorizedRangeService.recordNetworkEvent(
                 "SCAN_REJECTED", "DENEGADO", principal, httpRequest,
-                request.projectPublicId(), "", exception.getMessage());
+                request.projectPublicId(), targetCidr, exception.getMessage());
             throw exception;
         } catch (NetworkDiscoveryException exception) {
             authorizedRangeService.recordNetworkEvent(
@@ -142,7 +165,7 @@ public class NetworkMonitoringController {
     @GetMapping("/history")
     public List<NetworkScanDto> history(
         @RequestParam(required = false) Long hostId,
-        @RequestParam(defaultValue = "20") int limit,
+        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit,
         @RequestParam String projectPublicId,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
@@ -165,7 +188,7 @@ public class NetworkMonitoringController {
 
     @PostMapping({"/hosts", "/devices"})
     public ResponseEntity<NetworkHostDto> registerHost(
-        @RequestBody NetworkHostRegistrationRequest request,
+        @Valid @RequestBody NetworkHostRegistrationRequest request,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
     ) {
@@ -186,7 +209,7 @@ public class NetworkMonitoringController {
     @PutMapping({"/hosts/{hostId}/ports", "/devices/{hostId}/ports"})
     public NetworkHostDto updateMonitoredPorts(
         @PathVariable Long hostId,
-        @RequestBody NetworkHostPortsRequest request,
+        @Valid @RequestBody NetworkHostPortsRequest request,
         @RequestParam String projectPublicId,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
@@ -202,7 +225,7 @@ public class NetworkMonitoringController {
     @PostMapping({"/hosts/{hostId}/ports", "/devices/{hostId}/ports"})
     public ResponseEntity<MonitoredPortDto> addMonitoredPort(
         @PathVariable Long hostId,
-        @RequestBody MonitoredPortRequest request,
+        @Valid @RequestBody MonitoredPortRequest request,
         @RequestParam String projectPublicId,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
@@ -222,7 +245,7 @@ public class NetworkMonitoringController {
     public MonitoredPortDto setMonitoredPortEnabled(
         @PathVariable Long hostId,
         @PathVariable Integer port,
-        @RequestBody MonitoredPortRequest request,
+        @Valid @RequestBody MonitoredPortRequest request,
         @RequestParam String projectPublicId,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
@@ -276,7 +299,7 @@ public class NetworkMonitoringController {
 
     @DeleteMapping("/history/scans")
     public ResponseEntity<Void> deleteSelectedScans(
-        @RequestBody NetworkScanDeletionRequest request,
+        @Valid @RequestBody NetworkScanDeletionRequest request,
         @RequestParam String projectPublicId,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
@@ -302,7 +325,7 @@ public class NetworkMonitoringController {
 
     @PostMapping("/discover")
     public NetworkInventoryUpdateDto discoverLocalNetwork(
-        @RequestBody ProjectNetworkRequest request,
+        @Valid @RequestBody ProjectNetworkRequest request,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest
     ) {
@@ -373,7 +396,7 @@ public class NetworkMonitoringController {
 
     @GetMapping("/discoveries/history")
     public List<NetworkDiscoverySnapshotDto> discoveryHistory(
-        @RequestParam(defaultValue = "50") int limit,
+        @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
         @RequestParam String projectPublicId,
         @AuthenticationPrincipal TinyHatPrincipal principal,
         HttpServletRequest httpRequest

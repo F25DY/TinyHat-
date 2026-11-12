@@ -7,3 +7,5 @@ target/
 *.jks
 application-local*.yml
 application-local*.yaml
+/localhost.crt
+logs/

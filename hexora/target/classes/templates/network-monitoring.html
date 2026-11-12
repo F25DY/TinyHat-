@@ -41,6 +41,11 @@
                 <option value="">Cargando proyectos autorizados…</option>
             </select>
         </label>
+        <label class="network-toggle">
+            <input id="continuous-monitoring-toggle" type="checkbox">
+            Permitir monitorización continua en este proyecto
+        </label>
+        <p id="continuous-monitoring-message" class="network-message" role="status" aria-live="polite"></p>
         <form id="authorized-range-form" class="device-form">
             <label>
                 Rango IPv4 autorizado (CIDR)

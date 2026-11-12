@@ -41,6 +41,7 @@ public class UserRegistrationService {
     private final Notifier notifier;
     private final AuditService auditService;
     private final SessionRegistry sessionRegistry;
+    private final SessionTerminationEventPublisher sessionTerminationEventPublisher;
     private final TinyHatSecurityProperties securityProperties;
     private final PermissionService permissionService;
     private final String publicBaseUrl;
@@ -55,6 +56,7 @@ public class UserRegistrationService {
         Notifier notifier,
         AuditService auditService,
         SessionRegistry sessionRegistry,
+        SessionTerminationEventPublisher sessionTerminationEventPublisher,
         TinyHatSecurityProperties securityProperties,
         PermissionService permissionService,
         @org.springframework.beans.factory.annotation.Value(
@@ -70,6 +72,7 @@ public class UserRegistrationService {
         this.notifier = notifier;
         this.auditService = auditService;
         this.sessionRegistry = sessionRegistry;
+        this.sessionTerminationEventPublisher = sessionTerminationEventPublisher;
         this.securityProperties = securityProperties;
         this.permissionService = permissionService;
         this.publicBaseUrl = validatePublicBaseUrl(publicBaseUrl);
@@ -213,6 +216,7 @@ public class UserRegistrationService {
             usuario.setEstado("ACTIVO");
             usuarioRepository.saveAndFlush(usuario);
             tokenService.invalidatePendingTokensForUser(usuario.getId());
+            auditService.passwordChanged(usuario, request, "INVITATION_ACCEPTED");
 
             return true;
         });
@@ -270,7 +274,7 @@ public class UserRegistrationService {
         for (Object principalObj : sessionRegistry.getAllPrincipals()) {
             if (principalObj instanceof TinyHatPrincipal principal && Objects.equals(principal.getUserId(), userId)) {
                 for (SessionInformation sessionInfo : sessionRegistry.getAllSessions(principalObj, false)) {
-                    sessionInfo.expireNow();
+                    sessionTerminationEventPublisher.expireAndPublish(sessionInfo);
                 }
             }
         }

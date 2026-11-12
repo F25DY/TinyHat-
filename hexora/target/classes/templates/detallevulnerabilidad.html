@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Vulnerabilidad</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -62,7 +61,7 @@
                 </p>
             </div>
             <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vulnerabilidad.publicId})}"
-               style="text-decoration: none;">
+               class="no-underline">
                 <button class="btn-crear">
                     <i class="fa-solid fa-pen-to-square"></i> Editar
                 </button>
@@ -140,11 +139,7 @@
                     <span>Confidencialidad</span>
                     <span th:text="${vulnerabilidad.confidencialidad} + '/10'">0/10</span>
                 </div>
-                <div class="barra-progreso-input">
-                    <div class="barra-progreso-relleno barra-cyan"
-                         th:style="'width: ' + ${vulnerabilidad.confidencialidad * 10} + '%;'">
-                    </div>
-                </div>
+                <meter class="risk-meter" min="0" max="10" th:value="${vulnerabilidad.confidencialidad}"></meter>
             </div>
 
             <div class="cia-item">
@@ -152,11 +147,7 @@
                     <span>Integridad</span>
                     <span th:text="${vulnerabilidad.integridad} + '/10'">0/10</span>
                 </div>
-                <div class="barra-progreso-input">
-                    <div class="barra-progreso-relleno barra-cyan"
-                         th:style="'width: ' + ${vulnerabilidad.integridad * 10} + '%;'">
-                    </div>
-                </div>
+                <meter class="risk-meter" min="0" max="10" th:value="${vulnerabilidad.integridad}"></meter>
             </div>
 
             <div class="cia-item">
@@ -164,11 +155,7 @@
                     <span>Disponibilidad</span>
                     <span th:text="${vulnerabilidad.disponibilidad} + '/10'">0/10</span>
                 </div>
-                <div class="barra-progreso-input">
-                    <div class="barra-progreso-relleno barra-cyan"
-                         th:style="'width: ' + ${vulnerabilidad.disponibilidad * 10} + '%;'">
-                    </div>
-                </div>
+                <meter class="risk-meter" min="0" max="10" th:value="${vulnerabilidad.disponibilidad}"></meter>
             </div>
         </section>
 

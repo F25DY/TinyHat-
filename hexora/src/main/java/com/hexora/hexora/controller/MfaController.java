@@ -5,6 +5,7 @@ import com.hexora.hexora.security.MfaAuthenticationService;
 import com.hexora.hexora.security.MfaService;
 import com.hexora.hexora.security.RequireRecentAuth;
 import com.hexora.hexora.security.SessionActivityFilter;
+import com.hexora.hexora.security.SessionTerminationEventPublisher;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,6 +31,7 @@ public class MfaController {
     private final MfaAuthenticationService mfaAuthenticationService;
     private final PasswordEncoder passwordEncoder;
     private final SessionRegistry sessionRegistry;
+    private final SessionTerminationEventPublisher sessionTerminationEventPublisher;
     private final AuditService auditService;
 
     public MfaController(
@@ -37,12 +39,14 @@ public class MfaController {
         MfaAuthenticationService mfaAuthenticationService,
         PasswordEncoder passwordEncoder,
         SessionRegistry sessionRegistry,
+        SessionTerminationEventPublisher sessionTerminationEventPublisher,
         AuditService auditService
     ) {
         this.mfaService = mfaService;
         this.mfaAuthenticationService = mfaAuthenticationService;
         this.passwordEncoder = passwordEncoder;
         this.sessionRegistry = sessionRegistry;
+        this.sessionTerminationEventPublisher = sessionTerminationEventPublisher;
         this.auditService = auditService;
     }
 
@@ -91,6 +95,7 @@ public class MfaController {
         if (recoveryCodes.isEmpty()) {
             return failedMfaAttempt(principal, request, response, model, "enroll");
         }
+        auditService.mfaEnrolled(principal, request);
         mfaAuthenticationService.completeMfa(principal, request, response);
         model.addAttribute("recoveryCodes", recoveryCodes);
         return "mfa/recovery-codes";
@@ -124,6 +129,7 @@ public class MfaController {
         if (!mfaService.verifyLoginCode(principal.getUserId(), code)) {
             return failedMfaAttempt(principal, request, response, model, "verify");
         }
+        auditService.mfaSucceeded(principal, request, "LOGIN");
         mfaAuthenticationService.completeMfa(principal, request, response);
         return "redirect:/dashboard";
     }
@@ -157,6 +163,7 @@ public class MfaController {
             return failedMfaAttempt(principal, request, response, model, "reauth");
         }
 
+        auditService.mfaSucceeded(principal, request, "REAUTH");
         mfaAuthenticationService.completeReauthentication(request, response);
         HttpSession session = request.getSession(false);
         Object target = session == null
@@ -189,7 +196,8 @@ public class MfaController {
         TinyHatPrincipal principal = principal(authentication);
         mfaService.reset(principal.getUserId());
         auditService.mfaReset(principal, request);
-        sessionRegistry.getAllSessions(principal, false).forEach(information -> information.expireNow());
+        sessionRegistry.getAllSessions(principal, false)
+            .forEach(sessionTerminationEventPublisher::expireAndPublish);
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
@@ -207,8 +215,10 @@ public class MfaController {
     ) throws IOException {
         HttpSession session = request.getSession();
         int failures = mfaAuthenticationService.recordFailure(session, attemptType);
+        auditService.mfaFailed(principal, request, attemptType.toUpperCase(java.util.Locale.ROOT), failures);
         if (failures >= mfaAuthenticationService.maxAttempts()) {
-            sessionRegistry.getAllSessions(principal, false).forEach(information -> information.expireNow());
+            sessionRegistry.getAllSessions(principal, false)
+                .forEach(sessionTerminationEventPublisher::expireAndPublish);
             session.invalidate();
             SecurityContextHolder.clearContext();
             response.sendRedirect(request.getContextPath() + "/login?mfa=locked");

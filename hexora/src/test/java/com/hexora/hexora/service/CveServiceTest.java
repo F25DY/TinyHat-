@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,8 @@ import com.hexora.hexora.security.NvdRateLimitService;
 import com.hexora.hexora.security.TinyHatNvdProperties;
 import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpServer;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.web.client.RestClient;
 
 import com.hexora.hexora.model.Cve;
 import com.hexora.hexora.repository.CveRepository;
@@ -79,7 +82,15 @@ class CveServiceTest {
             properties.setRequestsWithoutKey(2);
             properties.setWindowSeconds(3600);
             CveService service = new CveService(
-                repository, mock(TraductorService.class), properties, new NvdRateLimitService(properties)
+                repository,
+                mock(TraductorService.class),
+                properties,
+                new NvdRateLimitService(properties),
+                RestClient.builder()
+                    .baseUrl(properties.getBaseUrl())
+                    .requestFactory(new JdkClientHttpRequestFactory(
+                        HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()))
+                    .build()
             );
 
             service.buscar("first query");

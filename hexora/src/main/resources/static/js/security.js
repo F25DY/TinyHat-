@@ -22,8 +22,12 @@
         if (response.status === 401 && window.location.pathname !== "/login") {
             let loginReason = "expired";
             try {
-                if ((await response.clone().json()).error === "SESSION_REPLACED") {
+                const code = (await response.clone().json()).error;
+                if (code === "SESSION_REPLACED") {
                     loginReason = "replaced";
+                } else if (code === "REAUTH_REQUIRED") {
+                    // The session is still valid; the caller (for example the reports panel) asks for re-authentication.
+                    return response;
                 }
             } catch (_) {
                 // Non-JSON 401 responses still represent an expired authentication.
@@ -34,4 +38,12 @@
         }
         return response;
     };
+
+    document.addEventListener("submit", event => {
+        const form = event.target instanceof HTMLFormElement ? event.target : null;
+        const message = form?.dataset.confirmMessage;
+        if (form && message && !window.confirm(message)) {
+            event.preventDefault();
+        }
+    });
 })();

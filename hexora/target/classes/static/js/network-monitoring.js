@@ -5,6 +5,8 @@ const openPortCount = document.querySelector("#open-port-count");
 const hostCards = document.querySelector("#host-cards");
 const hostSelect = document.querySelector("#host-select");
 const projectSelect = document.querySelector("#project-select");
+const continuousMonitoringToggle = document.querySelector("#continuous-monitoring-toggle");
+const continuousMonitoringMessage = document.querySelector("#continuous-monitoring-message");
 const historyLink = document.querySelector("#history-link");
 const authorizedRangeForm = document.querySelector("#authorized-range-form");
 const authorizedRangeList = document.querySelector("#authorized-range-list");
@@ -61,6 +63,8 @@ let currentDetectedDevices = [];
 let currentSubnet = "";
 let currentDiscoverySnapshots = [];
 let selectedProjectPublicId = new URLSearchParams(window.location.search).get("projectPublicId") || "";
+let networkProjects = [];
+let continuousMonitoringSaving = false;
 let hasActiveAuthorizedRange = false;
 let liveInventoryReceived = false;
 let refreshInProgress = false;
@@ -364,9 +368,12 @@ function scopedNetworkUrl(path) {
 
 function updateProjectControls() {
     const hasProject = Boolean(selectedProjectPublicId);
+    const selectedProject = networkProjects.find(project => project.publicId === selectedProjectPublicId);
     if (hasProject) {
         historyLink.href = `/network-monitoring/history?projectPublicId=${encodeURIComponent(selectedProjectPublicId)}`;
     }
+    continuousMonitoringToggle.checked = selectedProject?.continuousMonitoringEnabled === true;
+    continuousMonitoringToggle.disabled = !hasProject || continuousMonitoringSaving;
     authorizedRangeForm.querySelector('button[type="submit"]').disabled = !hasProject;
     document.querySelector("#device-form").querySelector('button[type="submit"]').disabled =
         !hasProject || !hasActiveAuthorizedRange;
@@ -413,6 +420,7 @@ async function loadNetworkProjects() {
     if (!Array.isArray(projects)) {
         throw new Error("La lista de proyectos devolvió un formato no válido.");
     }
+    networkProjects = projects;
     const previousSelection = selectedProjectPublicId;
     projectSelect.innerHTML = projects.length
         ? projects.map(project =>
@@ -425,6 +433,42 @@ async function loadNetworkProjects() {
     projectSelect.value = selectedProjectPublicId;
     projectSelect.disabled = projects.length === 0;
     updateProjectControls();
+}
+
+async function saveContinuousMonitoringPreference(enabled) {
+    const previousValue = networkProjects.find(project => project.publicId === selectedProjectPublicId)
+        ?.continuousMonitoringEnabled === true;
+    if (!selectedProjectPublicId) {
+        continuousMonitoringToggle.checked = false;
+        return;
+    }
+
+    continuousMonitoringSaving = true;
+    updateProjectControls();
+    try {
+        const response = await fetch(
+            `/api/network/projects/${encodeURIComponent(selectedProjectPublicId)}/continuous-monitoring`,
+            {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({enabled})
+            }
+        );
+        const project = await readApiResponse(response, "No se pudo actualizar la monitorización continua.");
+        networkProjects = networkProjects.map(item =>
+            item.publicId === project.publicId ? project : item);
+        continuousMonitoringMessage.textContent = enabled
+            ? "La monitorización programada queda habilitada para este proyecto."
+            : "La monitorización programada queda deshabilitada para este proyecto.";
+        continuousMonitoringMessage.classList.remove("error");
+    } catch (error) {
+        continuousMonitoringToggle.checked = previousValue;
+        continuousMonitoringMessage.textContent = error.message;
+        continuousMonitoringMessage.classList.add("error");
+    } finally {
+        continuousMonitoringSaving = false;
+        updateProjectControls();
+    }
 }
 
 function renderHosts(hosts) {
@@ -1187,6 +1231,10 @@ projectSelect.addEventListener("change", async () => {
     }
 });
 
+continuousMonitoringToggle.addEventListener("change", async () => {
+    await saveContinuousMonitoringPreference(continuousMonitoringToggle.checked);
+});
+
 document.querySelector("#device-form").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1393,26 +1441,7 @@ async function exportNetworkReport() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Informe de inventario de red - Hexora</title>
-    <style>
-        :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; color: #17333d; }
-        body { margin: 0 auto; max-width: 1200px; padding: 36px; }
-        h1 { margin: 0 0 8px; color: #123744; }
-        .subtitle { margin: 0 0 28px; color: #607983; }
-        h2 { margin: 28px 0 10px; color: #14566a; font-size: 19px; }
-        .table-wrap { margin-bottom: 22px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #d5e1e5; padding: 8px 10px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-        th { background: #eaf4f6; color: #174b5a; }
-        tbody tr:nth-child(even) { background: #f7fafb; }
-        .empty { color: #607983; text-align: center; }
-        @media print {
-            @page { size: landscape; margin: 14mm; }
-            body { max-width: none; padding: 0; }
-            h2 { break-after: avoid; }
-            tr { break-inside: avoid; }
-            .table-wrap { overflow: visible; }
-        }
-    </style>
+    <link rel="stylesheet" href="${window.location.origin}/css/network-report.css">
 </head>
 <body>
     <h1>Informe de inventario de red</h1>

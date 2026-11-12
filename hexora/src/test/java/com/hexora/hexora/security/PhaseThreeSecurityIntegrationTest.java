@@ -24,7 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -114,10 +113,7 @@ class PhaseThreeSecurityIntegrationTest {
 			email,
 			passwordEncoder.encode("phase3-test-password")
 		);
-		principal = User.withUsername(email)
-			.password(passwordEncoder.encode("phase3-test-password"))
-			.roles("AUDITOR")
-			.build();
+		principal = userDetailsService.loadUserByUsername(email);
 	}
 
 	@Test
@@ -247,11 +243,12 @@ class PhaseThreeSecurityIntegrationTest {
 		MockHttpSession firstSession = loginAndGetSession();
 		MockHttpSession secondSession = loginAndGetSession();
 
-		mockMvc.perform(get("/api/network/status").session(firstSession).accept(MediaType.APPLICATION_JSON))
+		// /api/network/projects no exige parámetros (desde Fase 10, /status requiere projectPublicId).
+		mockMvc.perform(get("/api/network/projects").session(firstSession).accept(MediaType.APPLICATION_JSON))
 			.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.error").value("SESSION_REPLACED"));
 
-		mockMvc.perform(get("/api/network/status").session(secondSession).accept(MediaType.APPLICATION_JSON))
+		mockMvc.perform(get("/api/network/projects").session(secondSession).accept(MediaType.APPLICATION_JSON))
 			.andExpect(status().isOk());
 	}
 
@@ -269,6 +266,26 @@ class PhaseThreeSecurityIntegrationTest {
 				+ "(SELECT id FROM usuario WHERE email_normalizado = ?)",
 			Integer.class,
 			email)).isEqualTo(1);
+	}
+
+	@Test
+	void scopedResourceNotFoundIsAGeneric404AndNotAServerError() throws Exception {
+		MockHttpSession session = loginAndGetSession();
+		String unknownProject = UUID.randomUUID().toString();
+		mockMvc.perform(get("/proyectos/" + unknownProject).session(session))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.error").value("NOT_FOUND"))
+			.andExpect(jsonPath("$.correlationId").exists())
+			.andExpect(content().string(org.hamcrest.Matchers.not(
+				org.hamcrest.Matchers.containsString("ScopedNotFoundException"))));
+		mockMvc.perform(get("/proyectos/" + unknownProject + "/departamentos/" + UUID.randomUUID()).session(session))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.error").value("NOT_FOUND"));
+		Integer scopedNotFound = jdbcTemplate.queryForObject(
+			"SELECT COUNT(*) FROM audit_event WHERE evento = 'NOT_FOUND_SCOPED' AND usuario_id = " +
+				"(SELECT id FROM usuario WHERE email_normalizado = ?)",
+			Integer.class, email);
+		assertThat(scopedNotFound).isGreaterThanOrEqualTo(1);
 	}
 
 	private MockHttpSession loginAndGetSession() throws Exception {
@@ -300,12 +317,32 @@ class PhaseThreeSecurityIntegrationTest {
 			.andExpect(header().string("X-Content-Type-Options", "nosniff"))
 			.andExpect(header().string("X-Frame-Options", "DENY"))
 			.andExpect(header().string("Referrer-Policy", "no-referrer"))
+			.andExpect(header().string("Content-Security-Policy",
+				org.hamcrest.Matchers.containsString("script-src 'self'; style-src 'self'")))
+			.andExpect(header().doesNotExist("Content-Security-Policy-Report-Only"))
 			.andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
 	}
 
 	@Test
+	void invalidCveSearchAndExcessiveHistoryLimitReturnGenericValidationErrors() throws Exception {
+		MockHttpSession session = loginAndGetSession();
+		mockMvc.perform(get("/api/cves/buscar")
+				.session(session)
+				.param("q", "<img src=\"http://127.0.0.1/track\">"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+			.andExpect(jsonPath("$.correlationId").exists())
+			.andExpect(content().string(org.hamcrest.Matchers.not(
+				org.hamcrest.Matchers.containsString("HandlerMethodValidationException"))))
+			.andExpect(header().string("Cache-Control",
+				org.hamcrest.Matchers.containsString("no-store")));
+
+	}
+
+	@Test
 	void unlistedRoutesAreDeniedAndEveryControllerRouteHasExplicitMethodSecurity() throws Exception {
-		mockMvc.perform(get("/not-a-registered-route").with(user(principal)))
+		// Sesión real: SessionActivityFilter (Fase 5) expira sesiones sin marcas de tiempo como las de user().
+		mockMvc.perform(get("/not-a-registered-route").session(loginAndGetSession()))
 			.andExpect(status().isForbidden());
 
 		handlerMapping.getHandlerMethods().forEach((mapping, handler) -> {

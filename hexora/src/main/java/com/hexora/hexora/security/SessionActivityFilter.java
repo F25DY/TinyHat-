@@ -36,6 +36,7 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
     private final UsuarioRepository usuarioRepository;
     private final CuentaRepository cuentaRepository;
     private final SessionRegistry sessionRegistry;
+    private final SessionTerminationEventPublisher sessionTerminationEventPublisher;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
@@ -46,6 +47,7 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
             UsuarioRepository usuarioRepository,
             CuentaRepository cuentaRepository,
             SessionRegistry sessionRegistry,
+            SessionTerminationEventPublisher sessionTerminationEventPublisher,
             AuditService auditService,
             ObjectMapper objectMapper) {
         this.properties = properties;
@@ -53,6 +55,7 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
         this.usuarioRepository = usuarioRepository;
         this.cuentaRepository = cuentaRepository;
         this.sessionRegistry = sessionRegistry;
+        this.sessionTerminationEventPublisher = sessionTerminationEventPublisher;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
     }
@@ -148,7 +151,11 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
             TinyHatPrincipal principal,
             String reason) throws IOException {
         auditService.sessionExpired(principal, request, reason);
-        sessionRegistry.getAllSessions(principal, false).forEach(information -> information.expireNow());
+        if ("PRINCIPAL_REVOKED".equals(reason)) {
+            auditPrincipalChange(principal, request);
+        }
+        sessionRegistry.getAllSessions(principal, false)
+            .forEach(sessionTerminationEventPublisher::expireAndPublish);
         session.invalidate();
         SecurityContextHolder.clearContext();
 
@@ -163,6 +170,18 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
             return;
         }
         response.sendRedirect(request.getContextPath() + "/login?expired");
+    }
+
+    private void auditPrincipalChange(TinyHatPrincipal principal, HttpServletRequest request) {
+        usuarioRepository.findByIdAndCuentaId(principal.getUserId(), principal.getCuentaId()).ifPresent(user -> {
+            if ("SUSPENDIDO".equals(user.getEstado())) {
+                auditService.userSuspendedDetected(principal, request);
+            }
+            if (!principal.getRol().equals(user.getRol())
+                    || !Objects.equals(principal.getOrganizacionId(), user.getOrganizacionId())) {
+                auditService.roleChangedDetected(principal, user.getRol(), request);
+            }
+        });
     }
 
     private boolean isPollRequest(HttpServletRequest request) {

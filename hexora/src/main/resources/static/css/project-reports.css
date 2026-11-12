@@ -1,0 +1,68 @@
+.reports-panel {
+    margin: 1.5rem 0;
+}
+
+.reports-panel h2 {
+    margin: 0 0 .25rem;
+    font-size: 1.1rem;
+}
+
+.reports-hint {
+    margin: 0 0 1rem;
+    font-size: .9rem;
+    opacity: .8;
+}
+
+.reports-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto;
+    gap: .75rem;
+    align-items: end;
+    margin-bottom: 1rem;
+}
+
+.reports-form label {
+    display: block;
+    margin-bottom: .25rem;
+    font-size: .85rem;
+}
+
+.reports-form select,
+.reports-form input {
+    width: 100%;
+}
+
+.reports-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reports-table th,
+.reports-table td {
+    padding: .5rem .6rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(128, 128, 128, .25);
+    vertical-align: middle;
+}
+
+.reports-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.reports-message {
+    min-height: 1.25rem;
+    margin: .5rem 0 0;
+    font-size: .9rem;
+}
+
+.reports-message.is-error {
+    color: #d64545;
+}
+
+@media (max-width: 720px) {
+    .reports-form {
+        grid-template-columns: 1fr;
+    }
+}

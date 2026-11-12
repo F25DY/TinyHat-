@@ -51,6 +51,9 @@ public class Auditoria implements TenantScopedEntity {
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
     private String publicId;
 
+    @Column(name = "monitoreo_continuo_habilitado", nullable = false)
+    private boolean monitoreoContinuoHabilitado;
+
     //@ManyToOne
     //@JoinColumn(name = "auditor", nullable = false)
     //private Usuario auditor;
@@ -151,6 +154,14 @@ public class Auditoria implements TenantScopedEntity {
 
     public void setPublicId(String publicId) {
         this.publicId = publicId;
+    }
+
+    public boolean isMonitoreoContinuoHabilitado() {
+        return monitoreoContinuoHabilitado;
+    }
+
+    public void setMonitoreoContinuoHabilitado(boolean monitoreoContinuoHabilitado) {
+        this.monitoreoContinuoHabilitado = monitoreoContinuoHabilitado;
     }
 
     @PrePersist

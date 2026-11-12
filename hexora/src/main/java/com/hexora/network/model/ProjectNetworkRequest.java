@@ -1,4 +1,7 @@
 package com.hexora.network.model;
 
-public record ProjectNetworkRequest(String projectPublicId) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record ProjectNetworkRequest(@NotBlank @Size(max = 36) String projectPublicId) {
 }

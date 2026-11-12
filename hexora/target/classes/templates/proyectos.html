@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Proyectos</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -72,7 +71,7 @@
                 <p class="subtitulo">Administra tus proyectos de auditoría y pentesting</p>
             </div>
 
-            <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}" style="text-decoration: none;">
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}" class="no-underline">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Crear Proyecto
                 </button>
@@ -86,7 +85,7 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="buscador"
                     placeholder="Buscar proyectos por nombre o empresa..."
-                    onkeyup="filtrarTabla()">
+                    >
             </div>
 
         </section>
@@ -106,16 +105,16 @@
                 </thead>
                 <tbody>
                     <tr th:if="${#lists.isEmpty(auditorias)}">
-                        <td colspan="6" style="text-align: center;">No hay proyectos registrados</td>
+                        <td colspan="6" class="text-centered">No hay proyectos registrados</td>
                     </tr>
 
                     <tr th:each="aud : ${auditorias}">
                         <td class="nombre-destacado">
-                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" style="text-decoration:none;color:inherit;">
+                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="no-underline inherit-color">
                                 <span th:text="${aud.nombre}"></span>
                             </a>
                             <br>
-                            <small style="color:#666; font-size:0.8rem;" th:text="@{/proyectos/{id}(id=${aud.publicId})}"></small>
+                            <small class="project-public-link" th:text="@{/proyectos/{id}(id=${aud.publicId})}"></small>
                         </td>
                         <td class="texto-empresa">
                             <i class="fa-solid fa-building"></i>
@@ -130,8 +129,8 @@
                         <td th:text="${aud.fechaFin}"></td>
                         <td>
                             <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="btn-verdetalle">Ver</a>
-                            <form th:if="${canManageProjects}" th:action="@{/proyectos/{id}/eliminar(id=${aud.publicId})}" method="post" style="display:inline">
-                                <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar proyecto?')">
+                            <form th:if="${canManageProjects}" th:action="@{/proyectos/{id}/eliminar(id=${aud.publicId})}" method="post" class="inline-form" data-confirm-message="¿Eliminar proyecto?">
+                                <button type="submit" class="btn-eliminar">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </form>
@@ -147,17 +146,6 @@
 
     </main>
 
-    <!--<script>
-        function filtrarTabla() {
-            const texto = document.getElementById('buscador').value.toLowerCase();
-            const filas = document.querySelectorAll('table.tabla-hexora tbody tr');
-            filas.forEach(fila => {
-                // skip the 'no hay proyectos' row
-                if (fila.querySelector('td[colspan]')) return;
-                const contenido = fila.textContent.toLowerCase();
-                fila.style.display = contenido.includes(texto) ? '' : 'none';
-            });
-        }
-    </script>-->
+    <script th:src="@{/js/project-list-filter.js(v=1)}" defer></script>
 </body>
 </html>

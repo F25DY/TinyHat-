@@ -39,8 +39,9 @@ class LoginAttemptFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(302);
         assertThat(response.getRedirectedUrl()).isEqualTo("/login?error");
-        verify(auditService).rateLimited(
-            eq("auth"), eq("192.0.2.20"), eq("192.0.2.20"),
+        // Phase 12: a login lockout is THROTTLED; RATE_LIMITED is reserved for token-bucket exhaustion.
+        verify(auditService).throttled(
+            eq("192.0.2.20"), org.mockito.ArgumentMatchers.longThat(seconds -> seconds > 0),
             any(jakarta.servlet.http.HttpServletRequest.class)
         );
     }

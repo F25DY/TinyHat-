@@ -1,3 +1,10 @@
+ALTER TABLE auditoria
+    ADD COLUMN monitoreo_continuo_habilitado BOOLEAN NOT NULL DEFAULT FALSE;
+
+INSERT IGNORE INTO capacidad_cuenta (cuenta_id, capacidad, habilitada)
+SELECT id, 'monitoreo_continuo', TRUE
+FROM cuenta;
+
 ALTER TABLE network_host
     ADD COLUMN proyecto_id BIGINT DEFAULT NULL,
     ADD KEY idx_network_host_proyecto_cuenta (proyecto_id, cuenta_id),

@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.Immutable;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
+@Immutable
 @Table(name = "audit_event")
 @Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
 public class AuditEvent {

@@ -11,6 +11,8 @@ class ProfileSecurityGuardMfaTest {
         .withUserConfiguration(ProfileSecurityGuard.class)
         .withPropertyValues(
             "spring.datasource.username=test",
+            "spring.flyway.user=migrator",
+            "spring.flyway.password=migrator",
             "spring.datasource.password=test"
         );
 
@@ -95,5 +97,18 @@ class ProfileSecurityGuardMfaTest {
                 "tinyhat.mail.from=no-reply@example.com"
             )
             .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
+    void refusesToUseTheRuntimeDatabaseUserForFlywayInProduction() {
+        contextRunner
+            .withPropertyValues(
+                "spring.profiles.active=prod",
+                "spring.flyway.user=test"
+            )
+            .run(context -> assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .hasMessageContaining("Flyway must use a separate database user"));
     }
 }

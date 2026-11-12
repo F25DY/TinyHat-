@@ -52,6 +52,20 @@ class NetworkScopeGuardTest {
     }
 
     @Test
+    void rejectsPublicAndTooBroadAuthorizedRangesByDefault() {
+        when(rangeRepository.findAllByCuentaIdAndProyectoIdOrderByDeclaradoEnDesc(4L, 9L))
+            .thenReturn(List.of(range("8.8.8.0/24", null)));
+        assertThatThrownBy(() -> guard.requireAuthorizedInterface(4L, 9L))
+            .isInstanceOf(NetworkScopeRejectedException.class);
+
+        when(rangeRepository.findAllByCuentaIdAndProyectoIdOrderByDeclaradoEnDesc(4L, 9L))
+            .thenReturn(List.of(range("192.168.0.0/16", null)));
+        assertThatThrownBy(() -> guard.requireAuthorizedInterface(4L, 9L))
+            .isInstanceOf(NetworkScopeRejectedException.class);
+
+    }
+
+    @Test
     void rejectsMissingOrExpiredAuthorizationBeforeAnyDiscoveryOrScannerCanRun() {
         when(rangeRepository.findAllByCuentaIdAndProyectoIdOrderByDeclaradoEnDesc(4L, 9L))
             .thenReturn(List.of(range("192.168.10.0/24", LocalDateTime.of(2026, 11, 9, 11, 59))));
@@ -64,8 +78,13 @@ class NetworkScopeGuardTest {
 
     @Test
     void rejectsHostnamesAndShellMetacharactersWithoutResolvingThem() {
-        assertThatThrownBy(() -> guard.requireAuthorizedTarget(4L, 9L, "10.0.0.1; calc"))
-            .isInstanceOf(NetworkScopeRejectedException.class);
+        for (String invalidTarget : List.of(
+            "10.0.0.1; calc",
+            "10.0.0.1 && dir",
+            "host.local")) {
+            assertThatThrownBy(() -> guard.requireAuthorizedTarget(4L, 9L, invalidTarget))
+                .isInstanceOf(NetworkScopeRejectedException.class);
+        }
 
         verifyNoInteractions(localNetwork, rangeRepository);
     }

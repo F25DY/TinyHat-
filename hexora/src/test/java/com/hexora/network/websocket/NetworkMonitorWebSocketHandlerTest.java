@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import com.hexora.hexora.security.TenantContext;
 import com.hexora.hexora.security.ScopedNotFoundException;
@@ -22,8 +23,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.config.annotation.ServletWebSocketHandlerRegistration;
+import org.springframework.web.socket.server.HandshakeInterceptor;
 import tools.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.time.Duration;
 
 class NetworkMonitorWebSocketHandlerTest {
 
@@ -66,7 +71,8 @@ class NetworkMonitorWebSocketHandlerTest {
         handler.afterConnectionEstablished(matchingSession);
         handler.afterConnectionEstablished(otherSession);
 
-        handler.closeSessionsForTerminatedHttpSession(new SessionTerminatedEvent("http-session-1"));
+        assertTimeoutPreemptively(Duration.ofSeconds(5), () ->
+            handler.closeSessionsForTerminatedHttpSession(new SessionTerminatedEvent("http-session-1")));
 
         verify(matchingSession).close(org.springframework.web.socket.CloseStatus.NORMAL);
         verify(otherSession, never()).close(any());
@@ -93,6 +99,58 @@ class NetworkMonitorWebSocketHandlerTest {
     }
 
     @Test
+    void closesConnectionsForDisabledPrincipals() throws Exception {
+        NetworkCapabilityGuard capabilityGuard = mock(NetworkCapabilityGuard.class);
+        when(capabilityGuard.isEnabled(any())).thenReturn(true);
+        PermissionService permissionService = mock(PermissionService.class);
+        NetworkMonitorWebSocketHandler handler =
+            new NetworkMonitorWebSocketHandler(mock(ObjectMapper.class), capabilityGuard, permissionService);
+        WebSocketSession session = authenticatedSession("disabled", 1L, false);
+
+        handler.afterConnectionEstablished(session);
+
+        verify(session).close(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION);
+        verify(permissionService, never()).proyectosVisibles(any());
+    }
+
+    @Test
+    void closesConnectionsWithoutNetworkCapability() throws Exception {
+        NetworkCapabilityGuard capabilityGuard = mock(NetworkCapabilityGuard.class);
+        when(capabilityGuard.isEnabled(any())).thenReturn(false);
+        PermissionService permissionService = mock(PermissionService.class);
+        NetworkMonitorWebSocketHandler handler =
+            new NetworkMonitorWebSocketHandler(mock(ObjectMapper.class), capabilityGuard, permissionService);
+        WebSocketSession session = authenticatedSession("no-capability", 1L);
+
+        handler.afterConnectionEstablished(session);
+
+        verify(session).close(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION);
+        verify(permissionService, never()).proyectosVisibles(any());
+    }
+
+    @Test
+    void closesConnectionsAfterThePerConnectionMessageLimit() throws Exception {
+        ObjectMapper objectMapper = mock(ObjectMapper.class);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
+        NetworkCapabilityGuard capabilityGuard = mock(NetworkCapabilityGuard.class);
+        when(capabilityGuard.isEnabled(any())).thenReturn(true);
+        PermissionService permissionService = mock(PermissionService.class);
+        when(permissionService.proyectosVisibles(any())).thenReturn(List.of(visibleProject()));
+        NetworkMonitorWebSocketHandler handler =
+            new NetworkMonitorWebSocketHandler(objectMapper, capabilityGuard, permissionService);
+        WebSocketSession session = authenticatedSession("message-limit", 1L);
+        handler.afterConnectionEstablished(session);
+
+        for (int message = 0; message < 1_000; message++) {
+            TenantContext.runAs(1L, () -> handler.publish("project-1", new Object()));
+        }
+        TenantContext.runAs(1L, () -> handler.publish("project-1", new Object()));
+
+        verify(session).close(argThat(status -> status.getCode() == 1008));
+        verify(session, org.mockito.Mockito.times(1_000)).sendMessage(any(TextMessage.class));
+    }
+
+    @Test
     void rejectsClientMessagesAndClosesOversizedMessages() throws Exception {
         NetworkMonitorWebSocketHandler handler =
             new NetworkMonitorWebSocketHandler(
@@ -116,7 +174,28 @@ class NetworkMonitorWebSocketHandlerTest {
 
         assertThrows(IllegalStateException.class, () -> new NetworkWebSocketConfiguration(
             mock(NetworkMonitorWebSocketHandler.class),
+            mock(NetworkWebSocketHandshakeInterceptor.class),
             securityProperties));
+    }
+
+    @Test
+    void registersOnlyTheConfiguredExactWebSocketOrigin() {
+        TinyHatSecurityProperties securityProperties = new TinyHatSecurityProperties();
+        securityProperties.getWs().setAllowedOrigins(List.of("https://hexora.example"));
+        NetworkMonitorWebSocketHandler handler = mock(NetworkMonitorWebSocketHandler.class);
+        WebSocketHandlerRegistry registry = mock(WebSocketHandlerRegistry.class);
+        ServletWebSocketHandlerRegistration registration = mock(ServletWebSocketHandlerRegistration.class);
+        when(registry.addHandler(handler, "/ws/network")).thenReturn(registration);
+        when(registration.addInterceptors(any(HandshakeInterceptor[].class))).thenReturn(registration);
+
+        NetworkWebSocketConfiguration configuration =
+            new NetworkWebSocketConfiguration(
+                handler,
+                mock(NetworkWebSocketHandshakeInterceptor.class),
+                securityProperties);
+        configuration.registerWebSocketHandlers(registry);
+
+        verify(registration).setAllowedOrigins("https://hexora.example");
     }
 
     @Test
@@ -156,6 +235,26 @@ class NetworkMonitorWebSocketHandlerTest {
         verify(session, never()).sendMessage(any(TextMessage.class));
     }
 
+    @Test
+    void doesNotPublishAfterNetworkCapabilityHasBeenRevoked() throws Exception {
+        ObjectMapper objectMapper = mock(ObjectMapper.class);
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
+        NetworkCapabilityGuard capabilityGuard = mock(NetworkCapabilityGuard.class);
+        when(capabilityGuard.isEnabled(any())).thenReturn(true, false);
+        PermissionService permissionService = mock(PermissionService.class);
+        when(permissionService.proyectosVisibles(any())).thenReturn(List.of(visibleProject()));
+        NetworkMonitorWebSocketHandler handler =
+            new NetworkMonitorWebSocketHandler(objectMapper, capabilityGuard, permissionService);
+        WebSocketSession session = authenticatedSession("revoked-network-capability", 1L);
+        handler.afterConnectionEstablished(session);
+
+        TenantContext.runAs(1L, () -> handler.publish("project-1", new Object()));
+
+        verify(session, never()).sendMessage(any(TextMessage.class));
+        verify(session).close(org.springframework.web.socket.CloseStatus.POLICY_VIOLATION);
+        verify(permissionService, never()).requireProyecto(any(), any());
+    }
+
     private Auditoria visibleProject() {
         Auditoria project = new Auditoria();
         project.setPublicId("project-1");
@@ -164,8 +263,12 @@ class NetworkMonitorWebSocketHandlerTest {
     }
 
     private WebSocketSession authenticatedSession(String id, long tenantId) {
+        return authenticatedSession(id, tenantId, true);
+    }
+
+    private WebSocketSession authenticatedSession(String id, long tenantId, boolean enabled) {
         TinyHatPrincipal principal = mock(TinyHatPrincipal.class);
-        when(principal.isEnabled()).thenReturn(true);
+        when(principal.isEnabled()).thenReturn(enabled);
         when(principal.getRol()).thenReturn("AUDITOR");
         when(principal.getCuentaId()).thenReturn(tenantId);
         Authentication authentication = mock(Authentication.class);

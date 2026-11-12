@@ -137,7 +137,12 @@
 				<configuration>
 					<environmentVariables>
 						<TINYHAT_MFA_KEY>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</TINYHAT_MFA_KEY>
+						<!-- Las pruebas no heredan el HTTPS local del .env del desarrollador. -->
+						<TINYHAT_SSL_ENABLED>false</TINYHAT_SSL_ENABLED>
 					</environmentVariables>
+					<systemPropertyVariables>
+						<tinyhat.logging.file>target/surefire-logs/tinyhat.log</tinyhat.logging.file>
+					</systemPropertyVariables>
 				</configuration>
 			</plugin>
 			<plugin>

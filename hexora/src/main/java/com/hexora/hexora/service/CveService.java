@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -19,6 +20,7 @@ import com.hexora.hexora.model.Cve;
 import com.hexora.hexora.repository.CveRepository;
 import com.hexora.hexora.security.NvdRateLimitService;
 import com.hexora.hexora.security.RateLimitExceededException;
+import com.hexora.hexora.security.SecureRestClientFactory;
 import com.hexora.hexora.security.TinyHatNvdProperties;
 
 /**
@@ -31,7 +33,9 @@ public class CveService {
 
     private static final Logger log = LoggerFactory.getLogger(CveService.class);
 
-    private static final Pattern PATRON_CVE = Pattern.compile("^CVE-\\d{4}-\\d{4,}$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATRON_CVE = Pattern.compile("^CVE-\\d{4}-\\d{4,19}$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATRON_BUSQUEDA =
+        Pattern.compile("^[A-Za-z0-9][A-Za-z0-9 ._-]{2,99}$");
     private static final int MAX_ENLACES_PARCHE = 5;
 
     private final CveRepository cveRepository;
@@ -40,19 +44,26 @@ public class CveService {
     private final String apiKey;
     private final NvdRateLimitService nvdRateLimitService;
 
+    @Autowired
     public CveService(CveRepository cveRepository, TraductorService traductorService,
             TinyHatNvdProperties properties, NvdRateLimitService nvdRateLimitService) {
+        this(cveRepository, traductorService, properties, nvdRateLimitService,
+            SecureRestClientFactory.create(properties.getBaseUrl(), "services.nvd.nist.gov", 2 * 1024 * 1024));
+    }
+
+    CveService(CveRepository cveRepository, TraductorService traductorService,
+            TinyHatNvdProperties properties, NvdRateLimitService nvdRateLimitService, RestClient restClient) {
         this.cveRepository = cveRepository;
         this.traductorService = traductorService;
         this.apiKey = properties.getApiKey();
         this.nvdRateLimitService = nvdRateLimitService;
-        this.restClient = RestClient.builder().baseUrl(properties.getBaseUrl()).build();
+        this.restClient = restClient;
     }
 
     public List<Cve> buscar(String texto) {
         String q = texto == null ? "" : texto.trim();
-        if (q.length() < 3) {
-            return List.of();
+        if (!esBusquedaValida(q)) {
+            throw new IllegalArgumentException("Invalid CVE search query");
         }
 
         List<Cve> locales = cveRepository
@@ -73,6 +84,9 @@ public class CveService {
      * Si algo falla, devuelve el CVE igual con lo que tenga.
      */
     public Optional<Cve> obtenerDetalle(String codigo) {
+        if (codigo == null || !PATRON_CVE.matcher(codigo).matches()) {
+            throw new IllegalArgumentException("Invalid CVE identifier");
+        }
         Optional<Cve> encontrado = cveRepository.findByCodigoCve(codigo);
         if (encontrado.isEmpty()) {
             return encontrado;
@@ -93,7 +107,7 @@ public class CveService {
         }
 
         if (cve.getDescripcionEs() == null && cve.getDescripcion() != null) {
-            Optional<String> traduccion = traductorService.aEspanol(cve.getDescripcion());
+            Optional<String> traduccion = traductorService.aEspanol(cve);
             if (traduccion.isPresent()) {
                 cve.setDescripcionEs(traduccion.get());
                 huboCambios = true;
@@ -141,6 +155,9 @@ public class CveService {
                         }
                     })
                     .retrieve()
+                    .onStatus(status -> status.is3xxRedirection(), (request, response) -> {
+                        throw new IllegalStateException("NVD redirects are not accepted");
+                    })
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {
                     });
 
@@ -151,11 +168,16 @@ public class CveService {
             }
         } catch (RateLimitExceededException e) {
             log.warn("Consulta NVD omitida por límite local; reintento disponible en {} s", e.getRetryAfterSeconds());
-        } catch (RestClientException e) {
-            // Si el NVD no responde, la app conserva los resultados locales y lo registra.
-            log.warn("No se pudo consultar el NVD ({}={}): {}", parametro, valor, e.getMessage());
+        } catch (RestClientException | IllegalStateException e) {
+            log.warn("No se pudo consultar el NVD; se conservan los resultados locales ({})",
+                e.getClass().getSimpleName());
         }
         return resultado;
+    }
+
+    static boolean esBusquedaValida(String query) {
+        return query != null
+            && (PATRON_CVE.matcher(query).matches() || PATRON_BUSQUEDA.matcher(query).matches());
     }
 
     // ---------------------------------------------------------------
@@ -303,7 +325,7 @@ public class CveService {
 
         for (Map<String, Object> referencia : lista(datos.get("references"))) {
             String url = texto(referencia.get("url"));
-            if (url == null || !url.startsWith("http") || enlaces.contains(url)) {
+            if (url == null || !url.startsWith("https://") || enlaces.contains(url)) {
                 continue;
             }
             if (referencia.get("tags") instanceof List<?> etiquetas

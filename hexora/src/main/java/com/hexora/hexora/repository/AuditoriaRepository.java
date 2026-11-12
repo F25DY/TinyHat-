@@ -14,6 +14,11 @@ public interface AuditoriaRepository extends JpaRepository<Auditoria, Long> {
 
     long countByEmpresa(Empresa empresa);
 
+    @Query("select a.publicId from Auditoria a where a.idAuditoria = :projectId and a.cuentaId = :cuentaId")
+    Optional<String> findPublicIdByIdAndCuentaId(
+            @Param("projectId") Long projectId,
+            @Param("cuentaId") Long cuentaId);
+
     @Query("""
         select a from Auditoria a
         where a.publicId = :publicId
@@ -56,4 +61,11 @@ public interface AuditoriaRepository extends JpaRepository<Auditoria, Long> {
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") Long usuarioId,
             @Param("rol") String rol);
+
+    @Query("""
+        select a.idAuditoria from Auditoria a
+        where a.cuentaId = :cuentaId
+          and a.monitoreoContinuoHabilitado = true
+        """)
+    List<Long> findContinuousMonitoringEnabledProjectIds(@Param("cuentaId") Long cuentaId);
 }

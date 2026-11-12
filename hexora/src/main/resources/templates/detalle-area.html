@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Departamento</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -66,13 +65,13 @@
                 <p class="subtitulo" th:text="${proyecto.nombre}">Nombre Proyecto</p>
             </div>
             <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}"
-                style="text-decoration: none;">
+                class="no-underline">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Agregar Vulnerabilidad
                 </button>
             </a>
             <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/editar(pid=${proyecto.publicId}, did=${departamento.publicId})}"
-                style="text-decoration: none;">
+                class="no-underline">
                 <button class="btn-crear">
                     <i class="fa-solid fa-pen-to-square"></i> Editar área
                 </button>
@@ -115,7 +114,7 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="buscador"
                     placeholder="Buscar vulnerabilidades por nombre o tipo..."
-                    onkeyup="filtrarTabla()">
+                    >
             </div>
         </section>
 
@@ -133,7 +132,7 @@
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(vulnerabilidades)}">
-                    <td colspan="6" style="text-align: center;">
+                    <td colspan="6" class="text-centered">
                         No hay vulnerabilidades registradas en este departamento
                     </td>
                 </tr>
@@ -143,7 +142,7 @@
                     <!-- Nombre clickeable que lleva al detalle de la vulnerabilidad -->
                     <td class="nombre-destacado">
                         <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
-                            style="text-decoration: none; color: inherit;">
+                            class="no-underline inherit-color">
                             <span th:text="${vuln.nombre}"></span>
                         </a>
                     </td>
@@ -183,9 +182,8 @@
 
                         <!-- Botón eliminar (corrección del docente) -->
                         <form th:if="${canManageProjects}" th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/eliminar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
-                              method="post" style="display: inline;">
-                            <button type="submit" class="btn-icono btn-eliminar"
-                                    onclick="return confirm('¿Estás seguro de eliminar esta vulnerabilidad?')">
+                              method="post" class="inline-form" data-confirm-message="¿Estás seguro de eliminar esta vulnerabilidad?">
+                            <button type="submit" class="btn-icono btn-eliminar">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </form>
@@ -197,16 +195,7 @@
 
     </main>
 
-    <script>
-        function filtrarTabla() {
-            const texto = document.getElementById('buscador').value.toLowerCase();
-            const filas = document.querySelectorAll('tbody tr');
-            filas.forEach(fila => {
-                const contenido = fila.textContent.toLowerCase();
-                fila.style.display = contenido.includes(texto) ? '' : 'none';
-            });
-        }
-    </script>
+    <script th:src="@{/js/area-filter.js(v=1)}" defer></script>
 
 </body>
 </html>

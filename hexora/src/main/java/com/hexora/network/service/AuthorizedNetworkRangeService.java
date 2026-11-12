@@ -1,10 +1,12 @@
 package com.hexora.network.service;
 
 import com.hexora.hexora.model.Auditoria;
+import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.security.AuditService;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import com.hexora.hexora.service.Capability;
 import com.hexora.hexora.service.CapabilityService;
+import com.hexora.hexora.service.Capability;
 import com.hexora.hexora.service.PermissionService;
 import com.hexora.network.model.AuthorizedNetworkRange;
 import com.hexora.network.model.AuthorizedNetworkRangeDto;
@@ -29,6 +31,7 @@ public class AuthorizedNetworkRangeService {
     private final AuditService auditService;
     private final Clock clock;
     private final NetworkScopeGuard scopeGuard;
+    private final AuditoriaRepository auditoriaRepository;
 
     public AuthorizedNetworkRangeService(
         AuthorizedNetworkRangeRepository rangeRepository,
@@ -38,7 +41,8 @@ public class AuthorizedNetworkRangeService {
         com.hexora.hexora.security.TinyHatSecurityProperties securityProperties,
         AuditService auditService,
         Clock clock,
-        NetworkScopeGuard scopeGuard
+        NetworkScopeGuard scopeGuard,
+        AuditoriaRepository auditoriaRepository
     ) {
         this.rangeRepository = rangeRepository;
         this.permissionService = permissionService;
@@ -48,6 +52,7 @@ public class AuthorizedNetworkRangeService {
         this.auditService = auditService;
         this.clock = clock;
         this.scopeGuard = scopeGuard;
+        this.auditoriaRepository = auditoriaRepository;
     }
 
     @Transactional
@@ -112,8 +117,40 @@ public class AuthorizedNetworkRangeService {
     public List<NetworkProjectDto> visibleProjects(TinyHatPrincipal principal) {
         requireCapability(principal);
         return permissionService.proyectosVisibles(principal).stream()
-            .map(project -> new NetworkProjectDto(project.getPublicId(), project.getNombre()))
+            .map(project -> new NetworkProjectDto(
+                project.getPublicId(),
+                project.getNombre(),
+                project.isMonitoreoContinuoHabilitado()))
             .toList();
+    }
+
+    @Transactional
+    public NetworkProjectDto setContinuousMonitoring(
+        TinyHatPrincipal principal,
+        String projectPublicId,
+        boolean enabled,
+        HttpServletRequest httpRequest
+    ) {
+        requireCapability(principal);
+        Auditoria project = permissionService.requireProyecto(principal, projectPublicId);
+        if (enabled && !capabilityService.isEnabled(principal.getCuentaId(), Capability.MONITOREO_CONTINUO)) {
+            throw new NetworkCapabilityDisabledException();
+        }
+        project.setMonitoreoContinuoHabilitado(enabled);
+        project = auditoriaRepository.save(project);
+        auditService.networkEvent(
+            "CONTINUOUS_MONITORING_CHANGED",
+            "OK",
+            principal,
+            httpRequest,
+            projectPublicId,
+            "",
+            enabled ? "enabled" : "disabled"
+        );
+        return new NetworkProjectDto(
+            project.getPublicId(),
+            project.getNombre(),
+            project.isMonitoreoContinuoHabilitado());
     }
 
     @Transactional(readOnly = true)

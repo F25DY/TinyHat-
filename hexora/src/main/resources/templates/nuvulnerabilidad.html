@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Vulnerabilidad</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/cve-buscador.css(v=1)}">
 </head>
 <body>
 
@@ -134,7 +134,7 @@
                         <input type="text" th:field="*{servicio}" placeholder="Ej: HTTPS, SSH, MySQL">
                     </div>
 
-                    <div class="campo-grupo" style="grid-column: 1 / -1;">
+                    <div class="campo-grupo grid-full-row">
                         <label>CVE</label>
                         <input type="text" th:field="*{cve}" placeholder="Ej: CVE-2026-0001 o una palabra como apache" autocomplete="off">
                         <small class="nota-nvd">This product uses the NVD API but is not endorsed or certified by the NVD.</small>
@@ -148,22 +148,22 @@
                 <div class="grid-form">
                     <div class="campo-grupo">
                         <label>Confidencialidad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{confidencialidad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input type="number" th:field="*{confidencialidad}" min="0" max="10" data-risk-input required>
                     </div>
 
                     <div class="campo-grupo">
                         <label>Integridad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{integridad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input type="number" th:field="*{integridad}" min="0" max="10" data-risk-input required>
                     </div>
 
                     <div class="campo-grupo">
                         <label>Disponibilidad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{disponibilidad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input type="number" th:field="*{disponibilidad}" min="0" max="10" data-risk-input required>
                     </div>
 
                     <div class="campo-grupo">
                         <label>Probabilidad (0-10) <span class="requerido">*</span></label>
-                        <input type="number" th:field="*{probabilidad}" min="0" max="10" oninput="calcularRiesgo()" required>
+                        <input type="number" th:field="*{probabilidad}" min="0" max="10" data-risk-input required>
                     </div>
 
                     <div class="campo-grupo">
@@ -229,43 +229,8 @@
         </form>
     </main>
 
-    <script>
-        function calcularRiesgo() {
-            const c = parseFloat(document.querySelector('[name="confidencialidad"]').value) || 0;
-            const i = parseFloat(document.querySelector('[name="integridad"]').value) || 0;
-            const d = parseFloat(document.querySelector('[name="disponibilidad"]').value) || 0;
-            const p = parseFloat(document.querySelector('[name="probabilidad"]').value) || 0;
-
-            const impacto = Number(((c + i + d) / 3).toFixed(2));
-            const puntaje = Number(((impacto + p) / 2).toFixed(2));
-
-            let nivel = 'Bajo';
-            let claseBadge = 'badge-verde';
-            if (puntaje >= 7) {
-                nivel = 'Critico';
-                claseBadge = 'badge-rojo';
-            } else if (puntaje >= 5) {
-                nivel = 'Alto';
-                claseBadge = 'badge-naranja';
-            } else if (puntaje >= 3) {
-                nivel = 'Medio';
-                claseBadge = 'badge-amarillo';
-            }
-
-            document.getElementById('resultado-impacto').textContent = impacto + '/10';
-            document.getElementById('resultado-puntaje').textContent = puntaje + '/10';
-            document.getElementById('campo-impacto').value = impacto;
-            document.getElementById('campo-nivel-riesgo').value = nivel;
-            document.getElementById('campo-nivel-riesgo-visible').value = nivel;
-
-            const badgeNivel = document.getElementById('resultado-nivel');
-            badgeNivel.textContent = nivel;
-            badgeNivel.className = 'badge ' + claseBadge;
-        }
-
-        document.addEventListener('DOMContentLoaded', calcularRiesgo);
-    </script>
-    <script th:src="@{/js/cve-buscador.js}"></script>
+    <script th:src="@{/js/vulnerability-form.js(v=1)}" defer></script>
+    <script th:src="@{/js/cve-buscador.js(v=1)}" defer></script>
 
 </body>
 </html>

@@ -13,13 +13,16 @@ import java.net.URI;
 public class NetworkWebSocketConfiguration implements WebSocketConfigurer {
 
     private final NetworkMonitorWebSocketHandler handler;
+    private final NetworkWebSocketHandshakeInterceptor handshakeInterceptor;
     private final TinyHatSecurityProperties securityProperties;
 
     public NetworkWebSocketConfiguration(
         NetworkMonitorWebSocketHandler handler,
+        NetworkWebSocketHandshakeInterceptor handshakeInterceptor,
         TinyHatSecurityProperties securityProperties
     ) {
         this.handler = handler;
+        this.handshakeInterceptor = handshakeInterceptor;
         this.securityProperties = securityProperties;
         if (securityProperties.getWs().getAllowedOrigins().stream().anyMatch(origin -> !isExactOrigin(origin))) {
             throw new IllegalStateException("WebSocket origins must be explicit HTTP(S) origins; wildcards are forbidden");
@@ -29,7 +32,7 @@ public class NetworkWebSocketConfiguration implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(handler, "/ws/network")
-            .addInterceptors(new HttpSessionHandshakeInterceptor())
+            .addInterceptors(new HttpSessionHandshakeInterceptor(), handshakeInterceptor)
             .setAllowedOrigins(securityProperties.getWs().getAllowedOrigins().toArray(String[]::new));
     }
 
