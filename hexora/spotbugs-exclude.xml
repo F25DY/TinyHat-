@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs / FindSecBugs exclusions (Phase 13).
+
+  Rules for this file:
+    * An exclusion is a security decision. Each one names ONE bug pattern in ONE class, never a whole package,
+      so a new finding anywhere else still fails the build.
+    * Each one carries a written justification, reviewed by a person in the pull request.
+    * Review the whole file whenever one of the listed classes changes.
+
+  Gate that these exclusions apply to: rank <= 14 and confidence Medium or higher (see pom.xml, profile security-scan).
+-->
+<FindBugsFilter>
+
+  <!--
+    COMMAND_INJECTION in the network module. None of these processes receives HTTP input:
+      * Every process is started from a java.lang.ProcessBuilder argument LIST, never through "sh -c",
+        "cmd /c" or a script assembled from user text.
+      * NetworkReachabilityProbe: flags are literals and the target is InetAddress.getHostAddress(), the canonical text
+        of an address that has already been validated as an IPv4 literal (NetworkScopeGuard); it cannot contain
+        shell syntax or whitespace.
+      * NmapHostDiscovery: the executable is looked up only in the Program Files directories and the target is
+        built from the numeric network address and prefix of the local interface.
+      * LocalNetworkDiscoveryService: the PowerShell scripts are fixed text; the only interpolated value is
+        NetworkInterface.getIndex(), an int returned by the JVM. The executable path comes from the operating
+        system's SystemRoot variable.
+    Plan rule F10 / task 3 (fixed scripts, argument lists) is verified by NetworkScopeGuardTest and
+    NetworkPortScanExecutorTest.
+  -->
+  <Match>
+    <Bug pattern="COMMAND_INJECTION"/>
+    <Or>
+      <Class name="com.hexora.network.service.NetworkReachabilityProbe"/>
+      <Class name="com.hexora.network.service.NmapHostDiscovery"/>
+      <Class name="com.hexora.network.service.LocalNetworkDiscoveryService"/>
+    </Or>
+  </Match>
+
+  <!--
+    UNENCRYPTED_SOCKET in SocketNetworkProbe. The class is a TCP connect probe used to learn whether a port is open
+    on an authorized host; it opens the connection, measures it and closes it without sending or receiving data,
+    so there is nothing to encrypt. Its target is restricted by the ScopeGuard before the probe is called.
+  -->
+  <Match>
+    <Bug pattern="UNENCRYPTED_SOCKET"/>
+    <Class name="com.hexora.network.service.SocketNetworkProbe"/>
+  </Match>
+
+  <!--
+    UNVALIDATED_REDIRECT. Every flagged redirect has the shape request.getContextPath() + "<literal path>" (or a
+    local variable assigned one of two literal paths). The context path is the application's own mount point
+    chosen by the servlet container, and the rest is a constant, so no request parameter reaches the Location header.
+  -->
+  <Match>
+    <Bug pattern="UNVALIDATED_REDIRECT"/>
+    <Or>
+      <Class name="com.hexora.hexora.controller.MfaController"/>
+      <Class name="com.hexora.hexora.security.IpRateLimitFilter"/>
+      <Class name="com.hexora.hexora.security.LoginAttemptFilter"/>
+      <Class name="com.hexora.hexora.security.MfaGateFilter"/>
+      <Class name="com.hexora.hexora.security.RecentAuthenticationInterceptor"/>
+      <Class name="com.hexora.hexora.security.SessionActivityFilter"/>
+      <Class name="~com\.hexora\.hexora\.security\.SecurityConfiguration.*"/>
+    </Or>
+  </Match>
+
+  <!--
+    ENTITY_LEAK in CveController. The returned entity is the global NVD cache (table cve): it has no relation to
+    accounts, organizations or users and holds only public catalogue data, so returning it cannot expose
+    tenant data or lazy-loaded associations. Replacing it with a DTO is a cleanup candidate, tracked in the
+    Phase 13 report.
+  -->
+  <Match>
+    <Bug pattern="ENTITY_LEAK"/>
+    <Class name="com.hexora.hexora.controller.CveController"/>
+  </Match>
+
+</FindBugsFilter>

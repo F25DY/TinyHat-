@@ -61,7 +61,12 @@ public class MfaGateFilter extends OncePerRequestFilter {
             return;
         }
 
-        TinyHatPrincipal principal = (TinyHatPrincipal) authentication.getPrincipal();
+        // A PRE_MFA authentication always carries a TinyHatPrincipal; anything else is refused, never assumed.
+        if (!(authentication.getPrincipal() instanceof TinyHatPrincipal principal)) {
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpStatus.UNAUTHORIZED.value());
+            return;
+        }
         String nextStep = mfaService.isActive(principal.getUserId()) ? "/mfa/verify" : "/mfa/enroll";
         response.sendRedirect(request.getContextPath() + nextStep);
     }

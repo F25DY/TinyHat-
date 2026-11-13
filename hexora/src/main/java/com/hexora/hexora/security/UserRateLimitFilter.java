@@ -52,8 +52,12 @@ public class UserRateLimitFilter extends OncePerRequestFilter {
         HttpServletResponse response,
         FilterChain filterChain
     ) throws ServletException, IOException {
-        TinyHatPrincipal principal = (TinyHatPrincipal) SecurityContextHolder.getContext()
-            .getAuthentication().getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof TinyHatPrincipal principal)) {
+            // shouldNotFilter already excludes this case; the check keeps the filter safe if it is ever reordered.
+            filterChain.doFilter(request, response);
+            return;
+        }
         RateLimitCategory category = RateLimitCategory.classify(request, properties);
         TinyHatSecurityProperties.Bucket limits = IpRateLimitFilter.bucketFor(category, properties);
         String key = "user:" + principal.getUserId() + ":" + category.propertyName();

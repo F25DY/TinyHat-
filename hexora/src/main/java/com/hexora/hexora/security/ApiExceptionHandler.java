@@ -43,8 +43,9 @@ public class ApiExceptionHandler {
         org.springframework.web.HttpRequestMethodNotSupportedException exception
     ) {
         ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
-        if (exception.getSupportedHttpMethods() != null && !exception.getSupportedHttpMethods().isEmpty()) {
-            response.allow(exception.getSupportedHttpMethods().toArray(new org.springframework.http.HttpMethod[0]));
+        java.util.Set<org.springframework.http.HttpMethod> supported = exception.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            response.allow(supported.toArray(new org.springframework.http.HttpMethod[0]));
         }
         return response.body(new SecurityErrorResponse("METHOD_NOT_ALLOWED", MDC.get(CorrelationIdFilter.MDC_KEY)));
     }

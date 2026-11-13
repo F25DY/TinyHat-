@@ -1,0 +1,255 @@
+# Pipeline de seguridad de TinyHat (Fase 13).
+#
+# Reglas duras (verificadas con las búsquedas del informe de la fase):
+#   * Permisos de solo lectura en el workflow y en todos los jobs; ningún job escribe en el repositorio.
+#   * Sin `pull_request_target` y sin `workflow_dispatch`.
+#   * Sin despliegue, publicación, `git push`, commits, etiquetas ni fusión automática.
+#   * Toda acción de terceros fijada por SHA de commit completo (el comentario indica la versión).
+#   * Las imágenes de contenedor se fijan por huella (digest), no por etiqueta.
+#   * El disparador `push` a main existe solo como verificación posterior a la fusión: no modifica nada.
+name: security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------------------------
+  # 1. Compilación y pruebas, incluidas las de seguridad (Testcontainers usa el Docker del runner).
+  # ---------------------------------------------------------------------------------------------
+  build-test:
+    name: Compilación y pruebas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar Java 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: hexora/pom.xml
+
+      # `clean` es obligatorio: hexora/target está versionado y no debe contaminar la compilación.
+      - name: Compilar y ejecutar todas las pruebas
+        working-directory: hexora
+        run: sh ./mvnw -B -ntp clean verify
+
+      - name: Conservar los informes de pruebas si algo falla
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: informes-de-pruebas
+          path: hexora/target/surefire-reports
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------------------------
+  # 2. Secretos: gitleaks sobre el árbol de trabajo y sobre todo el historial.
+  #    Imagen fijada por huella. Los valores se ocultan (--redact) en los registros.
+  # ---------------------------------------------------------------------------------------------
+  secretos:
+    name: Secretos (gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Obtener el código con todo el historial
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Analizar el árbol de trabajo
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo:ro" \
+            ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            dir /repo --config /repo/.gitleaks.toml --redact --no-banner
+
+      # Si más adelante se acepta un hallazgo antiguo ya rotado, se registra en .gitleaks-baseline.json
+      # (revisado por una persona) y este paso lo aplica solo.
+      - name: Analizar todo el historial
+        run: |
+          extra_args=()
+          if [ -f .gitleaks-baseline.json ]; then
+            extra_args+=(--baseline-path /repo/.gitleaks-baseline.json)
+          fi
+          docker run --rm \
+            -v "$PWD:/repo:ro" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            git /repo --config /repo/.gitleaks.toml --log-opts="--all" --redact --no-banner "${extra_args[@]}"
+
+  # ---------------------------------------------------------------------------------------------
+  # 3. Dependencias: OWASP Dependency-Check, falla con CVSS 7.0 o más (ver pom.xml, perfil security-scan).
+  #    Necesita el secreto NVD_API_KEY. Sin él (por ejemplo, PR desde un fork) el análisis se omite
+  #    con una advertencia visible; una persona debe repetirlo desde una rama del repositorio.
+  # ---------------------------------------------------------------------------------------------
+  dependencias:
+    name: Dependencias (OWASP Dependency-Check)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar Java 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: hexora/pom.xml
+
+      - name: Comprobar que la clave de NVD está disponible
+        id: nvd
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -n "$NVD_API_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Dependency-Check omitido::NVD_API_KEY no está disponible en esta ejecución; repetir desde una rama del repositorio."
+          fi
+
+      - name: Reutilizar la base de datos de vulnerabilidades
+        if: steps.nvd.outputs.available == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-data-${{ github.run_id }}
+          restore-keys: dependency-check-data-
+
+      - name: Analizar dependencias
+        if: steps.nvd.outputs.available == 'true'
+        working-directory: hexora
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: sh ./mvnw -B -ntp -Psecurity-scan -DskipTests dependency-check:check
+
+      - name: Conservar el informe de dependencias
+        if: always() && steps.nvd.outputs.available == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: informe-dependency-check
+          path: |
+            hexora/target/dependency-check-report.html
+            hexora/target/dependency-check-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------------------------
+  # 4a. SAST: SpotBugs con FindSecBugs. Falla con hallazgos de rango <= 14 y confianza media o alta.
+  #     Las exclusiones están en hexora/spotbugs-exclude.xml, cada una con su justificación.
+  # ---------------------------------------------------------------------------------------------
+  sast-spotbugs:
+    name: SAST (SpotBugs y FindSecBugs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Instalar Java 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: hexora/pom.xml
+
+      - name: Analizar con SpotBugs y FindSecBugs
+        working-directory: hexora
+        run: sh ./mvnw -B -ntp -Psecurity-scan -DskipTests clean compile spotbugs:check
+
+      - name: Conservar el informe de SpotBugs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: informe-spotbugs
+          path: hexora/target/spotbugsXml.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------------------------
+  # 4b. SAST: CodeQL. El repositorio es público, por lo que el análisis está permitido.
+  #     NO se sube a la pestaña "Code scanning" porque eso exige el permiso `security-events: write`,
+  #     prohibido por la regla de permisos de solo lectura. El resultado se guarda como artefacto y el
+  #     paso final falla si hay hallazgos con severidad de seguridad 7.0 o más.
+  #     Se mantiene sin bloquear (continue-on-error) hasta confirmar en el primer PR que CodeQL extrae
+  #     bien el código Java 25; entonces se elimina esa línea (ver docs/security/ci-cd.md).
+  # ---------------------------------------------------------------------------------------------
+  sast-codeql:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    continue-on-error: true
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: java-kotlin
+          build-mode: none
+          queries: security-extended
+
+      - name: Analizar con CodeQL (sin subir resultados)
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: "/language:java-kotlin"
+          upload: never
+          output: codeql-resultados
+
+      - name: Conservar el resultado de CodeQL
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: resultados-codeql
+          path: codeql-resultados
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Fallar si hay hallazgos de severidad 7.0 o más
+        run: |
+          python3 - <<'PY'
+          import glob, json, sys
+          blocking = []
+          for path in glob.glob("codeql-resultados/**/*.sarif", recursive=True):
+              with open(path, encoding="utf-8") as handle:
+                  sarif = json.load(handle)
+              for run in sarif.get("runs", []):
+                  rules = {rule["id"]: rule for rule in run.get("tool", {}).get("driver", {}).get("rules", [])}
+                  for result in run.get("results", []):
+                      rule = rules.get(result.get("ruleId"), {})
+                      severity = float(rule.get("properties", {}).get("security-severity", 0) or 0)
+                      if severity >= 7.0:
+                          location = result["locations"][0]["physicalLocation"]
+                          blocking.append((result["ruleId"], severity,
+                                           location["artifactLocation"]["uri"], location.get("region", {}).get("startLine")))
+          for rule_id, severity, uri, line in blocking:
+              print(f"::error file={uri},line={line}::{rule_id} (severidad de seguridad {severity})")
+          print(f"Hallazgos con severidad >= 7.0: {len(blocking)}")
+          sys.exit(1 if blocking else 0)
+          PY

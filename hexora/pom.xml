@@ -152,4 +152,63 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<!--
+			Static and dependency analysis for CI (Phase 13). Not bound to the default lifecycle, so the normal
+			build stays fast. Run explicitly, for example:
+			  mvnw -Psecurity-scan -DskipTests compile spotbugs:check
+			  mvnw -Psecurity-scan -DskipTests dependency-check:check   (needs the NVD_API_KEY variable)
+		-->
+		<profile>
+			<id>security-scan</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.spotbugs</groupId>
+						<artifactId>spotbugs-maven-plugin</artifactId>
+						<version>4.10.5.0</version>
+						<configuration>
+							<effort>Max</effort>
+							<threshold>Medium</threshold>
+							<!--
+								High-severity gate: SpotBugs ranks 1-4 are "scariest", 5-9 "scary" and 10-14 "troubling";
+								15-20 are "of concern" and are not blocking. FindSecBugs rates SQL injection at rank 12 and
+								weak hashes at rank 10, so a limit of 9 would let them through (verified with a mutation test).
+								Together with threshold Medium, only medium and high confidence findings can fail the build.
+							-->
+							<maxRank>14</maxRank>
+							<failOnError>true</failOnError>
+							<excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+							<plugins>
+								<plugin>
+									<groupId>com.h3xstream.findsecbugs</groupId>
+									<artifactId>findsecbugs-plugin</artifactId>
+									<version>1.14.0</version>
+								</plugin>
+							</plugins>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<version>13.0.0</version>
+						<configuration>
+							<!-- Fails the build for any dependency vulnerability with CVSS 7.0 or higher. -->
+							<failBuildOnCVSS>7</failBuildOnCVSS>
+							<skipTestScope>true</skipTestScope>
+							<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+							<suppressionFiles>
+								<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+							</suppressionFiles>
+							<formats>
+								<format>HTML</format>
+								<format>JSON</format>
+							</formats>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>

@@ -1,0 +1,24 @@
+# Configuración de gitleaks para TinyHat (Fase 13).
+#
+# Principio: se usan TODAS las reglas por defecto. Solo se permite, y de forma acotada, un tipo de falso
+# positivo conocido y revisado por una persona. Cada excepción lleva su justificación.
+#
+# Coherencia con la Fase 1: las credenciales reales viven en variables de entorno o en `hexora/.env`
+# (ignorado por git, nunca versionado), y los almacenes de claves (*.p12, *.jks) tampoco se versionan.
+# Gitleaks NO tiene excepciones para esos archivos: si alguno llegara a un commit, el análisis falla.
+
+title = "TinyHat gitleaks"
+
+[extend]
+useDefault = true
+
+# Excepción 1: valores sintéticos de las pruebas automatizadas.
+#   - Solo la regla `generic-api-key` (cualquier otra regla, como claves privadas o tokens de proveedor,
+#     sigue activa también en las pruebas).
+#   - Solo bajo hexora/src/test/java.
+#   - Son datos ficticios por la regla R9 del plan: clave base64 de "abcdef...", secreto de ejemplo del
+#     RFC 6238, clave de ejemplo del RFC 6455, tokens y contraseñas inventados para los casos de prueba.
+[[allowlists]]
+description = "Valores ficticios de las pruebas automatizadas (regla R9)"
+targetRules = ["generic-api-key"]
+paths = ['''(^|/)hexora/src/test/java/''']
