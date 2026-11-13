@@ -1,5 +1,21 @@
 # Security implementation deviations
 
+## 2026-11-13 — Fase 13 (pipeline CI/CD)
+
+- **Inicio.** La persona aprobó la Fase 12 de palabra y pidió continuar con la Fase 13. La función de creación de informes queda en espera hasta diseñar su flujo; los cimientos de la Fase 12 se conservan. Respaldo previo en `dumps\fase-13\20261113_114322\`. Rama `seguridad/fase-13` creada desde `seguridad/fase-11`, que ya contenía el commit "Desarrollo hasta fase 12" de la persona.
+- **Sin migraciones.** `hexora_db` sigue en V28.
+- **Workflow `.github/workflows/security.yml`.** Jobs: pruebas (`mvnw clean verify`), secretos, dependencias, SAST SpotBugs y SAST CodeQL. Permisos `contents: read`; sin `pull_request_target`, `workflow_dispatch`, despliegue ni escritura. Acciones fijadas por SHA de commit completo (`actions/checkout` v7.0.1, `actions/setup-java` v6.2.0, `actions/upload-artifact` v7.0.2, `actions/cache` v6.1.0, `github/codeql-action` v4.39.3 con el commit pelado de su etiqueta anotada).
+- **gitleaks como imagen fijada por huella** (8.30.1) y no como acción de marketplace: sin licencia ni dependencia extra. El análisis de historial corre en cada ejecución y no "una sola vez" como pedía el plan; hoy está limpio. Línea base opcional en `.gitleaks-baseline.json`.
+- **`.gitleaks.toml`.** Reglas por defecto más una única excepción: la regla `generic-api-key` bajo `hexora/src/test/java`, donde viven valores ficticios (regla R9). El historial pasó de 11 hallazgos a 0 y no había secretos reales versionados: `hexora/.env` y `hexora/local-dev.p12` nunca estuvieron en git.
+- **SAST: perfil Maven `security-scan`.** SpotBugs 4.10.5.0 con FindSecBugs 1.14.0 y OWASP Dependency-Check 13.0.0, sin acoplar al ciclo normal. **El primer límite (`maxRank=9`) no detectaba una inyección SQL sembrada** (FindSecBugs la clasifica en rango 12); se subió a 14 con confianza media o alta y se verificó con una prueba de mutación (falla con 2 hallazgos; pasa al retirar la clase).
+- **Clasificación de los 23 hallazgos reales.** 5 avisos de posible nulo, corregidos en 3 lugares del código (comprobación de tipo del principal en `ApiExceptionHandler`, `MfaGateFilter` y `UserRateLimitFilter`). 18 excluidos con justificación escrita y limitados a una clase y un patrón: `COMMAND_INJECTION` (6, argumentos de proceso solo del sistema), `UNVALIDATED_REDIRECT` (9, ruta constante), `UNENCRYPTED_SOCKET` (1, sonda TCP sin datos), `ENTITY_LEAK` (2, caché pública de NVD).
+- **CodeQL.** El repositorio es público, así que el análisis es posible. No sube a *Code scanning* porque exige `security-events: write`, prohibido por la regla de la fase; guarda un SARIF y falla por severidad de seguridad 7.0 o más. Se mantiene con `continue-on-error` hasta verificar en el primer PR que extrae bien Java 25.
+- **DAST (opcional) no incluido.** Un escaneo base de ZAP sin sesión solo recorre el login y el registro; se retoma con el flujo de informes.
+- **Dependency-Check** solo se probó hasta su arranque en local (sin `NVD_API_KEY`); su ejecución completa queda para el PR de prueba. En fork PRs se omite con advertencia porque GitHub no entrega secretos.
+- **Repositorio renombrado.** Ahora es `github.com/F25DY/TinyHat-` y es público. El remoto local sigue con el nombre anterior (GitHub redirige).
+- **`mvnw clean` falla en local** por archivos de `target` abiertos por el IDE u OneDrive. En CI no aplica; el pipeline usa `clean` porque `hexora/target` está versionado.
+- **Corrección documental.** En `reports/fase-12.md`, una referencia cruzada apuntaba a §4 en lugar de §5.
+
 ## 2026-11-11 — Fase 12 (auditoría y registros) y cimientos de informes
 
 - **Autorización de inicio.** La persona pidió iniciar la Fase 12 tras validar herramientas y sembrar los cimientos de informes. La Fase 11 no tiene un `APROBADA FASE 11` escrito; se trabajó sobre la misma rama por instrucción directa.

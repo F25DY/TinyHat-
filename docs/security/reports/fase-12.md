@@ -13,7 +13,7 @@ Respaldo previo a todos los cambios de esta sesión: `C:\Users\Fredy\OneDrive\Do
 - La única base del servidor es `hexora_db`. No existe `hexora_BD`; MySQL en Linux distingue mayúsculas en nombres de base, así que no se creó otra.
 - Estado de la base al terminar: **V28**, 29 migraciones validadas, todas con éxito.
 - La aplicación corre en `https://localhost:8443` con el usuario de ejecución `hexora_app` y Flyway con `admin1`.
-- `src/test/js/fase12-herramientas.mjs` recorre cada herramienta contra la aplicación real y la base compartida: acceso, registro, MFA, proyectos, áreas, hallazgos con riesgo calculado, búsqueda CVE, páginas y API del módulo de red, rangos autorizados, rechazo de escaneo sin rango, WebSocket, panel de informes y cierre de sesión. Resultado en §4.
+- `src/test/js/fase12-herramientas.mjs` recorre cada herramienta contra la aplicación real y la base compartida: acceso, registro, MFA, proyectos, áreas, hallazgos con riesgo calculado, búsqueda CVE, páginas y API del módulo de red, rangos autorizados, rechazo de escaneo sin rango, WebSocket, panel de informes y cierre de sesión. Resultado en §5.
 - Las tareas de VS Code (`.vscode/tasks.json`) contienen rutas de otro equipo (`C:\Users\Luis David\...`). No se modificaron por ser configuración compartida del equipo. La configuración de lanzamiento (`launch.json`) sí funciona con el puerto 8443 porque lee `hexora/.env`.
 - `docker-compose.yml` ahora separa las cuentas: `MYSQL_USER` es la cuenta de migración y un script de inicio crea la cuenta de ejecución solo con DML. Se verificó con un contenedor desechable; el contenedor real y su volumen no se tocaron.
 
