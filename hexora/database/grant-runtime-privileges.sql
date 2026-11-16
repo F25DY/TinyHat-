@@ -5,8 +5,14 @@
 --   * flyway_schema_history:       no access (only the migration user touches it)
 --   * No DDL, no GRANT OPTION, no global privileges.
 --
--- WHEN TO RUN: once after the first migration and AGAIN after every Flyway migration that creates a table,
--- otherwise the runtime user gets "SELECT command denied" for the new table. It is idempotent.
+-- AUTOMATIC BY DEFAULT: the application now applies these same privileges itself after every Flyway migration
+-- (RuntimePrivilegeMigrationStrategy, see docs/security/db-privilegios.md). Keep this script as the MANUAL
+-- alternative, for when tinyhat.db.runtime-grants.enabled=false or the migration account has no GRANT OPTION.
+-- If you change the rules here (for example, which tables are append-only), change them in
+-- RuntimePrivilegeGranter and tinyhat.db.runtime-grants.append-only-tables too.
+--
+-- WHEN TO RUN (manual mode only): once after the first migration and AGAIN after every Flyway migration that
+-- creates a table, otherwise the runtime user gets "SELECT command denied" for the new table. It is idempotent.
 --
 -- HOW (from the repository root, Docker local database; the root password is DB_ROOT_PASSWORD in hexora/.env):
 --   Get-Content hexora/database/grant-runtime-privileges.sql | docker exec -i -e MYSQL_PWD=<root-password> hexora-mysql mysql -uroot
