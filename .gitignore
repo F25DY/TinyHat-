@@ -1,0 +1,21 @@
+# Compilación y salidas de herramientas
+**/target/
+*.log
+hexora/build.log
+hexora/maven-output.txt
+
+# Secretos y material criptográfico locales (nunca versionar)
+.env
+.env.*
+!.env.example
+*.p12
+*.jks
+*.pfx
+*.pem
+hexora/localhost.crt
+hexora/logs/
+
+# Ajustes personales del sistema operativo y del editor
+.DS_Store
+Thumbs.db
+*.swp
