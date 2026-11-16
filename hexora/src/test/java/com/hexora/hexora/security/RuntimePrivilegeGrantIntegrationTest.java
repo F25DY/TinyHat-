@@ -128,6 +128,21 @@ class RuntimePrivilegeGrantIntegrationTest {
     }
 
     @Test
+    void escapesTableNamesWithBackticksAndQuotesSoTheyCannotInjectSql() throws SQLException {
+        // El nombre de tabla sale de information_schema y llega al GRANT: si el escape fallara, este nombre
+        // cerraría el identificador y concedería permisos a una cuenta "intruso" (o rompería la sentencia).
+        String nasty = "ev`il' TO 'intruso'@'%' --x";
+        try (Connection admin = connect(MIGRATION, PASSWORD); Statement statement = admin.createStatement()) {
+            statement.execute("CREATE TABLE `" + nasty.replace("`", "``") + "` (id INT PRIMARY KEY)");
+        }
+
+        granter().apply(dataSource(MIGRATION, PASSWORD));
+
+        assertThat(tablePrivilegesOfRuntimeUser().get(nasty)).isEqualTo("DELETE,INSERT,SELECT,UPDATE");
+        assertThat(count("SELECT COUNT(*) FROM mysql.user WHERE user = 'intruso'")).isZero();
+    }
+
+    @Test
     void removesPrivilegesLeftOverFromPreviousStates() throws SQLException {
         try (Connection root = connect("root", PASSWORD); Statement statement = root.createStatement()) {
             statement.execute("GRANT ALTER, DROP, UPDATE ON `" + SCHEMA + "`.`audit_event` TO '" + RUNTIME + "'@'%'");

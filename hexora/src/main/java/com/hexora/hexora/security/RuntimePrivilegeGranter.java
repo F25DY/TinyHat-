@@ -21,12 +21,16 @@ import javax.sql.DataSource;
  *   <li>{@code flyway_schema_history}: sin acceso;</li>
  *   <li>sin DDL ni GRANT OPTION.</li>
  * </ul>
- * Es idempotente: antes de conceder revoca lo que hubiera en la base o en la tabla, de modo que el resultado
- * no depende de permisos anteriores (por ejemplo, el permiso a nivel de base que crea el script de inicio).
+ * Es idempotente y el resultado no depende de permisos anteriores. Primero solo se añade; lo que sobra se retira
+ * después, de modo que un fallo al conceder no deja al usuario de ejecución sin permisos.
  *
- * <p>La cuenta de migración necesita GRANT OPTION sobre la base. Las sentencias GRANT/REVOKE no admiten
- * parámetros; por eso el usuario, el host y la base se validan con una lista cerrada de caracteres y los
- * nombres de tabla (que salen de information_schema) se escapan.
+ * <p><b>Sin SQL construido con cadenas en Java.</b> Las sentencias {@code GRANT}/{@code REVOKE} no admiten parámetros
+ * para los nombres de objeto. Por eso todo el SQL que ve JDBC es constante: los nombres viajan como parámetros
+ * ({@code ?}) de una sentencia fija que arma el {@code GRANT}/{@code REVOKE} en el servidor, escapando allí las
+ * comillas y los acentos graves, y se ejecuta con {@code PREPARE}/{@code EXECUTE}. Además, el usuario, el host y la
+ * base se validan con una lista cerrada de caracteres antes de usarse (defensa en profundidad).
+ *
+ * <p>La cuenta de migración necesita GRANT OPTION sobre la base (con el nombre escapado si lleva "_").
  */
 public final class RuntimePrivilegeGranter {
 
@@ -37,13 +41,32 @@ public final class RuntimePrivilegeGranter {
     private static final Pattern SCHEMA = Pattern.compile("[A-Za-z0-9_$]{1,64}");
     /** Un GRANT a nivel de base ({@code ON `base`.*}); los de tabla llevan {@code `base`.`tabla`} y los globales {@code *.*}. */
     private static final Pattern DATABASE_LEVEL = Pattern.compile(" ON `[^`]+`\\.\\* TO ");
-    /** Privilegios de tabla que el usuario de ejecución nunca debe tener (todo lo que no es DML permitido). */
-    private static final String BUSINESS_EXCESS = "ALTER, CREATE, CREATE VIEW, DROP, GRANT OPTION, INDEX, REFERENCES, SHOW VIEW, TRIGGER";
-    private static final String APPEND_ONLY_EXCESS = "UPDATE, DELETE, " + BUSINESS_EXCESS;
     /** ER_NONEXISTING_GRANT y ER_NONEXISTING_TABLE_GRANT: revocar algo que no estaba concedido no es un error. */
     private static final Set<Integer> NO_SUCH_GRANT = Set.of(1141, 1147);
 
-    private final String account;
+    // Fragmentos SQL que se evalúan en el servidor: comillan un identificador (doblando los acentos graves) y una
+    // cuenta 'usuario'@'host' (doblando las comillas simples). Son constantes; los valores entran como parámetros.
+    private static final String QUOTED_ACCOUNT =
+        "CONCAT('''', REPLACE(?, '''', ''''''), '''@''', REPLACE(?, '''', ''''''), '''')";
+    private static final String QUOTED_NAME = "CONCAT('`', REPLACE(?, '`', '``'), '`')";
+
+    /** Parámetros: soloAgregar, base, tabla, usuario, host. */
+    private static final String BUILD_GRANT = "SET @tinyhat_sql = CONCAT('GRANT ', "
+        + "IF(?, 'SELECT, INSERT', 'SELECT, INSERT, UPDATE, DELETE'), ' ON ', " + QUOTED_NAME + ", '.', "
+        + QUOTED_NAME + ", ' TO ', " + QUOTED_ACCOUNT + ")";
+
+    /** Parámetros: soloAgregar, base, tabla, usuario, host. Retira de la tabla todo lo que no sea el DML permitido. */
+    private static final String BUILD_REVOKE_EXCESS = "SET @tinyhat_sql = CONCAT('REVOKE ', "
+        + "IF(?, 'UPDATE, DELETE, ', ''), "
+        + "'ALTER, CREATE, CREATE VIEW, DROP, GRANT OPTION, INDEX, REFERENCES, SHOW VIEW, TRIGGER ON ', "
+        + QUOTED_NAME + ", '.', " + QUOTED_NAME + ", ' FROM ', " + QUOTED_ACCOUNT + ")";
+
+    /** Parámetros: base (ya con "_" escapado), usuario, host. */
+    private static final String BUILD_REVOKE_DATABASE = "SET @tinyhat_sql = CONCAT('REVOKE ALL PRIVILEGES ON ', "
+        + QUOTED_NAME + ", '.* FROM ', " + QUOTED_ACCOUNT + ")";
+
+    private final String runtimeUser;
+    private final String host;
     private final Set<String> appendOnlyTables;
 
     public RuntimePrivilegeGranter(String runtimeUser, String host, Set<String> appendOnlyTables) {
@@ -53,7 +76,8 @@ public final class RuntimePrivilegeGranter {
         if (host == null || !HOST.matcher(host).matches()) {
             throw new IllegalArgumentException("Host del usuario de ejecución no válido para conceder permisos");
         }
-        this.account = "'" + runtimeUser + "'@'" + host + "'";
+        this.runtimeUser = runtimeUser;
+        this.host = host;
         this.appendOnlyTables = Set.copyOf(appendOnlyTables);
     }
 
@@ -65,27 +89,48 @@ public final class RuntimePrivilegeGranter {
             }
             List<String> tables = listTables(connection, schema);
             List<String> appendOnlyFound = new ArrayList<>();
-            try (Statement statement = connection.createStatement()) {
-                // 1) Primero solo se AÑADE. Si la cuenta de migración no puede conceder, el primer GRANT falla y
-                //    no se ha quitado nada: el usuario de ejecución conserva los permisos que ya tenía.
-                for (String table : tables) {
-                    boolean appendOnly = isAppendOnly(table);
-                    statement.execute("GRANT " + (appendOnly ? "SELECT, INSERT" : "SELECT, INSERT, UPDATE, DELETE")
-                        + " ON " + quote(schema) + "." + quote(table) + " TO " + account);
-                    if (appendOnly) {
-                        appendOnlyFound.add(table);
-                    }
+
+            // 1) Primero solo se AÑADE. Si la cuenta de migración no puede conceder, el primer GRANT falla y
+            //    no se ha quitado nada: el usuario de ejecución conserva los permisos que ya tenía.
+            for (String table : tables) {
+                boolean appendOnly = isAppendOnly(table);
+                try (PreparedStatement build = connection.prepareStatement(BUILD_GRANT)) {
+                    build.setBoolean(1, appendOnly);
+                    build.setString(2, schema);
+                    build.setString(3, table);
+                    build.setString(4, runtimeUser);
+                    build.setString(5, host);
+                    build.execute();
                 }
-                // 2) Se retira el permiso a nivel de base (el que crea el script de inicio): taparía las
-                //    restricciones por tabla. Se nombra con "_" escapado, que es como lo concede el script y la única
-                //    forma que la cuenta de migración puede revocar (ver 01-runtime-user.sh). Un permiso concedido con
-                //    el nombre sin escapar no se puede retirar desde aquí: lo detecta databaseLevelGrants().
-                revoke(statement, "REVOKE ALL PRIVILEGES ON " + quote(schema.replace("_", "\\_")) + ".* FROM " + account);
-                // 3) Se retira de cada tabla todo lo que sobre, vengan los permisos de donde vengan.
-                for (String table : tables) {
-                    revoke(statement, "REVOKE " + (isAppendOnly(table) ? APPEND_ONLY_EXCESS : BUSINESS_EXCESS)
-                        + " ON " + quote(schema) + "." + quote(table) + " FROM " + account);
+                runBuiltStatement(connection, false);
+                if (appendOnly) {
+                    appendOnlyFound.add(table);
                 }
+            }
+
+            // 2) Se retira el permiso a nivel de base (el que crea el script de inicio): taparía las restricciones
+            //    por tabla. Se nombra con "_" escapado, que es como lo concede el script y la única forma que la
+            //    cuenta de migración puede revocar (ver 01-runtime-user.sh). Un permiso concedido con el nombre sin
+            //    escapar no se puede retirar desde aquí: lo detecta databaseLevelGrants().
+            try (PreparedStatement build = connection.prepareStatement(BUILD_REVOKE_DATABASE)) {
+                build.setString(1, schema.replace("_", "\\_"));
+                build.setString(2, runtimeUser);
+                build.setString(3, host);
+                build.execute();
+            }
+            runBuiltStatement(connection, true);
+
+            // 3) Se retira de cada tabla todo lo que sobre, vengan los permisos de donde vengan.
+            for (String table : tables) {
+                try (PreparedStatement build = connection.prepareStatement(BUILD_REVOKE_EXCESS)) {
+                    build.setBoolean(1, isAppendOnly(table));
+                    build.setString(2, schema);
+                    build.setString(3, table);
+                    build.setString(4, runtimeUser);
+                    build.setString(5, host);
+                    build.execute();
+                }
+                runBuiltStatement(connection, true);
             }
             return new Result(schema, tables.size(), List.copyOf(appendOnlyFound));
         } catch (SQLException exception) {
@@ -120,6 +165,26 @@ public final class RuntimePrivilegeGranter {
         return found;
     }
 
+    /** Ejecuta la sentencia que dejó armada el último {@code SET @tinyhat_sql = ...}; todo el SQL aquí es constante. */
+    private static void runBuiltStatement(Connection connection, boolean ignoreNoSuchGrant) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("PREPARE tinyhat_stmt FROM @tinyhat_sql");
+            try {
+                statement.execute("EXECUTE tinyhat_stmt");
+            } catch (SQLException exception) {
+                if (!ignoreNoSuchGrant || !NO_SUCH_GRANT.contains(exception.getErrorCode())) {
+                    throw exception;
+                }
+            } finally {
+                statement.execute("DEALLOCATE PREPARE tinyhat_stmt");
+            }
+        }
+    }
+
+    private boolean isAppendOnly(String table) {
+        return appendOnlyTables.contains(table.toLowerCase(Locale.ROOT));
+    }
+
     private List<String> listTables(Connection connection, String schema) throws SQLException {
         List<String> tables = new ArrayList<>();
         try (PreparedStatement query = connection.prepareStatement(
@@ -134,24 +199,6 @@ public final class RuntimePrivilegeGranter {
             }
         }
         return tables;
-    }
-
-    private boolean isAppendOnly(String table) {
-        return appendOnlyTables.contains(table.toLowerCase(Locale.ROOT));
-    }
-
-    private static void revoke(Statement statement, String sql) throws SQLException {
-        try {
-            statement.execute(sql);
-        } catch (SQLException exception) {
-            if (!NO_SUCH_GRANT.contains(exception.getErrorCode())) {
-                throw exception;
-            }
-        }
-    }
-
-    private static String quote(String identifier) {
-        return "`" + identifier.replace("`", "``") + "`";
     }
 
     public record Result(String schema, int tablesGranted, List<String> appendOnlyTables) {
