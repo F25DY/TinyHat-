@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configurar autenticación multifactor</title>
+</head>
+<body>
+<main>
+    <h1>Configura tu segundo factor</h1>
+    <p>Escanea el URI con una aplicación TOTP compatible o ingresa la clave manualmente.</p>
+    <section th:if="${provisioningUri != null}">
+        <p>Clave de configuración (muéstrala solo durante esta inscripción):</p>
+        <code th:text="${secret}"></code>
+        <p>URI de configuración:</p>
+        <code th:text="${provisioningUri}"></code>
+    </section>
+    <p th:if="${error}" role="alert" th:text="${error}"></p>
+    <form method="post" th:action="@{/mfa/enroll/start}">
+        <button type="submit" th:text="${pending} ? 'Generar una nueva clave' : 'Iniciar inscripción'">
+            Iniciar inscripción
+        </button>
+    </form>
+    <form th:if="${pending}" method="post" th:action="@{/mfa/enroll/confirm}">
+        <label for="code">Código de seis dígitos</label>
+        <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required>
+        <button type="submit">Confirmar y activar MFA</button>
+    </form>
+</main>
+</body>
+</html>

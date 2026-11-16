@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging policy (Phase 12): every application log line goes through %mask, which removes passwords,
+  tokens, secrets, Authorization/Cookie headers, TOTP codes and session identifiers.
+
+  Console and rolling file receive the masked output. The only exception is the dedicated logger
+  "tinyhat.notifier.console" used by ConsoleNotifier (profiles dev and demo only, forbidden in prod by
+  ProfileSecurityGuard): it prints one-time links to the console so the demo flow is usable, and it is
+  never written to the file.
+-->
+<configuration>
+    <conversionRule conversionWord="mask" converterClass="com.hexora.hexora.security.LogMaskingConverter"/>
+    <springProperty scope="context" name="TINYHAT_LOG_FILE" source="tinyhat.logging.file"
+                    defaultValue="logs/tinyhat.log"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{correlationId:-}] %-40.40logger{39} : %mask(%m%n%ex)</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${TINYHAT_LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${TINYHAT_LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{correlationId:-}] %-40.40logger{39} : %mask(%m%n%ex)</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="CONSOLE_NOTIFIER" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{correlationId:-}] %-40.40logger{39} : %m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <logger name="tinyhat.notifier.console" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE_NOTIFIER"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

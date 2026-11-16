@@ -1,0 +1,25 @@
+# Dependabot (Fase 13). Solo ABRE pull requests: no hay fusión automática ni configuración que la habilite.
+# Cada actualización debe revisarla y fusionarla una persona, después de que pase el pipeline de seguridad.
+version: 2
+updates:
+  # Dependencias Maven del proyecto (pom.xml está en hexora/).
+  - package-ecosystem: "maven"
+    directory: "/hexora"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencias"
+      - "seguridad"
+
+  # Acciones de GitHub usadas por los workflows (se mantienen fijadas por SHA completo).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencias"
+      - "ci"

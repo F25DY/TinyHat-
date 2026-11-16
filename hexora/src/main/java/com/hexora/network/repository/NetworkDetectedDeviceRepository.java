@@ -9,11 +9,21 @@ public interface NetworkDetectedDeviceRepository extends JpaRepository<NetworkDe
 
     Optional<NetworkDetectedDevice> findFirstByMacAddressIgnoreCase(String macAddress);
 
+    Optional<NetworkDetectedDevice> findFirstByProyectoIdAndMacAddressIgnoreCase(
+        Long proyectoId,
+        String macAddress);
+
     Optional<NetworkDetectedDevice> findByAddressIgnoreCase(String address);
+
+    Optional<NetworkDetectedDevice> findByProyectoIdAndAddressIgnoreCase(Long proyectoId, String address);
 
     List<NetworkDetectedDevice> findAllByOrderByLastDetectedAtDesc();
 
+    List<NetworkDetectedDevice> findAllByProyectoIdOrderByLastDetectedAtDesc(Long proyectoId);
+
     List<NetworkDetectedDevice> findAllByGatewayTrueOrderByLastDetectedAtDesc();
+
+    List<NetworkDetectedDevice> findAllByProyectoIdAndGatewayTrueOrderByLastDetectedAtDesc(Long proyectoId);
 
     Optional<NetworkDetectedDevice> findFirstByGatewayTrueOrderByLastDetectedAtDesc();
 }

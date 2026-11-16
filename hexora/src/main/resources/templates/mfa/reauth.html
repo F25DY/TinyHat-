@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reautenticación requerida</title>
+</head>
+<body>
+<main>
+    <h1>Confirma tu identidad</h1>
+    <p th:if="${required}">Esta acción requiere una reautenticación reciente.</p>
+    <p th:if="${error}" role="alert" th:text="${error}"></p>
+    <form method="post" th:action="@{/mfa/reauth}">
+        <label for="password">Contraseña</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <label for="code">Código TOTP</label>
+        <input id="code" name="code" autocomplete="one-time-code" required>
+        <button type="submit">Reautenticar</button>
+    </form>
+</main>
+</body>
+</html>

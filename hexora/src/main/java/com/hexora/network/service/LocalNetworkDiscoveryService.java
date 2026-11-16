@@ -574,6 +574,11 @@ public class LocalNetworkDiscoveryService {
         }
     }
 
+    public String activeInterfaceCidr() {
+        LocalSubnet subnet = findDefaultPrivateSubnet();
+        return longToIpv4(subnet.network()).getHostAddress() + "/" + subnet.prefixLength();
+    }
+
     private Inet4Address getDefaultRouteAddress() {
         byte[] routeProbeAddress = {(byte) 192, 0, 2, 1};
         try (DatagramSocket socket = new DatagramSocket()) {

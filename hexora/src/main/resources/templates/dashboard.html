@@ -2,10 +2,10 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Dashboard</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -47,9 +47,11 @@
                     <span class="correo-usuario">analista@gmail.com</span>
                 </div>
             </div>
-            <a th:href="@{/}" class="boton-cerrar-sesion">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesi�n
-            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
+            </form>
         </div>
     </aside>
 
@@ -99,19 +101,19 @@
                 <h3>Distribución de Riesgos</h3>
                 <div class="risk-item">
                     <div class="risk-info"><span>Crítico</span> <span class="badge bg-rojo">8</span></div>
-                    <div class="progress-bar"><div class="progress bg-rojo" style="width: 25%;"></div></div>
+                    <div class="progress-bar"><div class="progress bg-rojo progreso-25"></div></div>
                 </div>
                 <div class="risk-item">
                     <div class="risk-info"><span>Alto</span> <span class="badge bg-naranja">15</span></div>
-                    <div class="progress-bar"><div class="progress bg-naranja" style="width: 45%;"></div></div>
+                    <div class="progress-bar"><div class="progress bg-naranja progreso-45"></div></div>
                 </div>
                 <div class="risk-item">
                     <div class="risk-info"><span>Medio</span> <span class="badge bg-amarillo">18</span></div>
-                    <div class="progress-bar"><div class="progress bg-amarillo" style="width: 60%;"></div></div>
+                    <div class="progress-bar"><div class="progress bg-amarillo progreso-60"></div></div>
                 </div>
                 <div class="risk-item">
                     <div class="risk-info"><span>Bajo</span> <span class="badge bg-verde">6</span></div>
-                    <div class="progress-bar"><div class="progress bg-verde" style="width: 15%;"></div></div>
+                    <div class="progress-bar"><div class="progress bg-verde progreso-15"></div></div>
                 </div>
             </section>
             <section class="tarjeta-blanca container-actividad">

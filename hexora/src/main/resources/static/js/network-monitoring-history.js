@@ -2,13 +2,17 @@ const historyList = document.querySelector("#discovery-history-list");
 const historyMessage = document.querySelector("#discovery-history-message");
 const availabilitySummary = document.querySelector("#availability-summary");
 const availabilityBody = document.querySelector("#availability-body");
-const clearHistoryButton = document.querySelector("#clear-history-button");
+const projectSelect = document.querySelector("#history-project-select");
+const currentDevicesLink = document.querySelector("#current-devices-link");
 const deviceMetadataStorageKey = "hexora.network-monitoring.v1.device-metadata";
 let metadataReadFailed = false;
+let projectPublicId = new URLSearchParams(window.location.search).get("projectPublicId") || "";
 
 function readDeviceMetadata() {
+    if (!projectPublicId) return {};
     try {
-        const metadata = JSON.parse(window.localStorage.getItem(deviceMetadataStorageKey) || "{}");
+        const key = `${deviceMetadataStorageKey}.${projectPublicId}`;
+        const metadata = JSON.parse(window.localStorage.getItem(key) || "{}");
         return metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
     } catch (error) {
         console.error("No se pudieron leer las etiquetas locales del inventario.", error);
@@ -153,8 +157,12 @@ function renderHistory(snapshots) {
 }
 
 async function loadHistory() {
+    if (!projectPublicId) return false;
     try {
-        const response = await fetch("/api/network/discoveries/history", {cache: "no-store"});
+        const response = await fetch(
+            `/api/network/discoveries/history?projectPublicId=${encodeURIComponent(projectPublicId)}`,
+            {cache: "no-store"}
+        );
         if (!response.ok) throw new Error("No se pudo cargar el historial de detecciones.");
         const snapshots = await response.json();
         if (!Array.isArray(snapshots)) throw new Error("El historial de detecciones devolvió un formato no válido.");
@@ -171,39 +179,41 @@ async function loadHistory() {
     }
 }
 
-clearHistoryButton.addEventListener("click", async () => {
-    if (!window.confirm(
-        "¿Quieres borrar todas las detecciones, revisiones y eventos? Los dispositivos registrados se conservarán."
-    )) return;
-
-    clearHistoryButton.disabled = true;
-    historyMessage.hidden = false;
-    historyMessage.textContent = "Borrando todo el historial...";
-    historyMessage.classList.remove("error");
-    try {
-        const response = await fetch("/api/network/history", {method: "DELETE"});
-        if (!response.ok) {
-            let result = {};
-            try {
-                result = await response.json();
-            } catch (error) {
-                console.error("No se pudo leer el error al borrar el historial.", error);
-            }
-            throw new Error(result.error || "No se pudo borrar el historial.");
-        }
-        if (!await loadHistory()) {
-            throw new Error(historyMessage.textContent || "No se pudo actualizar el historial.");
-        }
-        historyMessage.textContent = "Se borraron las detecciones, revisiones y eventos. Los dispositivos registrados se conservaron.";
-        historyMessage.hidden = false;
-        historyMessage.classList.remove("error");
-    } catch (error) {
-        historyMessage.textContent = error.message;
-        historyMessage.hidden = false;
-        historyMessage.classList.add("error");
-    } finally {
-        clearHistoryButton.disabled = false;
+async function loadProjects() {
+    const response = await fetch("/api/network/projects", {cache: "no-store"});
+    if (!response.ok) throw new Error("No se pudieron cargar tus proyectos.");
+    const projects = await response.json();
+    if (!Array.isArray(projects)) throw new Error("La lista de proyectos devolvió un formato no válido.");
+    projectSelect.innerHTML = projects.length
+        ? projects.map(project =>
+            `<option value="${escapeHtml(project.publicId)}">${escapeHtml(project.name)}</option>`
+        ).join("")
+        : '<option value="">No hay proyectos autorizados</option>';
+    if (!projects.some(project => project.publicId === projectPublicId)) {
+        projectPublicId = projects[0]?.publicId || "";
     }
+    projectSelect.value = projectPublicId;
+    projectSelect.disabled = projects.length === 0;
+    if (projectPublicId) {
+        currentDevicesLink.href = `/network-monitoring?projectPublicId=${encodeURIComponent(projectPublicId)}`;
+        await loadHistory();
+    } else {
+        historyMessage.textContent = "No tienes proyectos autorizados para consultar.";
+        historyMessage.classList.add("error");
+    }
+}
+
+projectSelect.addEventListener("change", async () => {
+    projectPublicId = projectSelect.value;
+    currentDevicesLink.href = `/network-monitoring?projectPublicId=${encodeURIComponent(projectPublicId)}`;
+    renderAvailability([]);
+    renderHistory([]);
+    await loadHistory();
 });
 
-loadHistory();
+loadProjects().catch(error => {
+    historyMessage.textContent = error.message;
+    historyMessage.classList.add("error");
+    availabilitySummary.textContent = error.message;
+    availabilitySummary.classList.add("error");
+});

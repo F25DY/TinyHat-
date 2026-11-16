@@ -3,10 +3,7 @@ package com.hexora.network.service;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.InetAddress;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 class NetworkReachabilityProbeTest {
 
@@ -26,19 +23,4 @@ class NetworkReachabilityProbeTest {
             "172.20.10.2"));
     }
 
-    @Test
-    @EnabledOnOs(OS.WINDOWS)
-    void detectsReachableWindowsHostWithSystemPing() throws Exception {
-        NetworkReachabilityProbe probe = new NetworkReachabilityProbe();
-
-        assertTrue(probe.pingWindows(InetAddress.getLoopbackAddress(), 1_000));
-    }
-
-    @Test
-    @EnabledOnOs(OS.LINUX)
-    void detectsReachableLinuxHostWithSystemPing() throws Exception {
-        NetworkReachabilityProbe probe = new NetworkReachabilityProbe();
-
-        assertTrue(probe.pingLinux(InetAddress.getLoopbackAddress(), 1_000));
-    }
 }

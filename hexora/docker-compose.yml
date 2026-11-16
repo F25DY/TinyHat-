@@ -6,12 +6,18 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      # The image grants this account ALL PRIVILEGES on the database: it is the MIGRATION account (Flyway).
+      # Falls back to DB_USER only for old .env files that predate the account split.
+      MYSQL_USER: ${FLYWAY_DB_USER:-${DB_USER}}
+      MYSQL_PASSWORD: ${FLYWAY_DB_PASSWORD:-${DB_PASSWORD}}
+      # Created by database/init/01-runtime-user.sh on first start of an empty volume: the runtime account.
+      TINYHAT_RUNTIME_USER: ${DB_USER}
+      TINYHAT_RUNTIME_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
       - hexora-mysql-data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s

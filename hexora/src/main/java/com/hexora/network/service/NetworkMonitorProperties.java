@@ -10,6 +10,7 @@ public class NetworkMonitorProperties {
     private List<AllowedHost> allowedHosts = new ArrayList<>();
     private List<Integer> defaultPorts = new ArrayList<>(List.of(21, 22, 25, 53, 80, 110, 143, 443, 3306, 5432));
     private int connectTimeoutMillis = 500;
+    private int portScanTimeoutSeconds = 30;
     private long monitorIntervalMs = 60_000;
     private long discoveryIntervalMs = 30_000;
     private boolean discoveryEnabled = true;
@@ -37,6 +38,14 @@ public class NetworkMonitorProperties {
 
     public void setConnectTimeoutMillis(int connectTimeoutMillis) {
         this.connectTimeoutMillis = connectTimeoutMillis;
+    }
+
+    public int getPortScanTimeoutSeconds() {
+        return portScanTimeoutSeconds;
+    }
+
+    public void setPortScanTimeoutSeconds(int portScanTimeoutSeconds) {
+        this.portScanTimeoutSeconds = portScanTimeoutSeconds;
     }
 
     public long getMonitorIntervalMs() {

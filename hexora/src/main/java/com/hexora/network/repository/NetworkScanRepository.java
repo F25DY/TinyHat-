@@ -16,6 +16,17 @@ public interface NetworkScanRepository extends JpaRepository<NetworkScan, Long> 
 
     Slice<NetworkScan> findAllByHost_IdOrderByStartedAtDesc(Long hostId, Pageable pageable);
 
+    @Query("""
+        select scan from NetworkScan scan
+        where scan.host.proyectoId = :projectId
+            and (:hostId is null or scan.host.id = :hostId)
+        order by scan.startedAt desc
+        """)
+    Slice<NetworkScan> findAllByProjectAndOptionalHost(
+        @Param("projectId") Long projectId,
+        @Param("hostId") Long hostId,
+        Pageable pageable);
+
     Optional<NetworkScan> findFirstByHost_IdOrderByStartedAtDesc(Long hostId);
 
         @Query("""
@@ -30,10 +41,25 @@ public interface NetworkScanRepository extends JpaRepository<NetworkScan, Long> 
                 """)
         List<NetworkScan> findLatestByHostIds(@Param("hostIds") List<Long> hostIds);
 
-        @Query("select scan.id from NetworkScan scan where scan.startedAt < :cutoff order by scan.startedAt, scan.id")
-        List<Long> findIdsStartedBefore(@Param("cutoff") java.time.LocalDateTime cutoff, Pageable pageable);
+        @Query("""
+            select scan.id from NetworkScan scan
+            where scan.cuentaId = :cuentaId and scan.startedAt < :cutoff
+            order by scan.startedAt, scan.id
+            """)
+        List<Long> findIdsStartedBefore(
+            @Param("cutoff") java.time.LocalDateTime cutoff,
+            @Param("cuentaId") Long cuentaId,
+            Pageable pageable);
 
     @Modifying
     @Query("delete from NetworkScan scan where scan.host.id = :hostId")
     int deleteAllForHost(@Param("hostId") Long hostId);
+
+    @Modifying
+    @Query("delete from NetworkScan scan where scan.host.proyectoId = :projectId")
+    int deleteAllForProject(@Param("projectId") Long projectId);
+
+    @Modifying
+    @Query("delete from NetworkScan scan where scan.cuentaId = :cuentaId")
+    int deleteAllForAccount(@Param("cuentaId") Long cuentaId);
 }

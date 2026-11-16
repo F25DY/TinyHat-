@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 
@@ -26,9 +28,9 @@ import com.hexora.network.repository.NetworkEventRepository;
 import com.hexora.network.repository.NetworkHostRepository;
 import com.hexora.network.repository.NetworkScanRepository;
 import com.hexora.network.repository.PortScanResultRepository;
+import com.hexora.hexora.security.TenantContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.Optional;
 import java.util.List;
 import java.time.Instant;
@@ -39,6 +41,7 @@ import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class NetworkMonitoringServiceTest {
@@ -74,7 +77,19 @@ class NetworkMonitoringServiceTest {
     private PlatformTransactionManager transactionManager;
 
     @Mock
-    private ThreadPoolTaskExecutor portProbeExecutor;
+    private NetworkProbe networkProbe;
+
+    @Mock
+    private NetworkPortScanExecutor portScanExecutor;
+
+    @Mock
+    private NetworkScopeGuard networkScopeGuard;
+
+    @Mock
+    private NetworkCapabilityGuard networkCapabilityGuard;
+
+    @Mock
+    private NetworkScanLockService scanLockService;
 
     private NetworkMonitorProperties properties;
     private NetworkMonitoringService service;
@@ -92,9 +107,13 @@ class NetworkMonitoringServiceTest {
             discoverySnapshotRepository,
             monitoredPortRepository,
             properties,
+            networkScopeGuard,
+            networkCapabilityGuard,
+            scanLockService,
             localNetworkDiscoveryService,
             transactionManager,
-            portProbeExecutor
+            networkProbe,
+            portScanExecutor
         );
     }
 
@@ -102,6 +121,7 @@ class NetworkMonitoringServiceTest {
     void marksAnArpDiscoveredDeviceOfflineOnTheFirstMissingScan() {
         NetworkDetectedDevice device = new NetworkDetectedDevice();
         device.setAddress("192.168.1.25");
+        device.setProyectoId(9L);
         device.setMacAddress("00:11:22:33:44:55");
         device.setHostName("NAS");
         device.setSubnet("192.168.1.0/24");
@@ -116,11 +136,13 @@ class NetworkMonitoringServiceTest {
             Instant.parse("2026-10-27T12:01:00Z"),
             List.of()
         ));
-        when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of());
-        when(detectedDeviceRepository.findAll()).thenReturn(List.of(device));
-        when(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc()).thenReturn(List.of(device));
+        when(hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(9L)).thenReturn(List.of());
+        when(detectedDeviceRepository.findAllByProyectoIdOrderByLastDetectedAtDesc(9L))
+            .thenReturn(List.of(device));
 
-        service.synchronizeDetectedDevices();
+        TenantContext.runAs(1L, () -> {
+            service.synchronizeDetectedDevices(9L);
+        });
 
         assertEquals(NetworkHostStatus.OFFLINE, device.getStatus());
         assertEquals(1, device.getConsecutiveMisses());
@@ -135,10 +157,12 @@ class NetworkMonitoringServiceTest {
             Instant.parse("2026-10-27T12:01:00Z"),
             List.of()
         ));
-        when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of());
-        when(detectedDeviceRepository.findAll()).thenReturn(List.of());
+        when(hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(9L)).thenReturn(List.of());
+        when(detectedDeviceRepository.findAllByProyectoIdOrderByLastDetectedAtDesc(9L)).thenReturn(List.of());
 
-        service.discoverLocalNetwork();
+        TenantContext.runAs(1L, () -> {
+            service.discoverLocalNetwork(9L);
+        });
 
         ArgumentCaptor<NetworkDiscoverySnapshot> snapshotCaptor =
             ArgumentCaptor.forClass(NetworkDiscoverySnapshot.class);
@@ -151,6 +175,7 @@ class NetworkMonitoringServiceTest {
     @Test
     void showsOnlyDevicesSeenInTheCurrentSubnetAndKeepsOldDevicesOutOfTheSnapshot() {
         NetworkDetectedDevice staleDevice = new NetworkDetectedDevice();
+        staleDevice.setProyectoId(9L);
         staleDevice.setAddress("172.20.10.2");
         staleDevice.setHostName("old-network-device");
         staleDevice.setSubnet("172.20.10.0/28");
@@ -169,25 +194,36 @@ class NetworkMonitoringServiceTest {
             Instant.parse("2026-10-27T12:01:00Z"),
             List.of(new NeighborEntry("192.168.1.25", "00:11:22:33:44:55", "ICMP + ARP"))
         ));
-        when(hostRepository.findAllByEnabledTrueOrderByDisplayNameAsc()).thenReturn(List.of(registeredHost));
-        when(detectedDeviceRepository.findByAddressIgnoreCase("192.168.1.25")).thenReturn(Optional.empty());
+        when(hostRepository.findAllByProyectoIdAndEnabledTrueOrderByDisplayNameAsc(9L))
+            .thenReturn(List.of(registeredHost));
+        when(detectedDeviceRepository.findByProyectoIdAndAddressIgnoreCase(9L, "192.168.1.25"))
+            .thenReturn(Optional.empty());
+        when(networkScopeGuard.isAuthorizedAddress(1L, 9L, "192.168.1.25")).thenReturn(true);
         when(detectedDeviceRepository.save(any())).thenAnswer(invocation -> {
             NetworkDetectedDevice saved = invocation.getArgument(0);
             knownDevices.removeIf(device -> device.getAddress().equalsIgnoreCase(saved.getAddress()));
             knownDevices.add(saved);
             return saved;
         });
-        when(detectedDeviceRepository.findAll()).thenAnswer(invocation -> new java.util.ArrayList<>(knownDevices));
-        when(detectedDeviceRepository.findAllByOrderByLastDetectedAtDesc()).thenReturn(knownDevices);
+        when(detectedDeviceRepository.findAllByProyectoIdOrderByLastDetectedAtDesc(9L))
+            .thenAnswer(invocation -> new java.util.ArrayList<>(knownDevices));
 
-        var update = service.discoverLocalNetwork();
+        var update = TenantContext.runAs(
+            1L,
+            (java.util.function.Supplier<com.hexora.network.model.NetworkInventoryUpdateDto>)
+                () -> service.discoverLocalNetwork(9L)
+        );
 
         assertEquals(1, update.devices().size());
         assertEquals("192.168.1.25", update.devices().getFirst().address());
         assertEquals(NetworkHostStatus.OFFLINE, staleDevice.getStatus());
+        assertEquals(9L, knownDevices.stream()
+            .filter(device -> "192.168.1.25".equals(device.getAddress()))
+            .findFirst().orElseThrow().getProyectoId());
         ArgumentCaptor<NetworkDiscoverySnapshot> snapshotCaptor =
             ArgumentCaptor.forClass(NetworkDiscoverySnapshot.class);
         verify(discoverySnapshotRepository).save(snapshotCaptor.capture());
+        assertEquals(9L, snapshotCaptor.getValue().getProyectoId());
         List<NetworkDiscoverySnapshotDevice> savedDevices = snapshotCaptor.getValue().getDevices();
         assertEquals(1, savedDevices.size());
         assertEquals("192.168.1.25", savedDevices.getFirst().getAddress());
@@ -208,6 +244,46 @@ class NetworkMonitoringServiceTest {
 
         assertEquals(1, latest.devices().size());
         assertEquals("192.168.1.1", latest.devices().getFirst().address());
+    }
+
+    @Test
+    void discoveryHistoryContinuesPagingUntilItFindsEnoughAuthorizedSubnets() {
+        List<NetworkDiscoverySnapshot> firstPage = List.of(
+            snapshot("192.168.11.0/24"),
+            snapshot("192.168.12.0/24"));
+        List<NetworkDiscoverySnapshot> secondPage = List.of(
+            snapshot("192.168.13.0/24"),
+            snapshot("192.168.10.0/24"));
+        List<NetworkDiscoverySnapshot> thirdPage = List.of(snapshot("192.168.10.0/24"));
+        when(discoverySnapshotRepository.findAllByProyectoIdOrderByObservedAtDesc(9L, PageRequest.of(0, 2)))
+            .thenReturn(firstPage);
+        when(discoverySnapshotRepository.findAllByProyectoIdOrderByObservedAtDesc(9L, PageRequest.of(1, 2)))
+            .thenReturn(secondPage);
+        when(discoverySnapshotRepository.findAllByProyectoIdOrderByObservedAtDesc(9L, PageRequest.of(2, 2)))
+            .thenReturn(thirdPage);
+        when(networkScopeGuard.isAuthorizedSubnet(
+            org.mockito.ArgumentMatchers.eq(1L),
+            org.mockito.ArgumentMatchers.eq(9L),
+            org.mockito.ArgumentMatchers.anyString()
+        )).thenAnswer(invocation -> "192.168.10.0/24".equals(invocation.getArgument(2)));
+
+        List<com.hexora.network.model.NetworkDiscoverySnapshotDto> history =
+            TenantContext.runAs(1L, () -> service.getDiscoveryHistory(2, 9L));
+
+        assertEquals(2, history.size());
+        assertEquals("192.168.10.0/24", history.get(0).subnet());
+        assertEquals("192.168.10.0/24", history.get(1).subnet());
+        verify(discoverySnapshotRepository).findAllByProyectoIdOrderByObservedAtDesc(9L, PageRequest.of(0, 2));
+        verify(discoverySnapshotRepository).findAllByProyectoIdOrderByObservedAtDesc(9L, PageRequest.of(1, 2));
+        verify(discoverySnapshotRepository).findAllByProyectoIdOrderByObservedAtDesc(9L, PageRequest.of(2, 2));
+    }
+
+    private NetworkDiscoverySnapshot snapshot(String subnet) {
+        NetworkDiscoverySnapshot snapshot = new NetworkDiscoverySnapshot();
+        snapshot.setSubnet(subnet);
+        snapshot.setSource("test");
+        snapshot.setObservedAt(java.time.LocalDateTime.of(2026, 11, 10, 12, 0));
+        return snapshot;
     }
 
     private NetworkDiscoverySnapshotDevice snapshotDevice(String address, NetworkHostStatus status) {
@@ -256,6 +332,54 @@ class NetworkMonitoringServiceTest {
     }
 
     @Test
+    void translatesAnOccupiedProjectLockIntoARateLimitWithoutStartingAProbe() {
+        NetworkHost host = new NetworkHost();
+        host.setId(7L);
+        host.setCuentaId(1L);
+        host.setProyectoId(9L);
+        host.setEnabled(true);
+        host.setManagedByUi(true);
+        host.setAddress("192.168.10.25");
+        when(hostRepository.findById(7L)).thenReturn(Optional.of(host));
+        when(scanLockService.executeWithGlobalAndProjectLocks(eq(1L), eq(9L), any())).thenReturn(null);
+
+        assertThrows(ScanRateLimitException.class, () -> service.scanHost(7L, null, null));
+
+        verify(scanLockService).executeWithGlobalAndProjectLocks(eq(1L), eq(9L), any());
+        verifyNoInteractions(networkProbe, portScanExecutor, localNetworkDiscoveryService, portResultRepository);
+    }
+
+    @Test
+    void rejectsDiscoveryBeforeReadingTheNetworkWhenProjectInterfaceIsOutOfScope() {
+        org.mockito.Mockito.doThrow(new NetworkScopeRejectedException("interface outside scope"))
+            .when(networkScopeGuard).requireAuthorizedInterface(1L, 9L);
+
+        assertThrows(NetworkScopeRejectedException.class, () ->
+            TenantContext.runAs(1L, () -> service.discoverLocalNetwork(9L)));
+
+        verifyNoInteractions(localNetworkDiscoveryService, detectedDeviceRepository, discoverySnapshotRepository);
+    }
+
+    @Test
+    void validatesTargetAndProjectBeforeManualScanAndDoesNotAcquireCooldownForOutOfScopeHost() {
+        NetworkHost host = new NetworkHost();
+        host.setId(7L);
+        host.setAddress("192.168.10.25");
+        host.setDisplayName("Managed host");
+        host.setProyectoId(9L);
+        host.setManagedByUi(true);
+        when(hostRepository.findById(7L)).thenReturn(Optional.of(host));
+        org.mockito.Mockito.doThrow(new NetworkScopeRejectedException("target outside scope"))
+            .when(networkScopeGuard).requireAuthorizedTarget(1L, 9L, host.getAddress());
+
+        assertThrows(NetworkScopeRejectedException.class, () ->
+            service.validateManualScanScope(7L, 9L, 1L));
+
+        verifyNoInteractions(localNetworkDiscoveryService, scanRepository, portResultRepository);
+        org.mockito.Mockito.verifyNoInteractions(scanLockService);
+    }
+
+    @Test
     void refusesHostsThatAreNotInTheOperatorAllowlist() {
         NetworkHost host = new NetworkHost();
         host.setId(7L);
@@ -270,6 +394,25 @@ class NetworkMonitoringServiceTest {
     }
 
     @Test
+    void doesNotReassignAHostFromAnotherProjectDuringRegistration() {
+        NetworkHost host = new NetworkHost();
+        host.setId(7L);
+        host.setAddress("192.168.1.25");
+        host.setDisplayName("Existing device");
+        host.setProyectoId(10L);
+        host.setManagedByUi(true);
+        when(hostRepository.findByAddressIgnoreCase("192.168.1.25")).thenReturn(Optional.of(host));
+
+        assertThrows(
+            EntityNotFoundException.class,
+            () -> TenantContext.runAs(1L,
+                () -> service.registerHost("New name", "192.168.1.25", List.of(80), 11L)));
+
+        verify(hostRepository, never()).save(any(NetworkHost.class));
+        verifyNoInteractions(monitoredPortRepository);
+    }
+
+    @Test
     void registersPrivateLanDevicesWithTheirConfiguredPorts() {
         when(hostRepository.findByAddressIgnoreCase("192.168.1.25")).thenReturn(Optional.empty());
         when(hostRepository.save(any(NetworkHost.class))).thenAnswer((Answer<NetworkHost>) invocation -> {
@@ -278,7 +421,10 @@ class NetworkMonitoringServiceTest {
             return host;
         });
 
-        var result = service.registerHost(" NAS ", "192.168.1.25", List.of(22, 443));
+        var result = TenantContext.runAs(
+            1L,
+            () -> service.registerHost(" NAS ", "192.168.1.25", List.of(22, 443), 9L)
+        );
 
         assertEquals("NAS", result.name());
         assertEquals("192.168.1.25", result.address());
@@ -300,7 +446,7 @@ class NetworkMonitoringServiceTest {
         List<Integer> ports = java.util.stream.IntStream.rangeClosed(1, 33).boxed().toList();
 
         assertThrows(IllegalArgumentException.class, () ->
-            service.registerHost("Workstation", "192.168.1.25", ports));
+            service.registerHost("Workstation", "192.168.1.25", ports, 9L));
 
         verifyNoInteractions(hostRepository, scanRepository, portResultRepository, eventRepository, monitoredPortRepository);
     }
@@ -327,9 +473,11 @@ class NetworkMonitoringServiceTest {
 
     @Test
     void rejectsPortsOutsideTcpPortRange() {
-        assertThrows(IllegalArgumentException.class, () -> service.addMonitoredPort(7L, 65536));
+        for (int port : List.of(0, 70_000)) {
+            assertThrows(IllegalArgumentException.class, () -> service.addMonitoredPort(7L, port));
+        }
 
-        verifyNoInteractions(hostRepository, monitoredPortRepository);
+        verifyNoInteractions(hostRepository, monitoredPortRepository, networkProbe, portScanExecutor);
     }
 
     @Test
@@ -361,13 +509,13 @@ class NetworkMonitoringServiceTest {
         host.setLatencyMs(12);
         when(hostRepository.findAll()).thenReturn(List.of(host));
 
-        service.clearHistory();
+        TenantContext.runAs(1L, () -> service.clearHistory());
 
-        verify(discoveryEventRepository).deleteAllInBatch();
-        verify(discoverySnapshotRepository).deleteAllInBatch();
-        verify(eventRepository).deleteAllInBatch();
-        verify(portResultRepository).deleteAllInBatch();
-        verify(scanRepository).deleteAllInBatch();
+        verify(discoveryEventRepository).deleteAllForAccount(1L);
+        verify(discoverySnapshotRepository).deleteAllForAccount(1L);
+        verify(eventRepository).deleteAllForAccount(1L);
+        verify(portResultRepository).deleteAllForAccount(1L);
+        verify(scanRepository).deleteAllForAccount(1L);
         verify(hostRepository).saveAll(List.of(host));
         assertEquals(NetworkHostStatus.UNKNOWN, host.getStatus());
         assertNull(host.getLatencyMs());
@@ -376,12 +524,14 @@ class NetworkMonitoringServiceTest {
     @Test
     void purgesExpiredHistoryInForeignKeySafeBatches() {
         List<Long> expiredScanIds = List.of(12L, 13L);
-        when(scanRepository.findIdsStartedBefore(any(), any())).thenReturn(expiredScanIds);
-        when(eventRepository.findUnlinkedIdsBefore(any(), any())).thenReturn(List.of(21L, 22L, 23L));
-        when(discoveryEventRepository.findIdsCreatedBefore(any(), any())).thenReturn(List.of(31L, 32L, 33L, 34L));
-        when(discoverySnapshotRepository.findIdsObservedBefore(any(), any())).thenReturn(List.of(41L, 42L, 43L, 44L, 45L));
+        when(scanRepository.findIdsStartedBefore(any(), any(), any())).thenReturn(expiredScanIds);
+        when(eventRepository.findUnlinkedIdsBefore(any(), any(), any())).thenReturn(List.of(21L, 22L, 23L));
+        when(discoveryEventRepository.findIdsCreatedBefore(any(), any(), any()))
+            .thenReturn(List.of(31L, 32L, 33L, 34L));
+        when(discoverySnapshotRepository.findIdsObservedBefore(any(), any(), any()))
+            .thenReturn(List.of(41L, 42L, 43L, 44L, 45L));
 
-        int deletedRecords = service.purgeExpiredHistory();
+        int deletedRecords = TenantContext.runAs(1L, service::purgeExpiredHistory);
 
         assertEquals(14, deletedRecords);
         verify(eventRepository).deleteAllForScans(expiredScanIds);
@@ -406,9 +556,13 @@ class NetworkMonitoringServiceTest {
             discoverySnapshotRepository,
             monitoredPortRepository,
             properties,
+            networkScopeGuard,
+            networkCapabilityGuard,
+            scanLockService,
             localNetworkDiscoveryService,
             transactionManager,
-            portProbeExecutor
+            networkProbe,
+            portScanExecutor
         ));
     }
 

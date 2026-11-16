@@ -10,5 +10,6 @@
             "environmentVariable": "JAVA_HOME",
             "value": "C:\\Users\\Luis David\\AppData\\Local\\jdks\\jdk-25.0.2"
         }
-    ]
+    ],
+    "python.terminal.useEnvFile": true
 }

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verificar segundo factor</title>
+</head>
+<body>
+<main>
+    <h1>Verifica tu identidad</h1>
+    <p>Ingresa el código de tu aplicación TOTP o uno de tus códigos de recuperación.</p>
+    <p th:if="${error}" role="alert" th:text="${error}"></p>
+    <form method="post" th:action="@{/mfa/verify}">
+        <label for="code">Código</label>
+        <input id="code" name="code" autocomplete="one-time-code" required>
+        <button type="submit">Continuar</button>
+    </form>
+</main>
+</body>
+</html>

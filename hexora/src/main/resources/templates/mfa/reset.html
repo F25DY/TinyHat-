@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reiniciar MFA</title>
+</head>
+<body>
+<main>
+    <h1>Reiniciar autenticación multifactor</h1>
+    <p>Se eliminará la credencial y los códigos de recuperación. Tendrás que iniciar sesión y configurar MFA nuevamente.</p>
+    <form method="post" th:action="@{/mfa/reset}">
+        <button type="submit">Reiniciar MFA</button>
+    </form>
+</main>
+</body>
+</html>

@@ -34,6 +34,14 @@ public interface PortScanResultRepository extends JpaRepository<PortScanResult, 
     int deleteAllForHost(@Param("hostId") Long hostId);
 
     @Modifying
+    @Query("delete from PortScanResult result where result.host.proyectoId = :projectId")
+    int deleteAllForProject(@Param("projectId") Long projectId);
+
+    @Modifying
     @Query("delete from PortScanResult result where result.scan.id in :scanIds")
     int deleteAllForScans(@Param("scanIds") List<Long> scanIds);
+
+    @Modifying
+    @Query("delete from PortScanResult result where result.cuentaId = :cuentaId")
+    int deleteAllForAccount(@Param("cuentaId") Long cuentaId);
 }

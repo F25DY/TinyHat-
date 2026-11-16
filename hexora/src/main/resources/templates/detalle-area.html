@@ -2,10 +2,10 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hexora - Detalle Departamento</title>
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -45,9 +45,11 @@
                     <span class="correo-usuario">analista@gmail.com</span>
                 </div>
             </div>
-            <a th:href="@{/}" class="boton-cerrar-sesion">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                </button>
+            </form>
         </div>
     </aside>
 
@@ -55,17 +57,23 @@
 
         <!-- Header: nombre del departamento + proyecto + botón agregar vulnerabilidad -->
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos/{id}(id=${proyecto.id})}" class="link-volver">
+            <a th:href="@{/proyectos/{id}(id=${proyecto.publicId})}" class="link-volver">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div class="titulos-nuevo">
                 <h1 class="titulo-pagina" th:text="${departamento.nombre}">Nombre Departamento</h1>
                 <p class="subtitulo" th:text="${proyecto.nombre}">Nombre Proyecto</p>
             </div>
-            <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.id}, did=${departamento.id})}"
-                style="text-decoration: none;">
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+                class="no-underline">
                 <button class="btn-crear">
                     <i class="fa-solid fa-plus"></i> Agregar Vulnerabilidad
+                </button>
+            </a>
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/editar(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+                class="no-underline">
+                <button class="btn-crear">
+                    <i class="fa-solid fa-pen-to-square"></i> Editar área
                 </button>
             </a>
         </header>
@@ -106,7 +114,7 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="buscador"
                     placeholder="Buscar vulnerabilidades por nombre o tipo..."
-                    onkeyup="filtrarTabla()">
+                    >
             </div>
         </section>
 
@@ -124,7 +132,7 @@
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(vulnerabilidades)}">
-                    <td colspan="6" style="text-align: center;">
+                    <td colspan="6" class="text-centered">
                         No hay vulnerabilidades registradas en este departamento
                     </td>
                 </tr>
@@ -133,8 +141,8 @@
 
                     <!-- Nombre clickeable que lleva al detalle de la vulnerabilidad -->
                     <td class="nombre-destacado">
-                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.id}, did=${departamento.id}, vid=${vuln.id})}"
-                            style="text-decoration: none; color: inherit;">
+                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
+                            class="no-underline inherit-color">
                             <span th:text="${vuln.nombre}"></span>
                         </a>
                     </td>
@@ -167,16 +175,15 @@
                     <td class="acciones-tabla">
 
                         <!-- Botón editar -->
-                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.id}, did=${departamento.id}, vid=${vuln.id})}"
+                        <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
                            class="btn-icono btn-editar">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </a>
 
                         <!-- Botón eliminar (corrección del docente) -->
-                        <form th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/eliminar/{vid}(pid=${proyecto.id}, did=${departamento.id}, vid=${vuln.id})}"
-                              method="post" style="display: inline;">
-                            <button type="submit" class="btn-icono btn-eliminar"
-                                    onclick="return confirm('¿Estás seguro de eliminar esta vulnerabilidad?')">
+                        <form th:if="${canManageProjects}" th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/eliminar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
+                              method="post" class="inline-form" data-confirm-message="¿Estás seguro de eliminar esta vulnerabilidad?">
+                            <button type="submit" class="btn-icono btn-eliminar">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </form>
@@ -188,16 +195,7 @@
 
     </main>
 
-    <script>
-        function filtrarTabla() {
-            const texto = document.getElementById('buscador').value.toLowerCase();
-            const filas = document.querySelectorAll('tbody tr');
-            filas.forEach(fila => {
-                const contenido = fila.textContent.toLowerCase();
-                fila.style.display = contenido.includes(texto) ? '' : 'none';
-            });
-        }
-    </script>
+    <script th:src="@{/js/area-filter.js(v=1)}" defer></script>
 
 </body>
 </html>

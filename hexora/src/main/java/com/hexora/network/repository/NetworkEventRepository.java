@@ -13,14 +13,31 @@ public interface NetworkEventRepository extends JpaRepository<NetworkEvent, Long
 
     List<NetworkEvent> findTop20ByOrderByCreatedAtDesc();
 
+    List<NetworkEvent> findTop20ByHost_ProyectoIdOrderByCreatedAtDesc(Long proyectoId);
+
     @Modifying
     @Query("delete from NetworkEvent event where event.host.id = :hostId")
     int deleteAllForHost(@Param("hostId") Long hostId);
 
     @Modifying
+    @Query("delete from NetworkEvent event where event.host.proyectoId = :projectId")
+    int deleteAllForProject(@Param("projectId") Long projectId);
+
+    @Modifying
     @Query("delete from NetworkEvent event where event.scan.id in :scanIds")
     int deleteAllForScans(@Param("scanIds") List<Long> scanIds);
 
-    @Query("select event.id from NetworkEvent event where event.scan is null and event.createdAt < :cutoff order by event.createdAt, event.id")
-    List<Long> findUnlinkedIdsBefore(@Param("cutoff") LocalDateTime cutoff, Pageable pageable);
+    @Modifying
+    @Query("delete from NetworkEvent event where event.cuentaId = :cuentaId")
+    int deleteAllForAccount(@Param("cuentaId") Long cuentaId);
+
+    @Query("""
+        select event.id from NetworkEvent event
+        where event.cuentaId = :cuentaId and event.scan is null and event.createdAt < :cutoff
+        order by event.createdAt, event.id
+        """)
+    List<Long> findUnlinkedIdsBefore(
+        @Param("cutoff") LocalDateTime cutoff,
+        @Param("cuentaId") Long cuentaId,
+        Pageable pageable);
 }
