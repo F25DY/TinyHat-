@@ -1,6 +1,8 @@
 package com.hexora.hexora.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -31,6 +33,11 @@ class RateLimitCategoryTest {
         assertEquals(RateLimitCategory.POLL, classify("/api/network/history", properties));
         assertEquals(RateLimitCategory.POLL, classify("/api/network/discoveries/history", properties));
         assertEquals(RateLimitCategory.API_GENERAL, classify("/api/network/scan", properties));
+        // Los archivos de /vendor (Bootstrap, Font Awesome, fuentes) son estáticos: no gastan el cupo de la IP.
+        assertTrue(RateLimitCategory.isStaticResource("/vendor/bootstrap/bootstrap.min.css"));
+        assertTrue(RateLimitCategory.isStaticResource("/vendor/fonts/fonts.css"));
+        assertFalse(RateLimitCategory.isStaticResource("/vendors/x.css"));
+        assertFalse(RateLimitCategory.isStaticResource("/api/vendor/x"));
         assertEquals(RateLimitCategory.API_GENERAL, classify("/api/network/detected-devices", properties));
     }
 

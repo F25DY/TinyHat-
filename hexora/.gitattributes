@@ -1,2 +1,6 @@
 # Shell scripts run inside Linux containers: they must keep LF line endings on Windows checkouts.
 *.sh text eol=lf
+
+# Bibliotecas de terceros alojadas (Bootstrap, Font Awesome, fuentes): sin normalizar fin de línea, para que sean idénticas byte a byte
+# a las publicadas y coincidan con las huellas de docs/security/frontend-vendor.md.
+src/main/resources/static/vendor/** -text

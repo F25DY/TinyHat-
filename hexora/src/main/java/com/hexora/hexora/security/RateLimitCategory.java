@@ -73,7 +73,7 @@ enum RateLimitCategory {
     }
 
     static boolean isStaticResource(String path) {
-        return matches(path, "/css/**", "/js/**", "/img/**", "/imagen/**", "/favicon.ico",
+        return matches(path, "/css/**", "/js/**", "/img/**", "/imagen/**", "/vendor/**", "/favicon.ico",
             "/webjars/**", "/actuator/health", "/actuator/health/**");
     }
 

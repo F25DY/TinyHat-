@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Proyectos</title>
+    <title>TinyHat - Proyectos</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
 <body>
 
@@ -13,7 +16,7 @@
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
 
@@ -72,7 +75,7 @@
             </div>
 
             <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}" class="no-underline">
-                <button class="btn-crear">
+                <button class="btn btn-crear">
                     <i class="fa-solid fa-plus"></i> Crear Proyecto
                 </button>
             </a>
@@ -83,7 +86,7 @@
 
             <div class="campo-busqueda">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="buscador"
+                <input class="form-control" type="text" id="buscador"
                     placeholder="Buscar proyectos por nombre o empresa..."
                     >
             </div>
@@ -92,7 +95,8 @@
 
         <section class="tabla-contenedor tarjeta-blanca">
             <p class="contador-proyectos" th:text="'Proyectos cargados: ' + ${#lists.size(auditorias)}"></p>
-            <table class="tabla-hexora">
+            <div class="table-responsive">
+            <table class="tabla-hexora table">
                 <thead>
                     <tr>
                         <th>Proyecto</th>
@@ -127,10 +131,10 @@
                         </td>
                         <td th:text="${aud.fechaInico}"></td>
                         <td th:text="${aud.fechaFin}"></td>
-                        <td>
-                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="btn-verdetalle">Ver</a>
+                        <td class="acciones-tabla">
+                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="btn btn-verdetalle">Ver</a>
                             <form th:if="${canManageProjects}" th:action="@{/proyectos/{id}/eliminar(id=${aud.publicId})}" method="post" class="inline-form" data-confirm-message="¿Eliminar proyecto?">
-                                <button type="submit" class="btn-eliminar">
+                                <button type="submit" class="btn btn-eliminar">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </form>
@@ -138,6 +142,7 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
 
             <p class="contador-proyectos" th:if="${not #lists.isEmpty(auditorias)}"
                 th:text="'Mostrando ' + ${#lists.size(auditorias)} + ' proyectos'">

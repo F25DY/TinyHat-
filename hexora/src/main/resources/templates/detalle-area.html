@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Detalle Departamento</title>
+    <title>TinyHat - Detalle Departamento</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
 <body>
 
@@ -13,7 +16,7 @@
         <div class="logo-plataforma">
             <div class="textos-marca">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </div>
         </div>
         <nav class="menu">
@@ -85,23 +88,23 @@
         </section>
 
         <!-- Tarjetas de severidad -->
-        <section class="seccion-metricas">
-            <article class="tarjeta-blanca">
+        <section class="seccion-metricas row g-3">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo rojo"><i class="fa-solid fa-bolt"></i></div>
                 <h2 class="numero-grande" th:text="${metricas.critico}">0</h2>
                 <p class="texto-gris">Crítico</p>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo naranja"><i class="fas fa-exclamation-triangle"></i></div>
                 <h2 class="numero-grande" th:text="${metricas.alto}">0</h2>
                 <p class="texto-gris">Alto</p>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo amarillo"><i class="fa-solid fa-minus"></i></div>
                 <h2 class="numero-grande" th:text="${metricas.medio}">0</h2>
                 <p class="texto-gris">Medio</p>
             </article>
-            <article class="tarjeta-blanca">
+            <article class="tarjeta-blanca col-md-3">
                 <div class="icono-circulo verde"><i class="fa-solid fa-check"></i></div>
                 <h2 class="numero-grande" th:text="${metricas.bajo}">0</h2>
                 <p class="texto-gris">Bajo</p>
@@ -119,7 +122,8 @@
         </section>
 
         <!-- Tabla de vulnerabilidades -->
-        <table class="tabla-hexora">
+        <div class="table-responsive tarjeta-blanca">
+        <table class="tabla-hexora table">
             <thead>
                 <tr>
                     <th>Vulnerabilidad</th>
@@ -137,7 +141,7 @@
                     </td>
                 </tr>
 
-                <tr th:each="vuln : ${vulnerabilidades}">
+                    <tr th:each="vuln : ${vulnerabilidades}">
 
                     <!-- Nombre clickeable que lleva al detalle de la vulnerabilidad -->
                     <td class="nombre-destacado">
@@ -147,32 +151,32 @@
                         </a>
                     </td>
 
-                    <td class="texto-gris" th:text="${vuln.tipo}"></td>
+                        <td class="texto-gris" th:text="${vuln.tipo}"></td>
 
-                    <!-- Badge de riesgo con color según nivel -->
-                    <td>
-                        <span th:text="${vuln.riesgo}"
-                              th:classappend="${vuln.riesgo == 'Critico'} ? 'badge-rojo' :
+                        <!-- Badge de riesgo con color según nivel -->
+                        <td>
+                            <span th:text="${vuln.riesgo}"
+                                  th:classappend="${vuln.riesgo == 'Critico'} ? 'badge-rojo' :
                                              (${vuln.riesgo == 'Alto'} ? 'badge-naranja' :
                                              (${vuln.riesgo == 'Medio'} ? 'badge-amarillo' : 'badge-verde'))"
-                              class="badge">
-                        </span>
-                    </td>
+                                  class="badge">
+                            </span>
+                        </td>
 
-                    <!-- Badge de estado -->
-                    <td>
-                        <span th:text="${vuln.estado}"
-                              th:classappend="${vuln.estado == 'Abierta'} ? 'badge-rojo' :
+                        <!-- Badge de estado -->
+                        <td>
+                            <span th:text="${vuln.estado}"
+                                  th:classappend="${vuln.estado == 'Abierta'} ? 'badge-rojo' :
                                              (${vuln.estado == 'En Progreso'} ? 'badge-azul' :
                                              (${vuln.estado == 'Mitigada'} ? 'badge-verde' : 'badge-gris'))"
-                              class="badge">
-                        </span>
-                    </td>
+                                  class="badge">
+                            </span>
+                        </td>
 
-                    <td class="texto-gris" th:text="${vuln.fechaDeteccion}"></td>
+                        <td class="texto-gris" th:text="${vuln.fechaDeteccion}"></td>
 
-                    <!-- Acciones: editar y eliminar -->
-                    <td class="acciones-tabla">
+                        <!-- Acciones: editar y eliminar -->
+                        <td class="acciones-tabla">
 
                         <!-- Botón editar -->
                         <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
@@ -188,10 +192,11 @@
                             </button>
                         </form>
 
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
     </main>
 

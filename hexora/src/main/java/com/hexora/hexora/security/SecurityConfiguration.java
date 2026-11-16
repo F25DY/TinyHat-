@@ -44,6 +44,22 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 @EnableMethodSecurity
 public class SecurityConfiguration {
 
+	private static final String[] STATIC_ROOTS = {"/css", "/js", "/img", "/imagen", "/vendor"};
+
+	/**
+	 * Verdadero para una ruta bajo una carpeta de recursos estáticos cuyo último tramo no es un archivo (todos los
+	 * archivos estáticos llevan extensión). Se deniega para que no se sirva el listado del directorio.
+	 */
+	static boolean isStaticDirectoryRequest(HttpServletRequest request) {
+		String path = request.getRequestURI();
+		for (String root : STATIC_ROOTS) {
+			if (path.equals(root) || path.startsWith(root + "/")) {
+				return path.substring(path.lastIndexOf('/') + 1).indexOf('.') < 0;
+			}
+		}
+		return false;
+	}
+
 	private final ObjectMapper objectMapper;
 	private final String sessionCookieName;
 	private final String contentSecurityPolicy;
@@ -343,6 +359,10 @@ public class SecurityConfiguration {
 					.sessionRegistry(sessionRegistry);
 			})
 			.authorizeHttpRequests(authorize -> authorize
+				// Los directorios de recursos estáticos no se sirven: con la aplicación corriendo desde target/classes
+				// (IDE, mvn spring-boot:run) Spring devolvería el listado de archivos (CWE-548).
+				.requestMatchers(SecurityConfiguration::isStaticDirectoryRequest)
+					.denyAll()
 				.requestMatchers(
 					"/",
 					"/login",
@@ -358,6 +378,7 @@ public class SecurityConfiguration {
 					"/js/**",
 					"/img/**",
 					"/imagen/**",
+					"/vendor/**",
 					"/favicon.ico"
 				).permitAll()
 					.requestMatchers("/mfa/**").authenticated()
