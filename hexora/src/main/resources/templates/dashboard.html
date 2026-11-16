@@ -12,6 +12,7 @@
 </head>
 <body class="pagina-dashboard">
 
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></th:block>
 
     <main class="contenido-principal panel">
@@ -20,23 +21,29 @@
                 <h1 class="panel-saludo" data-tinyhat-greeting>Hola</h1>
                 <p class="panel-sesion" th:text="${usuarioActual}">usuario@ejemplo.com</p>
             </div>
-            <a th:href="@{/network-monitoring}" class="btn btn-primario panel-accion">
-                <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
-                Escanear red WiFi
-            </a>
+            <div class="panel-acciones">
+                <a th:href="@{/network-monitoring}" class="btn btn-secundario panel-accion">
+                    <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
+                    Escanear red
+                </a>
+                <a th:href="@{/proyectos/nuproyectos}" class="btn btn-primario panel-accion">
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                    Nuevo proyecto
+                </a>
+            </div>
         </header>
 
         <!-- Cuenta nueva: no hay nada que medir todavía. El recorrido sí es una secuencia. -->
         <section th:if="${resumen.sinProyectos()}" class="panel-inicio" aria-labelledby="inicio-titulo">
             <h2 id="inicio-titulo">Empieza por tu primer proyecto</h2>
-            <p>Un proyecto agrupa los departamentos de una empresa y los hallazgos de seguridad que encuentres en ellos.</p>
+            <p>Un proyecto agrupa las áreas que auditas en una empresa, como un servidor, una aplicación o una página web, y los hallazgos de seguridad que encuentres en ellas.</p>
             <ol class="pasos">
                 <li>
                     <strong>Crea el proyecto</strong>
                     <span>Indica la empresa, el tipo de auditoría y las fechas.</span>
                 </li>
                 <li>
-                    <strong>Añade un departamento</strong>
+                    <strong>Añade un área</strong>
                     <span>Por ejemplo, aplicaciones web o infraestructura.</span>
                 </li>
                 <li>
@@ -61,7 +68,7 @@
                 </div>
 
                 <p th:if="${resumen.sinHallazgosAbiertos()}" class="exposicion-vacia">
-                    No hay hallazgos abiertos. Cuando registres uno desde el departamento de un proyecto, aparecerá aquí.
+                    No hay hallazgos abiertos. Cuando registres uno desde un área de un proyecto, aparecerá aquí.
                 </p>
 
                 <ul class="exposicion-leyenda">
@@ -88,6 +95,33 @@
                 </div>
             </dl>
 
+            <section class="proyectos-seccion" aria-labelledby="proyectos-titulo">
+                <div class="seccion-cabecera">
+                    <h2 id="proyectos-titulo">Proyectos</h2>
+                    <a th:href="@{/proyectos}" class="enlace-sutil">Ver todos</a>
+                </div>
+                <ul class="proyectos-grid">
+                    <li th:each="proyecto : ${resumen.proyectosLista}">
+                        <a class="proyecto-card" th:href="@{/proyectos/{id}(id=${proyecto.publicId})}">
+                            <span class="proyecto-nombre" th:text="${proyecto.nombre}">Nombre del proyecto</span>
+                            <span class="proyecto-empresa" th:if="${proyecto.empresa != null}" th:text="${proyecto.empresa}">Empresa</span>
+                            <span class="proyecto-estado">
+                                <span class="punto-riesgo" th:classappend="${'riesgo-' + proyecto.claveNivel}" aria-hidden="true"></span>
+                                <span th:if="${proyecto.abiertos == 0}">Sin hallazgos abiertos</span>
+                                <span th:if="${proyecto.abiertos > 0}"
+                                      th:text="|${proyecto.abiertos} ${proyecto.abiertos == 1 ? 'abierto' : 'abiertos'}, ${proyecto.nivel}|">2 abiertos, Alto</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="proyecto-card proyecto-nuevo" th:href="@{/proyectos/nuproyectos}">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            <span>Nuevo proyecto</span>
+                        </a>
+                    </li>
+                </ul>
+            </section>
+
             <section class="recientes-seccion" aria-labelledby="recientes-titulo">
                 <h2 id="recientes-titulo">Hallazgos recientes</h2>
 
@@ -101,7 +135,7 @@
                                 <span th:text="${hallazgo.nivel}">Crítico</span>,
                                 <span th:text="${hallazgo.estado}">Abierta</span>.
                                 <span th:text="${hallazgo.proyecto}">Proyecto</span>,
-                                <span th:text="${hallazgo.departamento}">Departamento</span>
+                                <span th:text="${hallazgo.departamento}">Área</span>
                             </span>
                         </div>
                         <time class="recientes-fecha" th:datetime="${hallazgo.fecha}"
@@ -111,7 +145,7 @@
 
                 <p th:if="${#lists.isEmpty(resumen.recientes)}" class="recientes-vacio">
                     Todavía no has registrado hallazgos.
-                    <a th:href="@{/proyectos}">Abre un proyecto</a> y añádelos desde su departamento.
+                    <a th:href="@{/proyectos}">Abre un proyecto</a> y añádelos desde su área.
                 </p>
             </section>
         </th:block>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Fondo animado y tenue de las páginas oscuras. Solo decora: no recibe clics ni lo anuncian los lectores de pantalla. -->
+<th:block th:fragment="fondo">
+    <div class="fondo-red-capa" aria-hidden="true"><canvas id="fondo-red"></canvas></div>
+    <script th:src="@{/js/fondo-red.js(v=1)}" defer></script>
+</th:block>
+</body>
+</html>

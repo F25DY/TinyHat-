@@ -10,24 +10,29 @@
     <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
-<body>
+<body class="pagina-oscura">
 
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-    <main class="contenido-principal">
+    <main class="contenido-principal panel-detalle"
+          th:with="claveRiesgo=${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'critico' : (${vulnerabilidad.nivelRiesgo == 'Alto'} ? 'alto' : (${vulnerabilidad.nivelRiesgo == 'Medio'} ? 'medio' : 'bajo')),
+                   nombreRiesgo=${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'Crítico' : ${vulnerabilidad.nivelRiesgo}">
+      <div class="columna-central">
 
+        <!-- Cabecera: volver, nombre con su nivel y la única acción de edición -->
         <header class="encabezado-retorno">
             <a th:href="@{/proyectos/{pid}/departamentos/{did}(pid=${proyecto.publicId}, did=${departamento.publicId})}"
-               class="link-volver">
-                <i class="fa-solid fa-arrow-left"></i>
+               class="link-volver" aria-label="Volver al área">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
             <div class="titulos-nuevo">
                 <div class="titulo-con-badge">
                     <h1 class="titulo-pagina" th:text="${vulnerabilidad.nombre}">Nombre Vulnerabilidad</h1>
-                    <span th:text="${vulnerabilidad.nivelRiesgo}"
-                          th:classappend="${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'badge-rojo' :
-                                         (${vulnerabilidad.nivelRiesgo == 'Alto'} ? 'badge-naranja' :
-                                         (${vulnerabilidad.nivelRiesgo == 'Medio'} ? 'badge-amarillo' : 'badge-verde'))"
+                    <span th:text="${nombreRiesgo}"
+                          th:classappend="${claveRiesgo == 'critico'} ? 'badge-rojo' :
+                                         (${claveRiesgo == 'alto'} ? 'badge-naranja' :
+                                         (${claveRiesgo == 'medio'} ? 'badge-amarillo' : 'badge-verde'))"
                           class="badge">
                     </span>
                 </div>
@@ -38,111 +43,125 @@
                 </p>
             </div>
             <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vulnerabilidad.publicId})}"
-               class="no-underline">
-                <button class="btn-crear">
-                    <i class="fa-solid fa-pen-to-square"></i> Editar
-                </button>
+               class="btn btn-primario">
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Editar
             </a>
         </header>
 
-        <section class="tarjeta-blanca estado-actual">
-            <div class="estado-con-icono">
-                <i class="fa-solid fa-triangle-exclamation"
-                   th:classappend="${vulnerabilidad.estado == 'Abierta'} ? 'icono-rojo' :
-                                   (${vulnerabilidad.estado == 'En Progreso'} ? 'icono-azul' :
-                                   (${vulnerabilidad.estado == 'Mitigada'} ? 'icono-verde' : 'icono-gris'))">
-                </i>
+        <!-- Estado: una etiqueta pequeña arriba a la izquierda, no una tarjeta a todo el ancho -->
+        <p class="estado-chip">
+            <span class="punto-estado"
+                  th:classappend="${vulnerabilidad.estado == 'Abierta'} ? 'estado-abierta' :
+                                 (${vulnerabilidad.estado == 'En Progreso'} ? 'estado-progreso' :
+                                 (${vulnerabilidad.estado == 'Mitigada'} ? 'estado-mitigada' : 'estado-aceptada'))"
+                  aria-hidden="true"></span>
+            <span class="estado-chip-etiqueta">Estado actual</span>
+            <strong th:text="${vulnerabilidad.estado}">Abierta</strong>
+        </p>
+
+        <!-- Métricas: lo más grande de la página -->
+        <section class="metricas-vuln" aria-label="Métricas de la vulnerabilidad">
+            <article class="metrica-vuln">
+                <p class="metrica-etiqueta">Impacto</p>
+                <p class="metrica-valor" th:text="${vulnerabilidad.impacto} + '/10'">0/10</p>
+            </article>
+            <article class="metrica-vuln">
+                <p class="metrica-etiqueta">Probabilidad</p>
+                <p class="metrica-valor" th:text="${vulnerabilidad.probabilidad} + '/10'">0/10</p>
+            </article>
+            <article class="metrica-vuln metrica-nivel">
+                <p class="metrica-etiqueta">Nivel de riesgo</p>
+                <p class="metrica-valor">
+                    <span class="punto-riesgo punto-grande" th:classappend="${'riesgo-' + claveRiesgo}" aria-hidden="true"></span>
+                    <span th:text="${nombreRiesgo}">Bajo</span>
+                </p>
+            </article>
+            <article class="metrica-vuln">
+                <p class="metrica-etiqueta">Fecha de detección</p>
+                <p class="metrica-valor metrica-fecha" th:text="${#temporals.format(vulnerabilidad.fechaDeteccion, 'dd/MM/yyyy')} ?: '—'">01/01/2026</p>
+            </article>
+        </section>
+
+        <!-- Información general: el activo afectado, separado de las métricas -->
+        <section class="info-general" aria-labelledby="activo-titulo">
+            <h2 id="activo-titulo" class="seccion-titulo">Activo afectado</h2>
+            <dl class="datos-vuln">
                 <div>
-                    <p class="texto-gris">Estado Actual</p>
-                    <p class="estado-texto" th:text="${vulnerabilidad.estado}">Abierta</p>
+                    <dt>Herramienta</dt>
+                    <dd th:text="${vulnerabilidad.herramienta} ?: '—'">—</dd>
                 </div>
-            </div>
+                <div>
+                    <dt>Host</dt>
+                    <dd th:text="${vulnerabilidad.host} ?: '—'">—</dd>
+                </div>
+                <div>
+                    <dt>IP</dt>
+                    <dd th:text="${vulnerabilidad.ipAfectada} ?: '—'">—</dd>
+                </div>
+                <div>
+                    <dt>Puerto</dt>
+                    <dd th:text="${vulnerabilidad.puerto} ?: '—'">—</dd>
+                </div>
+                <div>
+                    <dt>Servicio</dt>
+                    <dd th:text="${vulnerabilidad.servicio} ?: '—'">—</dd>
+                </div>
+                <div>
+                    <dt>CVE</dt>
+                    <dd th:text="${vulnerabilidad.cve} ?: '—'">—</dd>
+                </div>
+            </dl>
         </section>
 
-        <section class="seccion-metricas row g-3">
-            <article class="tarjeta-blanca col-md-3">
-                <p class="texto-gris">Impacto</p>
-                <h2 class="numero-grande" th:text="${vulnerabilidad.impacto} + '/10'">0/10</h2>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <p class="texto-gris">Probabilidad</p>
-                <h2 class="numero-grande" th:text="${vulnerabilidad.probabilidad} + '/10'">0/10</h2>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <p class="texto-gris">Nivel de Riesgo</p>
-                <h2 class="numero-grande" th:text="${vulnerabilidad.nivelRiesgo}">Bajo</h2>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <p class="texto-gris">Fecha de Deteccion</p>
-                <h2 class="numero-grande" th:text="${vulnerabilidad.fechaDeteccion}">--</h2>
-            </article>
-        </section>
+        <!-- Análisis CIA: barras con el mismo estilo de siempre, en el diseño oscuro -->
+        <section class="tarjeta-blanca bloque-vuln" aria-labelledby="cia-titulo">
+            <h2 id="cia-titulo" class="seccion-titulo">Análisis CIA</h2>
 
-        <section class="tarjeta-blanca contenedor-formulario">
-            <h3 class="seccion-form-titulo">Activo Afectado</h3>
-            <div class="grid-form row g-3">
-                <div class="col-md-6">
-                    <p class="texto-gris">Herramienta</p>
-                    <p th:text="${vulnerabilidad.herramienta} ?: '--'">--</p>
-                </div>
-                <div class="col-md-6">
-                    <p class="texto-gris">Host</p>
-                    <p th:text="${vulnerabilidad.host} ?: '--'">--</p>
-                </div>
-                <div class="col-md-6">
-                    <p class="texto-gris">IP</p>
-                    <p th:text="${vulnerabilidad.ipAfectada} ?: '--'">--</p>
-                </div>
-                <div class="col-md-6">
-                    <p class="texto-gris">Puerto</p>
-                    <p th:text="${vulnerabilidad.puerto} ?: '--'">--</p>
-                </div>
-                <div class="col-md-6">
-                    <p class="texto-gris">Servicio</p>
-                    <p th:text="${vulnerabilidad.servicio} ?: '--'">--</p>
-                </div>
-                <div class="col-md-6">
-                    <p class="texto-gris">CVE</p>
-                    <p th:text="${vulnerabilidad.cve} ?: '--'">--</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="tarjeta-blanca contenedor-formulario">
-            <h3 class="seccion-form-titulo">Analisis CIA</h3>
-
-            <div class="cia-item">
-                <div class="cia-header">
+            <div class="cia-fila">
+                <div class="cia-cabecera">
                     <span>Confidencialidad</span>
-                    <span th:text="${vulnerabilidad.confidencialidad} + '/10'">0/10</span>
+                    <span class="cia-valor" th:text="${vulnerabilidad.confidencialidad} + '/10'">0/10</span>
                 </div>
-                <meter class="risk-meter" min="0" max="10" th:value="${vulnerabilidad.confidencialidad}"></meter>
+                <div class="barra-cia" role="meter" aria-label="Confidencialidad" aria-valuemin="0" aria-valuemax="10"
+                     th:attr="aria-valuenow=${vulnerabilidad.confidencialidad}">
+                    <span class="barra-cia-relleno" th:classappend="${'ancho-' + (vulnerabilidad.confidencialidad * 10)}"></span>
+                </div>
             </div>
 
-            <div class="cia-item">
-                <div class="cia-header">
+            <div class="cia-fila">
+                <div class="cia-cabecera">
                     <span>Integridad</span>
-                    <span th:text="${vulnerabilidad.integridad} + '/10'">0/10</span>
+                    <span class="cia-valor" th:text="${vulnerabilidad.integridad} + '/10'">0/10</span>
                 </div>
-                <meter class="risk-meter" min="0" max="10" th:value="${vulnerabilidad.integridad}"></meter>
+                <div class="barra-cia" role="meter" aria-label="Integridad" aria-valuemin="0" aria-valuemax="10"
+                     th:attr="aria-valuenow=${vulnerabilidad.integridad}">
+                    <span class="barra-cia-relleno" th:classappend="${'ancho-' + (vulnerabilidad.integridad * 10)}"></span>
+                </div>
             </div>
 
-            <div class="cia-item">
-                <div class="cia-header">
+            <div class="cia-fila">
+                <div class="cia-cabecera">
                     <span>Disponibilidad</span>
-                    <span th:text="${vulnerabilidad.disponibilidad} + '/10'">0/10</span>
+                    <span class="cia-valor" th:text="${vulnerabilidad.disponibilidad} + '/10'">0/10</span>
                 </div>
-                <meter class="risk-meter" min="0" max="10" th:value="${vulnerabilidad.disponibilidad}"></meter>
+                <div class="barra-cia" role="meter" aria-label="Disponibilidad" aria-valuemin="0" aria-valuemax="10"
+                     th:attr="aria-valuenow=${vulnerabilidad.disponibilidad}">
+                    <span class="barra-cia-relleno" th:classappend="${'ancho-' + (vulnerabilidad.disponibilidad * 10)}"></span>
+                </div>
             </div>
         </section>
 
-        <section class="tarjeta-blanca contenedor-formulario">
-            <h3 class="seccion-form-titulo">Plan de Mitigacion</h3>
-            <p th:text="${vulnerabilidad.planMitigacion} ?: 'Sin plan de mitigacion registrado.'">
-                Sin plan de mitigacion registrado.
+        <!-- Plan de mitigación, al final -->
+        <section class="tarjeta-blanca bloque-vuln" aria-labelledby="plan-titulo">
+            <h2 id="plan-titulo" class="seccion-titulo">Plan de mitigación</h2>
+            <p class="plan-texto" th:if="${vulnerabilidad.planMitigacion != null and !#strings.isEmpty(vulnerabilidad.planMitigacion)}"
+               th:text="${vulnerabilidad.planMitigacion}">Plan de mitigación.</p>
+            <p class="plan-vacio" th:if="${vulnerabilidad.planMitigacion == null or #strings.isEmpty(vulnerabilidad.planMitigacion)}">
+                Todavía no hay un plan de mitigación registrado. Puedes añadirlo con Editar.
             </p>
         </section>
 
+      </div>
     </main>
 
 </body>

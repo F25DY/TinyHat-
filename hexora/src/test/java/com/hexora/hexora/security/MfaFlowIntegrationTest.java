@@ -92,6 +92,9 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
             .andReturn();
         String secret = (String) enrollment.getModelAndView().getModel().get("secret");
         assertThat(secret).isNotBlank();
+        String enrollmentHtml = enrollment.getResponse().getContentAsString();
+        assertThat(enrollmentHtml).contains("class=\"clave-mfa\"").contains(secret).contains("Genera tu clave")
+            .contains("trafico-datos").doesNotContain(" style=\"");
         assertThat((String) enrollment.getModelAndView().getModel().get("provisioningUri"))
             .startsWith("otpauth://totp/")
             .contains("algorithm=SHA1", "digits=6", "period=30");
@@ -118,6 +121,7 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
                 .param("code", totpService.codeForStep(secret, step)))
             .andExpect(status().isOk())
             .andReturn();
+        assertThat(confirmation.getResponse().getContentAsString()).contains("codigos-grid").contains("Tus códigos de recuperación");
 
         assertThat(session.getId()).isNotEqualTo(oldSessionId);
         assertThat((Boolean) jdbcTemplate.queryForObject(
@@ -255,6 +259,20 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
             userId
         )).isEqualTo(1);
         assertThat(session.isInvalid()).isTrue();
+    }
+
+    @Test
+    void publicAccessPagesUseTheSharedLoginLayout() throws Exception {
+        for (String[] page : new String[][] {
+            {"/registro", "Crea tu cuenta de auditor"},
+            {"/recuperar", "¿Olvidaste tu contraseña?"}
+        }) {
+            String html = mockMvc.perform(get(page[0]).with(fromClientIp()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+            assertThat(html).contains(page[1]).contains("trafico-datos").contains("login-vertical")
+                .contains("login-effects.js").doesNotContain(" style=\"");
+        }
     }
 
     private List<String> enrollAndGetRecoveryCodes() throws Exception {

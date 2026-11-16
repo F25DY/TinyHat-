@@ -112,7 +112,7 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 
 		String html = page("/dashboard", world.auditorWithoutProjects());
 		assertThat(html).contains("Empieza por tu primer proyecto").contains("Crea el proyecto")
-			.contains("Añade un departamento").contains("Registra los hallazgos")
+			.contains("Añade un área").contains("Registra los hallazgos")
 			.doesNotContain("hallazgos abiertos").doesNotContain("Hallazgos recientes");
 	}
 
@@ -131,6 +131,147 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		assertThat(html).doesNotContain("Proyecto Gamma").doesNotContain("Oculto").doesNotContain("Proyecto Ajeno")
 			.doesNotContain("Ajeno de B");
 		assertThat(html).as("sin estilos en línea (CSP)").doesNotContain(" style=\"");
+	}
+
+	@Test
+	void theDashboardListsOnlyVisibleProjectsAsLinksWithOpenCounts() throws Exception {
+		World world = world();
+
+		DashboardResumen resumen = resumen(world.accountA(), world.auditorA());
+		assertThat(resumen.proyectosLista()).as("una tarjeta por proyecto visible").hasSize(2);
+		assertThat(resumen.proyectosLista().stream().mapToLong(DashboardResumen.ProyectoResumen::abiertos).sum())
+			.as("los abiertos por proyecto suman los del panel").isEqualTo(resumen.abiertos());
+
+		String html = page("/dashboard", world.auditorA());
+		assertThat(html).contains("proyecto-card").contains("/proyectos/nuproyectos");
+		resumen.proyectosLista().forEach(proyecto ->
+			assertThat(html).contains("href=\"/proyectos/" + proyecto.publicId() + "\""));
+	}
+
+	@Test
+	void theProjectListHasClickableRowsSearchDataAndNoPaths() throws Exception {
+		World world = world();
+
+		DashboardResumen resumen = resumen(world.accountA(), world.auditorA());
+		String html = page("/proyectos", world.auditorA());
+
+		resumen.proyectosLista().forEach(proyecto -> {
+			assertThat(html).contains("data-href=\"/proyectos/" + proyecto.publicId() + "\"");
+			assertThat(html).contains("data-busqueda=\"" + proyecto.nombre());
+		});
+		assertThat(html).as("la ruta ya no se muestra como texto").doesNotContain("project-public-link")
+			.doesNotContain("Proyectos cargados");
+		assertThat(html).contains("id=\"buscador\"").contains("fila-enlace");
+		assertThat(html).doesNotContain("Proyecto Gamma").doesNotContain("Proyecto Ajeno");
+		assertThat(html).as("sin estilos en línea (CSP)").doesNotContain(" style=\"");
+	}
+
+	@Test
+	void theProjectDetailFollowsTheOrderAndUsesAreaInsteadOfDepartment() throws Exception {
+		World world = world();
+
+		String html = page("/proyectos/" + world.sqlProjectId(), world.auditorA());
+
+		int general = html.indexOf("Información general");
+		int metricas = html.indexOf("exposicion-numero");
+		int areas = html.indexOf("Áreas auditadas");
+		int informes = html.indexOf("id=\"reports-panel\"");
+		assertThat(general).isPositive();
+		assertThat(metricas).isGreaterThan(general);
+		assertThat(areas).isGreaterThan(metricas);
+		assertThat(informes).as("los informes van al final").isGreaterThan(areas);
+
+		int topButton = html.indexOf("Agregar área");
+		int bottomButton = html.lastIndexOf("Agregar área");
+		assertThat(topButton).as("botón arriba, antes de la información general").isPositive().isLessThan(general);
+		assertThat(bottomButton).as("botón abajo, después de las áreas").isGreaterThan(areas).isLessThan(informes);
+
+		assertThat(html).contains("area-card").contains("ancho-");
+		assertThat(html).doesNotContain("Departamento").doesNotContain("departamentos registrados");
+		assertThat(html).as("sin estilos en línea (CSP)").doesNotContain(" style=\"");
+	}
+
+	@Test
+	void theAreaDetailSortsByCriticalityAndOffersAnEditDialog() throws Exception {
+		World world = world();
+
+		String html = page("/proyectos/" + world.sqlProjectId() + "/departamentos/" + world.sqlAreaId(), world.auditorA());
+
+		java.util.regex.Matcher rows = java.util.regex.Pattern
+			.compile("data-busqueda=\"[^\"]*\\b(Critico|Alto|Medio|Bajo) (?:En Progreso|[^\" ]+)\"").matcher(html);
+		List<String> order = List.of("Critico", "Alto", "Medio", "Bajo");
+		int previous = -1;
+		int count = 0;
+		while (rows.find()) {
+			int rank = order.indexOf(rows.group(1));
+			assertThat(rank).as("la fila " + count + " no debe ir antes que una más crítica").isGreaterThanOrEqualTo(previous);
+			previous = rank;
+			count++;
+		}
+		assertThat(count).as("hay vulnerabilidades en la tabla").isPositive();
+
+		int general = html.indexOf("Información general");
+		int metricas = html.indexOf("exposicion-numero");
+		int tabla = html.indexOf("id=\"vulnerabilidades-titulo\"");
+		assertThat(metricas).isGreaterThan(general);
+		assertThat(tabla).isGreaterThan(metricas);
+		assertThat(html.indexOf("Agregar vulnerabilidad")).as("botón en la cabecera").isLessThan(general);
+		assertThat(html.lastIndexOf("Agregar vulnerabilidad")).as("botón pequeño bajo la tabla").isGreaterThan(tabla);
+
+		assertThat(html).contains("<dialog id=\"dialogo-area\"").contains("data-abre-dialogo=\"dialogo-area\"")
+			.contains("name=\"nombre\"").contains("name=\"descripcion\"").contains("fila-enlace");
+		assertThat(html).doesNotContain("Departamento").doesNotContain(" style=\"");
+	}
+
+	@Test
+	void theNewVulnerabilityFormIsInThreeStepsWithCveNextToAssetAndRisk() throws Exception {
+		World world = world();
+
+		String html = page("/proyectos/" + world.sqlProjectId() + "/departamentos/" + world.sqlAreaId()
+			+ "/vulnerabilidades/nueva", world.auditorA());
+
+		int paso1 = html.indexOf("id=\"paso-1-titulo\"");
+		int paso2 = html.indexOf("id=\"paso-2-titulo\"");
+		int paso3 = html.indexOf("id=\"paso-3-titulo\"");
+		assertThat(paso1).isPositive();
+		assertThat(paso2).isGreaterThan(paso1);
+		assertThat(paso3).isGreaterThan(paso2);
+		assertThat(html.split("data-paso ", -1).length - 1).as("tres tarjetas de paso").isEqualTo(3);
+
+		int activo = html.indexOf("Activo afectado");
+		int cve = html.indexOf("id=\"f-cve\"");
+		int riesgo = html.indexOf("Evaluación de riesgo");
+		assertThat(activo).as("el activo, el CVE y el riesgo están en el mismo paso").isBetween(paso2, paso3);
+		assertThat(cve).isBetween(paso2, paso3);
+		assertThat(riesgo).isBetween(paso2, paso3);
+		assertThat(html.indexOf("id=\"f-plan\"")).as("el plan de mitigación es el último paso").isGreaterThan(paso3);
+
+		assertThat(html).contains("id=\"nota-plan\"").contains("id=\"dialogo-cancelar\"").contains("data-cancelar")
+			.contains("vulnerabilidad-pasos.js").contains("novalidate");
+		assertThat(html).doesNotContain("Departamento").doesNotContain(" style=\"");
+	}
+
+	@Test
+	void theVulnerabilityDetailPutsMetricsFirstAndEditOnlyInTheHeader() throws Exception {
+		World world = world();
+
+		String html = page("/proyectos/" + world.sqlProjectId() + "/departamentos/" + world.sqlAreaId()
+			+ "/vulnerabilidades/" + world.sqlFindingId(), world.auditorA());
+
+		int estado = html.indexOf("class=\"estado-chip\"");
+		int metricas = html.indexOf("class=\"metricas-vuln\"");
+		int activo = html.indexOf("id=\"activo-titulo\"");
+		int cia = html.indexOf("id=\"cia-titulo\"");
+		int plan = html.indexOf("id=\"plan-titulo\"");
+		assertThat(estado).isPositive();
+		assertThat(metricas).isGreaterThan(estado);
+		assertThat(activo).as("la información general va separada, después de las métricas").isGreaterThan(metricas);
+		assertThat(cia).isGreaterThan(activo);
+		assertThat(plan).as("el plan de mitigación va al final").isGreaterThan(cia);
+
+		assertThat(html.split("/editar\"", -1).length - 1).as("un solo botón de edición").isEqualTo(1);
+		assertThat(html).contains("barra-cia-relleno").contains("ancho-").contains("pagina-oscura");
+		assertThat(html).doesNotContain("<meter").doesNotContain(" style=\"");
 	}
 
 	@Test

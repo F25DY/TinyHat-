@@ -2,16 +2,40 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reiniciar MFA</title>
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Reiniciar verificación en dos pasos</title>
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
 </head>
 <body>
-<main>
-    <h1>Reiniciar autenticación multifactor</h1>
-    <p>Se eliminará la credencial y los códigos de recuperación. Tendrás que iniciar sesión y configurar MFA nuevamente.</p>
-    <form method="post" th:action="@{/mfa/reset}">
-        <button type="submit">Reiniciar MFA</button>
-    </form>
-</main>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
+
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
+
+            <th:block th:replace="~{fragments/acceso :: hero('Vuelve a configurar', 'tu verificación en dos pasos.', 'Si cambiaste de teléfono o perdiste tu aplicación de autenticación, puedes empezar de nuevo. Te guiaremos para dejarla lista otra vez.')}"></th:block>
+
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-rotate-right"></i></div>
+
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo">Reiniciar la verificación en dos pasos</h1>
+                        <p class="login-subtitulo">Se eliminarán tu aplicación vinculada y tus códigos de recuperación. Después deberás iniciar sesión y configurarla de nuevo.</p>
+                    </div>
+
+                    <form method="post" th:action="@{/mfa/reset}" class="verificacion-form">
+                        <button type="submit" class="btn btn-peligro w-100">Reiniciar verificación</button>
+                    </form>
+
+                    <p class="acceso-enlaces"><a th:href="@{/dashboard}">Mejor no, volver al panel</a></p>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
+    </main>
+
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
 </body>
 </html>

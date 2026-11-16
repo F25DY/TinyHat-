@@ -2,30 +2,79 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Configurar autenticación multifactor</title>
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Activa la verificación en dos pasos</title>
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
 </head>
 <body>
-<main>
-    <h1>Configura tu segundo factor</h1>
-    <p>Escanea el URI con una aplicación TOTP compatible o ingresa la clave manualmente.</p>
-    <section th:if="${provisioningUri != null}">
-        <p>Clave de configuración (muéstrala solo durante esta inscripción):</p>
-        <code th:text="${secret}"></code>
-        <p>URI de configuración:</p>
-        <code th:text="${provisioningUri}"></code>
-    </section>
-    <p th:if="${error}" role="alert" th:text="${error}"></p>
-    <form method="post" th:action="@{/mfa/enroll/start}">
-        <button type="submit" th:text="${pending} ? 'Generar una nueva clave' : 'Iniciar inscripción'">
-            Iniciar inscripción
-        </button>
-    </form>
-    <form th:if="${pending}" method="post" th:action="@{/mfa/enroll/confirm}">
-        <label for="code">Código de seis dígitos</label>
-        <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required>
-        <button type="submit">Confirmar y activar MFA</button>
-    </form>
-</main>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
+
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
+
+            <th:block th:replace="~{fragments/acceso :: hero('Protege tu cuenta', 'con verificación en dos pasos.', 'Con una aplicación de autenticación en tu teléfono, tu cuenta queda cuidada incluso si alguien llegara a conocer tu contraseña. Se configura una sola vez.')}"></th:block>
+
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></div>
+
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo">Activa la verificación en dos pasos</h1>
+                        <p class="login-subtitulo">Necesitas una aplicación de autenticación en tu teléfono, como Google Authenticator, Microsoft Authenticator o Authy.</p>
+                    </div>
+
+                    <!-- Es una secuencia real, por eso va numerada -->
+                    <ol class="pasos-acceso">
+                        <li>
+                            <strong>Genera tu clave</strong>
+                            <span>Crea una clave nueva, solo para ti.</span>
+                            <form method="post" th:action="@{/mfa/enroll/start}">
+                                <button type="submit" class="btn w-100"
+                                        th:classappend="${pending} ? 'btn-secundario' : 'btn-primario'"
+                                        th:text="${pending} ? 'Generar una nueva clave' : 'Generar mi clave'">
+                                    Generar mi clave
+                                </button>
+                            </form>
+                        </li>
+
+                        <li th:if="${provisioningUri != null}">
+                            <strong>Añádela a tu aplicación</strong>
+                            <span>Elige la opción de ingresar una clave de configuración y escribe esta. Se muestra solo ahora.</span>
+                            <code class="clave-mfa" th:text="${secret}">ABCD EFGH IJKL</code>
+                            <details class="detalle-uri">
+                                <summary>Ver el enlace de configuración</summary>
+                                <code class="clave-uri" th:text="${provisioningUri}">otpauth://totp/...</code>
+                            </details>
+                        </li>
+
+                        <li th:if="${pending}">
+                            <strong>Confirma con el código</strong>
+                            <span>Escribe el código de seis dígitos que muestra tu aplicación.</span>
+                            <form method="post" th:action="@{/mfa/enroll/confirm}" class="verificacion-form">
+                                <label for="code" class="sr-only">Código de seis dígitos</label>
+                                <div class="campo-codigo">
+                                    <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+                                           autocapitalize="off" spellcheck="false" maxlength="12" required placeholder="123456"
+                                           th:attr="aria-invalid=${error != null} ? 'true' : null, aria-describedby=${error != null} ? 'acceso-error' : null">
+                                </div>
+                                <button type="submit" class="btn btn-primario w-100">Confirmar y activar</button>
+                            </form>
+                        </li>
+                    </ol>
+
+                    <p th:if="${error}" id="acceso-error" role="alert" class="feedback-error" th:text="${error}">Error.</p>
+
+                    <form th:action="@{/logout}" method="post" class="verificacion-salir">
+                        <button type="submit" class="boton-texto">Cancelar e iniciar sesión con otra cuenta</button>
+                    </form>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
+    </main>
+
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
 </body>
 </html>

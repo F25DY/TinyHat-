@@ -11,82 +11,94 @@
     <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
 
-<body>
+<body class="pagina-oscura">
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
     <main class="contenido-principal">
+      <div class="columna-central columna-formulario">
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos}" class="link-volver">
-                <i class="fa-solid fa-arrow-left"></i>
+            <a th:href="@{/proyectos}" class="link-volver" aria-label="Volver a proyectos">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
 
             <div class="titulos-nuevo">
-                <h1 class="titulo-pagina" th:text="${editing} ? 'Editar Proyecto' : 'Crear Nuevo Proyecto'">Crear Nuevo Proyecto</h1>
+                <h1 class="titulo-pagina" th:text="${editing} ? 'Editar proyecto' : 'Nuevo proyecto'">Nuevo proyecto</h1>
                 <p class="subtitulo" th:text="${editing} ? 'Actualiza los datos del proyecto de auditoría o pentesting' : 'Configura un nuevo proyecto de auditoría o pentesting'">
                     Configura un nuevo proyecto de auditoría o pentesting
                 </p>
             </div>
         </header>
 
-        <section class="tarjeta-blanca contenedor-formulario">
-            <h3 class="seccion-form-titulo">Información Básica</h3>
+        <section class="tarjeta-blanca formulario-simple">
+            <h2 class="seccion-form-titulo">Información básica</h2>
 
             <form th:action="${formAction}" th:object="${proyectoForm}" method="post" id="form-nuevo-proyecto" class="form-proyecto">
-                <div class="grid-form row g-3">
-                    <div class="campo-grupo col-md-6">
-                        <label for="nombreEmpresa">Empresa / Auditoría <span class="requerido">*</span></label>
+                <div class="grid-paso">
+                    <div class="campo-grupo">
+                        <label for="nombreEmpresa">Empresa o cliente <span class="requerido" aria-hidden="true">*</span></label>
                         <input class="form-control" type="text" th:field="*{nombreEmpresa}" placeholder="Ej: Banco Nacional" required>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('nombreEmpresa')}" th:errors="*{nombreEmpresa}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
+                    <div class="campo-grupo">
                         <label for="nit">NIT</label>
                         <input class="form-control" type="text" th:field="*{nit}" placeholder="Ej: 123456789">
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('nit')}" th:errors="*{nit}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
+                    <div class="campo-grupo">
                         <label for="sector">Sector</label>
                         <input class="form-control" type="text" th:field="*{sector}" placeholder="Ej: Financiero">
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('sector')}" th:errors="*{sector}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
-                        <label for="nombre">Nombre del Proyecto <span class="requerido">*</span></label>
+                    <div class="campo-grupo">
+                        <label for="nombre">Nombre del proyecto <span class="requerido" aria-hidden="true">*</span></label>
                         <input class="form-control" type="text" th:field="*{nombre}" placeholder="Ej: Auditoría Sistema Bancario" required>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
-                        <label for="tipoAuditoria">Tipo de Auditoría <span class="requerido">*</span></label>
+                    <div class="campo-grupo">
+                        <label for="tipoAuditoria">Tipo de auditoría <span class="requerido" aria-hidden="true">*</span></label>
                         <input class="form-control" type="text" th:field="*{tipoAuditoria}" placeholder="Ej: Auditoría Interna" required>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('tipoAuditoria')}" th:errors="*{tipoAuditoria}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
-                        <label for="estado">Estado <span class="requerido">*</span></label>
+                    <div class="campo-grupo">
+                        <label for="estado">Estado <span class="requerido" aria-hidden="true">*</span></label>
                         <select class="form-select" th:field="*{estado}" required>
                             <option value="">Seleccionar estado</option>
                             <option value="Planificado">Planificado</option>
                             <option value="En Progreso">En progreso</option>
                             <option value="Completado">Completado</option>
                         </select>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('estado')}" th:errors="*{estado}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
-                        <label for="fechaInicio">Fecha de Inicio <span class="requerido">*</span></label>
+                    <div class="campo-grupo">
+                        <label for="fechaInicio">Fecha de inicio <span class="requerido" aria-hidden="true">*</span></label>
                         <input class="form-control" type="date" th:field="*{fechaInicio}" required>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('fechaInicio')}" th:errors="*{fechaInicio}"></small>
                     </div>
 
-                    <div class="campo-grupo col-md-6">
-                        <label for="fechaFin">Fecha de Finalización</label>
+                    <div class="campo-grupo">
+                        <label for="fechaFin">Fecha de finalización</label>
                         <input class="form-control" type="date" th:field="*{fechaFin}">
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('fechaFin')}" th:errors="*{fechaFin}"></small>
                     </div>
                 </div>
 
-                <div class="acciones-formulario">
-                    <a th:href="@{/proyectos}" class="btn btn-cancelar">Cancelar</a>
-                    <button type="submit" class="btn btn-guardar" th:text="${editing} ? 'Actualizar Proyecto' : 'Crear Proyecto'">
-                        Crear Proyecto
+                <div class="paso-acciones">
+                    <a th:href="@{/proyectos}" class="btn btn-secundario">Cancelar</a>
+                    <button type="submit" class="btn btn-primario">
+                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                        <span th:text="${editing} ? 'Actualizar proyecto' : 'Crear proyecto'">Crear proyecto</span>
                     </button>
                 </div>
             </form>
         </section>
+      </div>
     </main>
 </body>
 </html>

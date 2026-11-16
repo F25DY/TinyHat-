@@ -3,17 +3,18 @@
 <body>
 <!--
     Menú lateral de las páginas con sesión iniciada. Es el único: no se copia en cada plantilla.
-    Parámetro: la sección activa ('dashboard' o 'proyectos').
+    Parámetro: la sección activa ('dashboard', 'red' o 'proyectos').
+    El logo lleva siempre al panel. "Nuevo proyecto" está a un clic desde cualquier página.
     El usuario sale de CurrentUserAdvice (correo y rol de quien inició sesión). Cerrar sesión es un POST con CSRF:
     un enlace GET no cierra la sesión.
 -->
 <th:block th:fragment="sidebar(active)">
     <aside class="sidebar">
         <div class="logo-plataforma">
-            <div class="textos-marca">
-                <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
+            <a th:href="@{/dashboard}" class="textos-marca" aria-label="TinyHat, ir al panel">
+                <img th:src="@{/imagen/logo.png}" width="40" alt="">
                 <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
-            </div>
+            </a>
         </div>
 
         <nav class="menu" aria-label="Principal">
@@ -21,11 +22,12 @@
                 <li>
                     <a th:href="@{/dashboard}" class="enlace-menu" th:classappend="${active == 'dashboard'} ? 'activo'"
                        th:attr="aria-current=${active == 'dashboard'} ? 'page' : null">
-                        <i class="fa-solid fa-house" aria-hidden="true"></i> Dashboard
+                        <i class="fa-solid fa-house" aria-hidden="true"></i> Panel
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/network-monitoring}" class="enlace-menu">
+                    <a th:href="@{/network-monitoring}" class="enlace-menu" th:classappend="${active == 'red'} ? 'activo'"
+                       th:attr="aria-current=${active == 'red'} ? 'page' : null">
                         <i class="fa-solid fa-network-wired" aria-hidden="true"></i> Escaneo de red
                     </a>
                 </li>
@@ -33,6 +35,11 @@
                     <a th:href="@{/proyectos}" class="enlace-menu" th:classappend="${active == 'proyectos'} ? 'activo'"
                        th:attr="aria-current=${active == 'proyectos'} ? 'page' : null">
                         <i class="fa-solid fa-folder-closed" aria-hidden="true"></i> Proyectos
+                    </a>
+                </li>
+                <li class="menu-accion">
+                    <a th:href="@{/proyectos/nuproyectos}" class="enlace-menu enlace-accion">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo proyecto
                     </a>
                 </li>
             </ul>

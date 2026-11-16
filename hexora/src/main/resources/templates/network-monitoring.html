@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Monitorización de red</title>
+    <title>TinyHat - Escaneo de red</title>
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=11)}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=19)}">
 </head>
-<body class="network-page">
-<main class="network-shell">
+<body class="network-page network-con-menu">
+<th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+<th:block th:replace="~{fragments/sidebar :: sidebar('red')}"></th:block>
+<main class="network-shell contenido-principal">
     <header class="network-header">
-        <a class="network-brand" th:href="@{/dashboard}">
-            <img th:src="@{/imagen/logo.png}" width="40" height="40" alt="Hexora">
-            <span>Hexora</span>
-        </a>
         <div class="network-heading">
             <p class="network-eyebrow">INFRAESTRUCTURA</p>
             <h1>Monitorización de red</h1>
@@ -23,7 +23,6 @@
         <div class="network-header-actions">
             <button id="discover-network-button" class="network-action-button" type="button" aria-controls="detected-devices-body">Detectar dispositivos en la red</button>
             <a id="history-link" class="network-action-button" th:href="@{/network-monitoring/history}" target="_blank" rel="noopener">Ver historial</a>
-            <a class="network-back" th:href="@{/dashboard}">Volver al Dashboard</a>
         </div>
     </header>
 

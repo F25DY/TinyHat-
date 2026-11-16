@@ -9,11 +9,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var boton = document.getElementById('boton-ojo');
     var icono = document.getElementById('icono-ojo');
 
-    boton.addEventListener('click', function () {
-        var oculta = campo.type === 'password';
-        campo.type = oculta ? 'text' : 'password';
-        icono.className = oculta ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
-    });
+    // Otras pantallas con este mismo fondo (verificación de identidad) no tienen el ojo de contraseña.
+    if (boton && campo && icono) {
+        boton.addEventListener('click', function () {
+            var oculta = campo.type === 'password';
+            campo.type = oculta ? 'text' : 'password';
+            icono.className = oculta ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+        });
+    }
 
     var roles = document.querySelectorAll('.rol-opcion');
     roles.forEach(function (rol) {

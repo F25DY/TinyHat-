@@ -4,161 +4,224 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TinyHat - Detalle Departamento</title>
+    <title>TinyHat - Detalle Área</title>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
-<body>
+<body class="pagina-oscura">
 
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-    <main class="contenido-principal">
+    <main class="contenido-principal panel-detalle">
+      <div class="columna-central">
 
-        <!-- Header: nombre del departamento + proyecto + botón agregar vulnerabilidad -->
+        <!-- Cabecera: volver, nombre del área y acciones -->
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos/{id}(id=${proyecto.publicId})}" class="link-volver">
-                <i class="fa-solid fa-arrow-left"></i>
+            <a th:href="@{/proyectos/{id}(id=${proyecto.publicId})}" class="link-volver" aria-label="Volver al proyecto">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
             <div class="titulos-nuevo">
-                <h1 class="titulo-pagina" th:text="${departamento.nombre}">Nombre Departamento</h1>
+                <h1 class="titulo-pagina" th:text="${departamento.nombre}">Nombre del área</h1>
                 <p class="subtitulo" th:text="${proyecto.nombre}">Nombre Proyecto</p>
             </div>
-            <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}"
-                class="no-underline">
-                <button class="btn-crear">
-                    <i class="fa-solid fa-plus"></i> Agregar Vulnerabilidad
-                </button>
-            </a>
-            <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/editar(pid=${proyecto.publicId}, did=${departamento.publicId})}"
-                class="no-underline">
-                <button class="btn-crear">
-                    <i class="fa-solid fa-pen-to-square"></i> Editar área
-                </button>
-            </a>
+            <div class="panel-acciones" th:if="${canManageProjects}">
+                <a th:href="@{/proyectos/{pid}/departamentos/{did}/editar(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+                   class="btn btn-secundario" data-abre-dialogo="dialogo-area">
+                    <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Editar área
+                </a>
+                <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+                   class="btn btn-primario">
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar vulnerabilidad
+                </a>
+            </div>
         </header>
 
-        <!-- Descripción del departamento -->
-        <section class="tarjeta-blanca info-proyecto">
-            <h3 class="seccion-form-titulo">Descripción del Departamento</h3>
-            <p th:text="${departamento.descripcion}">Sin descripción.</p>
+        <!-- 1. Información general -->
+        <section class="info-general" aria-labelledby="general-titulo">
+            <h2 id="general-titulo" class="seccion-titulo">Información general</h2>
+            <dl class="datos-proyecto">
+                <div>
+                    <dt>Proyecto</dt>
+                    <dd th:text="${proyecto.nombre}">Proyecto</dd>
+                </div>
+                <div>
+                    <dt>Vulnerabilidades</dt>
+                    <dd th:text="${totalHallazgos}">0</dd>
+                </div>
+                <div>
+                    <dt>Abiertas</dt>
+                    <dd th:text="${#lists.size(vulnerabilidades.?[estado == 'Abierta' or estado == 'En Progreso'])}">0</dd>
+                </div>
+            </dl>
+            <p class="descripcion-corta" th:if="${departamento.descripcion != null and !#strings.isEmpty(departamento.descripcion)}"
+               th:text="${departamento.descripcion}">Descripción del área.</p>
         </section>
 
-        <!-- Tarjetas de severidad -->
-        <section class="seccion-metricas row g-3">
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo rojo"><i class="fa-solid fa-bolt"></i></div>
-                <h2 class="numero-grande" th:text="${metricas.critico}">0</h2>
-                <p class="texto-gris">Crítico</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo naranja"><i class="fas fa-exclamation-triangle"></i></div>
-                <h2 class="numero-grande" th:text="${metricas.alto}">0</h2>
-                <p class="texto-gris">Alto</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo amarillo"><i class="fa-solid fa-minus"></i></div>
-                <h2 class="numero-grande" th:text="${metricas.medio}">0</h2>
-                <p class="texto-gris">Medio</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo verde"><i class="fa-solid fa-check"></i></div>
-                <h2 class="numero-grande" th:text="${metricas.bajo}">0</h2>
-                <p class="texto-gris">Bajo</p>
-            </article>
-        </section>
+        <!-- 2. Métricas: el mismo formato que el panel y el proyecto -->
+        <section class="exposicion" aria-labelledby="exposicion-titulo">
+            <h2 id="exposicion-titulo" class="exposicion-total">
+                <span class="exposicion-numero" th:text="${totalHallazgos}">0</span>
+                <span th:text="${totalHallazgos == 1} ? 'vulnerabilidad registrada' : 'vulnerabilidades registradas'">vulnerabilidades registradas</span>
+            </h2>
 
-        <!-- Buscador de vulnerabilidades -->
-        <section class="tarjeta-blanca contenedor-busqueda">
-            <div class="campo-busqueda">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="buscador"
-                    placeholder="Buscar vulnerabilidades por nombre o tipo..."
-                    >
+            <div th:if="${totalHallazgos > 0}" class="exposicion-barra" role="img"
+                 th:attr="aria-label=|Vulnerabilidades por riesgo: ${#strings.listJoin(niveles.![nombre + ' ' + cantidad], ', ')}|">
+                <span th:each="nivel : ${niveles}" th:if="${nivel.cantidad > 0}"
+                      class="segmento" th:classappend="${'riesgo-' + nivel.clave + ' ancho-' + nivel.porcentaje}"></span>
             </div>
+
+            <p th:if="${totalHallazgos == 0}" class="exposicion-vacia">
+                Todavía no hay vulnerabilidades en esta área. Cuando registres una, aparecerá aquí.
+            </p>
+
+            <ul class="exposicion-leyenda">
+                <li th:each="nivel : ${niveles}">
+                    <span class="punto-riesgo" th:classappend="${'riesgo-' + nivel.clave}" aria-hidden="true"></span>
+                    <span th:text="${nivel.nombre}">Crítico</span>
+                    <strong th:text="${nivel.cantidad}">0</strong>
+                </li>
+            </ul>
         </section>
 
-        <!-- Tabla de vulnerabilidades -->
-        <div class="table-responsive tarjeta-blanca">
-        <table class="tabla-hexora table">
-            <thead>
-                <tr>
-                    <th>Vulnerabilidad</th>
-                    <th>Tipo</th>
-                    <th>Riesgo</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:if="${#lists.isEmpty(vulnerabilidades)}">
-                    <td colspan="6" class="text-centered">
-                        No hay vulnerabilidades registradas en este departamento
-                    </td>
-                </tr>
+        <!-- 3. Vulnerabilidades: tabla ordenada de la más crítica a la de riesgo bajo -->
+        <section class="vulnerabilidades-seccion" aria-labelledby="vulnerabilidades-titulo">
+            <div class="seccion-cabecera">
+                <h2 id="vulnerabilidades-titulo">Vulnerabilidades</h2>
+                <div class="campo-busqueda campo-busqueda-corto" th:if="${!#lists.isEmpty(vulnerabilidades)}">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <label for="buscador" class="sr-only">Buscar vulnerabilidades por nombre, tipo, riesgo o estado</label>
+                    <input type="search" id="buscador" autocomplete="off" placeholder="Buscar vulnerabilidades">
+                </div>
+            </div>
 
-                    <tr th:each="vuln : ${vulnerabilidades}">
+            <div class="tabla-contenedor tarjeta-blanca">
+                <p class="contador-proyectos" id="contador-proyectos" role="status" aria-live="polite"
+                   data-singular="vulnerabilidad" data-plural="vulnerabilidades"
+                   th:text="${#lists.size(vulnerabilidades) == 1} ? '1 vulnerabilidad' : ${#lists.size(vulnerabilidades)} + ' vulnerabilidades'">0 vulnerabilidades</p>
+                <div class="table-responsive">
+                <table class="tabla-hexora table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Vulnerabilidad</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Riesgo</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${#lists.isEmpty(vulnerabilidades)}">
+                            <td colspan="6" class="tabla-vacia">
+                                Todavía no hay vulnerabilidades en esta área.
+                                <a th:if="${canManageProjects}"
+                                   th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}">Registra la primera</a>
+                            </td>
+                        </tr>
 
-                    <!-- Nombre clickeable que lleva al detalle de la vulnerabilidad -->
-                    <td class="nombre-destacado">
-                        <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
-                            class="no-underline inherit-color">
-                            <span th:text="${vuln.nombre}"></span>
-                        </a>
-                    </td>
+                        <tr th:each="vuln : ${vulnerabilidades}" class="fila-enlace"
+                            th:data-href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
+                            th:data-busqueda="${vuln.nombre + ' ' + vuln.tipo + ' ' + vuln.riesgo + ' ' + vuln.estado}">
 
-                        <td class="texto-gris" th:text="${vuln.tipo}"></td>
+                            <td class="nombre-destacado">
+                                <a th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
+                                   th:text="${vuln.nombre}">Nombre</a>
+                            </td>
 
-                        <!-- Badge de riesgo con color según nivel -->
-                        <td>
-                            <span th:text="${vuln.riesgo}"
-                                  th:classappend="${vuln.riesgo == 'Critico'} ? 'badge-rojo' :
-                                             (${vuln.riesgo == 'Alto'} ? 'badge-naranja' :
-                                             (${vuln.riesgo == 'Medio'} ? 'badge-amarillo' : 'badge-verde'))"
-                                  class="badge">
-                            </span>
-                        </td>
+                            <td class="texto-empresa" th:text="${vuln.tipo}">Tipo</td>
 
-                        <!-- Badge de estado -->
-                        <td>
-                            <span th:text="${vuln.estado}"
-                                  th:classappend="${vuln.estado == 'Abierta'} ? 'badge-rojo' :
-                                             (${vuln.estado == 'En Progreso'} ? 'badge-azul' :
-                                             (${vuln.estado == 'Mitigada'} ? 'badge-verde' : 'badge-gris'))"
-                                  class="badge">
-                            </span>
-                        </td>
+                            <td>
+                                <span th:text="${vuln.riesgo}"
+                                      th:classappend="${vuln.riesgo == 'Critico'} ? 'badge-rojo' :
+                                                 (${vuln.riesgo == 'Alto'} ? 'badge-naranja' :
+                                                 (${vuln.riesgo == 'Medio'} ? 'badge-amarillo' : 'badge-verde'))"
+                                      class="badge"></span>
+                            </td>
 
-                        <td class="texto-gris" th:text="${vuln.fechaDeteccion}"></td>
+                            <td>
+                                <span th:text="${vuln.estado}"
+                                      th:classappend="${vuln.estado == 'Abierta'} ? 'badge-rojo' :
+                                                 (${vuln.estado == 'En Progreso'} ? 'badge-azul' :
+                                                 (${vuln.estado == 'Mitigada'} ? 'badge-verde' : 'badge-gris'))"
+                                      class="badge"></span>
+                            </td>
 
-                        <!-- Acciones: editar y eliminar -->
-                        <td class="acciones-tabla">
+                            <td class="fecha-tabla" th:text="${#temporals.format(vuln.fechaDeteccion, 'dd/MM/yyyy')} ?: '—'">01/01/2026</td>
 
-                        <!-- Botón editar -->
-                        <a th:if="${canManageProjects}" th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
-                           class="btn-icono btn-editar">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </a>
+                            <td class="acciones-tabla">
+                                <a th:if="${canManageProjects}"
+                                   th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/editar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
+                                   class="btn btn-icono btn-editar" th:attr="aria-label=|Editar ${vuln.nombre}|">
+                                    <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                                </a>
+                                <form th:if="${canManageProjects}"
+                                      th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/eliminar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
+                                      method="post" class="inline-form" data-confirm-message="¿Estás seguro de eliminar esta vulnerabilidad?">
+                                    <button type="submit" class="btn btn-icono btn-eliminar" th:attr="aria-label=|Eliminar ${vuln.nombre}|">
+                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
 
-                        <!-- Botón eliminar (corrección del docente) -->
-                        <form th:if="${canManageProjects}" th:action="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/{vid}/eliminar(pid=${proyecto.publicId}, did=${departamento.publicId}, vid=${vuln.publicId})}"
-                              method="post" class="inline-form" data-confirm-message="¿Estás seguro de eliminar esta vulnerabilidad?">
-                            <button type="submit" class="btn-icono btn-eliminar">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </form>
+                        <tr id="sin-resultados" hidden>
+                            <td colspan="6" class="tabla-vacia">
+                                Ninguna vulnerabilidad coincide con <strong id="sin-resultados-texto"></strong>.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
 
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <a th:if="${canManageProjects}"
+               th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+               class="btn btn-secundario btn-chico areas-agregar">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar vulnerabilidad
+            </a>
+        </section>
 
+      </div>
     </main>
 
-    <script th:src="@{/js/area-filter.js(v=1)}" defer></script>
+    <!-- Editar el área sin salir de la página: ventana emergente con fondo gris translúcido -->
+    <dialog id="dialogo-area" class="dialogo" th:if="${canManageProjects}" aria-labelledby="dialogo-area-titulo">
+        <form th:action="@{/proyectos/{pid}/departamentos/{did}/actualizar(pid=${proyecto.publicId}, did=${departamento.publicId})}"
+              method="post" class="dialogo-form">
+            <div class="dialogo-cabecera">
+                <h2 id="dialogo-area-titulo">Editar área</h2>
+                <button type="button" class="dialogo-cerrar" data-cierra-dialogo aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="dialogo-ayuda">Un área es lo que se audita: un servidor, una aplicación, una página web, un datacenter o la infraestructura.</p>
+
+            <div class="campo-grupo">
+                <label for="area-nombre">Nombre del área <span class="requerido" aria-hidden="true">*</span></label>
+                <input id="area-nombre" name="nombre" type="text" maxlength="150" required
+                       th:value="${departamento.nombre}" placeholder="Ej: Aplicaciones web, API REST, Infraestructura">
+            </div>
+
+            <div class="campo-grupo">
+                <label for="area-descripcion">Descripción <span class="requerido" aria-hidden="true">*</span></label>
+                <textarea id="area-descripcion" name="descripcion" rows="5" maxlength="10000" required
+                          th:text="${departamento.descripcion}" placeholder="Describe qué se audita y hasta dónde llega el alcance..."></textarea>
+            </div>
+
+            <div class="dialogo-acciones">
+                <button type="button" class="btn btn-secundario" data-cierra-dialogo>Cancelar</button>
+                <button type="submit" class="btn btn-primario">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar cambios
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <script th:src="@{/js/project-list-filter.js(v=3)}" defer></script>
+    <script th:src="@{/js/dialogo.js(v=1)}" defer></script>
 
 </body>
 </html>

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.hexora.hexora.dto.ConteoHallazgos;
+import com.hexora.hexora.dto.ConteoProyecto;
 import com.hexora.hexora.model.AreaAuditable;
 import com.hexora.hexora.model.Vulnerabilidad;
 
@@ -28,6 +29,19 @@ public interface VulnerabilidadRepository extends JpaRepository<Vulnerabilidad, 
         group by vulnerabilidad.nivelRiesgo, vulnerabilidad.estado
         """)
     List<ConteoHallazgos> contarPorRiesgoYEstado(
+            @Param("cuentaId") Long cuentaId,
+            @Param("proyectoIds") Collection<Long> proyectoIds);
+
+    /** Igual que {@link #contarPorRiesgoYEstado}, pero separado por proyecto (una sola consulta para todas las tarjetas). */
+    @Query("""
+        select new com.hexora.hexora.dto.ConteoProyecto(
+            vulnerabilidad.areaAuditable.auditoria.idAuditoria, vulnerabilidad.nivelRiesgo, vulnerabilidad.estado, count(vulnerabilidad))
+        from Vulnerabilidad vulnerabilidad
+        where vulnerabilidad.cuentaId = :cuentaId
+          and vulnerabilidad.areaAuditable.auditoria.idAuditoria in :proyectoIds
+        group by vulnerabilidad.areaAuditable.auditoria.idAuditoria, vulnerabilidad.nivelRiesgo, vulnerabilidad.estado
+        """)
+    List<ConteoProyecto> contarPorProyecto(
             @Param("cuentaId") Long cuentaId,
             @Param("proyectoIds") Collection<Long> proyectoIds);
 

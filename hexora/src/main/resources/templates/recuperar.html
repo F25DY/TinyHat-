@@ -4,39 +4,52 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Recuperar Contraseña</title>
-    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <title>TinyHat - Recupera tu acceso</title>
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
 </head>
 <body>
-    <main>
-        <section class="login">
-            <header>
-                <img th:src="@{/imagen/logo.png}" alt="Logo Hexora">
-                <h1>Hexora</h1>
-                <p>Recuperación de Contraseña</p>
-            </header>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
 
-            <form th:action="@{/recuperar}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
 
-                <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" name="email" placeholder="usuario@gmail.com" required maxlength="254">
+            <th:block th:replace="~{fragments/acceso :: hero('Recupera tu acceso', 'en pocos pasos.', 'Te enviaremos un enlace seguro a tu correo para que elijas una nueva contraseña. Le pasa a cualquiera, y lo resolvemos rápido.')}"></th:block>
 
-                <p th:if="${param.sent}" class="feedback-success">
-                    Si el correo está registrado en el sistema, recibirás un enlace de recuperación.
-                </p>
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-key"></i></div>
 
-                <button type="submit">Enviar Enlace</button>
-            </form>
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo">¿Olvidaste tu contraseña?</h1>
+                        <p class="login-subtitulo">Escribe tu correo y te enviaremos un enlace para crear una nueva.</p>
+                    </div>
 
-            <p class="spaced-paragraph">
-                <a th:href="@{/login}">Volver al inicio de sesión</a>
-            </p>
-        </section>
+                    <form th:action="@{/recuperar}" method="post" class="verificacion-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                        <label for="email">Correo electrónico</label>
+                        <div class="campo-con-icono">
+                            <i class="fa-regular fa-envelope icono-campo" aria-hidden="true"></i>
+                            <input type="email" id="email" name="email" placeholder="usuario@gmail.com" required maxlength="254" autocomplete="email" autofocus>
+                        </div>
+
+                        <p th:if="${param.sent}" class="feedback-success" role="status">
+                            Si el correo está registrado, recibirás un enlace de recuperación.
+                        </p>
+
+                        <button type="submit" class="btn btn-primario w-100">Enviar enlace</button>
+                    </form>
+
+                    <p class="acceso-enlaces">
+                        <a th:href="@{/login}">Volver al inicio de sesión</a>
+                    </p>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
     </main>
 
-    <footer class="pie-pagina-login">
-        <p>Secure Access &bull; Encrypted Connection</p>
-    </footer>
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
 </body>
 </html>

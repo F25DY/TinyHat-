@@ -11,86 +11,118 @@
     <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
-<body>
+<body class="pagina-oscura">
 
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-    <main class="contenido-principal">
+    <main class="contenido-principal panel-detalle">
+      <div class="columna-central">
 
-        <!-- Encabezado con nombre del proyecto dinámico -->
+        <!-- Cabecera: volver, nombre del proyecto y la acción principal -->
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos}" class="link-volver">
-                <i class="fa-solid fa-arrow-left"></i>
+            <a th:href="@{/proyectos}" class="link-volver" aria-label="Volver a proyectos">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
             <div class="titulos-nuevo">
                 <h1 class="titulo-pagina" th:text="${proyecto.nombre}">Nombre del Proyecto</h1>
                 <p class="subtitulo" th:text="${proyecto.empresa}">Empresa</p>
             </div>
-            <!-- Botón que va a agregar departamento pasando el ID del proyecto -->
-            <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/areas/nueva(id=${proyecto.id})}"
-                class="no-underline">
-                <button class="btn-crear">
-                    <i class="fa-solid fa-plus"></i> Agregar Departamento
-                </button>
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/areas/nueva(id=${proyecto.id})}" class="btn btn-primario">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar área
             </a>
         </header>
 
-        <!-- Tarjeta de información general del proyecto -->
-        <section class="tarjeta-blanca info-proyecto">
-            <div class="grid-info-proyecto row g-3">
-                <div class="col-6 col-lg-3">
-                    <p class="texto-gris">Estado</p>
-                    <span th:text="${proyecto.estado}"
-                        th:classappend="${proyecto.estado == 'Completado'} ? 'badge-verde' :(${proyecto.estado == 'Planificado'} ? 'badge-gris' : 'badge-azul')"
-                        class="badge"></span>
+        <!-- 1. Información general -->
+        <section class="info-general" aria-labelledby="general-titulo">
+            <h2 id="general-titulo" class="seccion-titulo">Información general</h2>
+            <dl class="datos-proyecto">
+                <div>
+                    <dt>Áreas</dt>
+                    <dd th:text="${#lists.size(proyecto.departamentos)}">0</dd>
                 </div>
-                <div class="col-6 col-lg-3">
-                    <p class="texto-gris">Fecha de Inicio</p>
-                    <p th:text="${proyecto.fechaInicio}">2026-01-01</p>
+                <div>
+                    <dt>Fecha de inicio</dt>
+                    <dd th:text="${#temporals.format(proyecto.fechaInicio, 'dd/MM/yyyy')} ?: '—'">01/01/2026</dd>
                 </div>
-                <div class="col-6 col-lg-3">
-                    <p class="texto-gris">Departamentos</p>
-                    <p th:text="${#lists.size(proyecto.departamentos)}">0</p>
+                <div>
+                    <dt>Estado</dt>
+                    <dd>
+                        <span th:text="${proyecto.estado}"
+                            th:classappend="${proyecto.estado == 'Completado'} ? 'badge-verde' : (${proyecto.estado == 'Planificado'} ? 'badge-gris' : 'badge-azul')"
+                            class="badge"></span>
+                    </dd>
                 </div>
-                <div class="col-6 col-lg-3">
-                    <p class="texto-gris">Total Vulnerabilidades</p>
-                    <p th:text="${proyecto.metricas['critico'] + proyecto.metricas['alto'] + proyecto.metricas['medio'] + proyecto.metricas['bajo']}">0</p>
-                </div>
-            </div>
-            <div class="descripcion-proyecto">
-                <p class="texto-gris">Descripción</p>
-                <p th:text="${proyecto.descripcion}">Sin descripción.</p>
-            </div>
+            </dl>
+            <p class="descripcion-corta" th:if="${proyecto.descripcion != null and !#strings.isEmpty(proyecto.descripcion)}"
+               th:text="${proyecto.descripcion}">Descripción del proyecto.</p>
         </section>
 
-        <!-- Tarjetas de severidad -->
-        <section class="seccion-metricas row g-3">
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo rojo"><i class="fa-solid fa-bolt"></i></div>
-                <h2 class="numero-grande" th:text="${proyecto.metricas['critico']}">0</h2>
-                <p class="texto-gris">Crítico</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo naranja"><i class="fas fa-exclamation-triangle"></i></div>
-                <h2 class="numero-grande" th:text="${proyecto.metricas['alto']}">0</h2>
-                <p class="texto-gris">Alto</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo amarillo"><i class="fa-solid fa-minus"></i></div>
-                <h2 class="numero-grande" th:text="${proyecto.metricas['medio']}">0</h2>
-                <p class="texto-gris">Medio</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo verde"><i class="fa-solid fa-check"></i></div>
-                <h2 class="numero-grande" th:text="${proyecto.metricas['bajo']}">0</h2>
-                <p class="texto-gris">Bajo</p>
-            </article>
+        <!-- 2. Métricas: el mismo formato que el panel -->
+        <section class="exposicion" aria-labelledby="exposicion-titulo">
+            <h2 id="exposicion-titulo" class="exposicion-total">
+                <span class="exposicion-numero" th:text="${totalHallazgos}">0</span>
+                <span th:text="${totalHallazgos == 1} ? 'hallazgo registrado' : 'hallazgos registrados'">hallazgos registrados</span>
+            </h2>
+
+            <div th:if="${totalHallazgos > 0}" class="exposicion-barra" role="img"
+                 th:attr="aria-label=|Hallazgos por riesgo: ${#strings.listJoin(niveles.![nombre + ' ' + cantidad], ', ')}|">
+                <span th:each="nivel : ${niveles}" th:if="${nivel.cantidad > 0}"
+                      class="segmento" th:classappend="${'riesgo-' + nivel.clave + ' ancho-' + nivel.porcentaje}"></span>
+            </div>
+
+            <p th:if="${totalHallazgos == 0}" class="exposicion-vacia">
+                Todavía no hay hallazgos. Se cuentan aquí cuando los registres desde una de las áreas.
+            </p>
+
+            <ul class="exposicion-leyenda">
+                <li th:each="nivel : ${niveles}">
+                    <span class="punto-riesgo" th:classappend="${'riesgo-' + nivel.clave}" aria-hidden="true"></span>
+                    <span th:text="${nivel.nombre}">Crítico</span>
+                    <strong th:text="${nivel.cantidad}">0</strong>
+                </li>
+            </ul>
         </section>
 
-        <!-- Informes del proyecto (solo auditor): borradores con contenido fijo, publicación y descarga -->
+        <!-- 3. Áreas: tarjetas compactas que llevan a cada una -->
+        <section class="areas-seccion" aria-labelledby="areas-titulo">
+            <div class="seccion-cabecera">
+                <h2 id="areas-titulo">Áreas auditadas</h2>
+                <div class="campo-busqueda campo-busqueda-corto" th:if="${#lists.size(proyecto.departamentos) > 4}">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <label for="buscador" class="sr-only">Buscar áreas</label>
+                    <input type="search" id="buscador" autocomplete="off" placeholder="Buscar áreas">
+                </div>
+            </div>
+
+            <p th:if="${#lists.isEmpty(proyecto.departamentos)}" class="areas-vacio">
+                Todavía no hay áreas. Un área es lo que se audita: un servidor, una aplicación, una página web, un datacenter o la infraestructura.
+            </p>
+
+            <ul th:unless="${#lists.isEmpty(proyecto.departamentos)}" class="areas-grid" id="lista-departamentos">
+                <li class="tarjeta-departamento" th:each="dep : ${proyecto.departamentos}">
+                    <a class="area-card" th:href="@{/proyectos/{pid}/departamentos/{did}(pid=${proyecto.id}, did=${dep.id})}">
+                        <span class="area-nombre" th:text="${dep.nombre}">Servidor web</span>
+                        <span class="area-descripcion" th:if="${dep.descripcion != null and !#strings.isEmpty(dep.descripcion)}"
+                              th:text="${dep.descripcion}">Descripción</span>
+                        <span class="area-estado" th:if="${canManageProjects}">
+                            <span class="punto-riesgo" th:classappend="${dep.criticas > 0} ? 'riesgo-critico' : 'riesgo-sin-nivel'" aria-hidden="true"></span>
+                            <span th:text="${dep.vulnerabilidades == 1} ? '1 hallazgo' : ${dep.vulnerabilidades} + ' hallazgos'">2 hallazgos</span>
+                            <span th:if="${dep.criticas > 0}" th:text="|, ${dep.criticas} ${dep.criticas == 1 ? 'crítico' : 'críticos'}|">, 1 crítico</span>
+                        </span>
+                    </a>
+                </li>
+            </ul>
+
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/areas/nueva(id=${proyecto.id})}" class="btn btn-secundario areas-agregar">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar área
+            </a>
+        </section>
+
+        <!-- 4. Informes del proyecto (solo auditor): borradores con contenido fijo, publicación y descarga -->
         <section id="reports-panel" class="tarjeta-blanca reports-panel" th:if="${canManageProjects}"
-                 th:attr="data-project-id=${proyecto.id}">
-            <h2>Informes</h2>
+                 th:attr="data-project-id=${proyecto.id}" aria-labelledby="informes-titulo">
+            <h2 id="informes-titulo">Informes</h2>
             <p class="reports-hint">
                 Cada informe guarda una copia fija del contenido del proyecto (hallazgos, CVE, planes de mitigación y
                 matriz de riesgo) y su huella de integridad. Publicar exige confirmar tu identidad de nuevo.
@@ -120,53 +152,10 @@
             <p id="reports-message" class="reports-message" role="status"></p>
         </section>
 
-        <!-- Buscador de departamentos -->
-        <section class="tarjeta-blanca contenedor-busqueda">
-            <div class="campo-busqueda">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="buscador"
-                       placeholder="Buscar departamentos..."
-                       >
-            </div>
-        </section>
-
-        <!-- Lista de departamentos del proyecto -->
-        <section class="grid-departamentos row g-3" id="lista-departamentos">
-
-            <!-- Mensaje si no hay departamentos -->
-            <div th:if="${#lists.isEmpty(proyecto.departamentos)}" class="tarjeta-blanca col-12">
-                <p class="text-centered">No hay departamentos registrados para este proyecto.</p>
-            </div>
-
-            <!-- Tarjeta por cada departamento -->
-            <article class="tarjeta-blanca tarjeta-departamento col-12 col-md-6"
-                     th:each="dep : ${proyecto.departamentos}">
-                <h3 th:text="${dep.nombre}"></h3>
-                <p class="texto-gris" th:text="${dep.descripcion}"></p>
-
-                <div class="grid-mini-metricas">
-                    <div>
-                        <p class="texto-gris">Total Vulnerabilidades</p>
-                        <p class="numero-grande" th:text="${dep.vulnerabilidades}">0</p>
-                    </div>
-                    <div>
-                        <p class="texto-gris">Críticas</p>
-                        <p class="numero-grande" th:text="${dep.criticas}">0</p>
-                    </div>
-                </div>
-
-                <a th:href="@{/proyectos/{pid}/departamentos/{did}(pid=${proyecto.id}, did=${dep.id})}"
-                    class="no-underline">
-                    <button class="btn btn-primario project-department-action">
-                        <i class="fa-solid fa-folder-open"></i> Ver Vulnerabilidades
-                    </button>
-                </a>
-            </article>
-        </section>
-
+      </div>
     </main>
 
-    <script th:src="@{/js/project-filter.js(v=1)}" defer></script>
+    <script th:src="@{/js/project-filter.js(v=2)}" defer></script>
     <script th:src="@{/js/project-reports.js(v=1)}" defer></script>
 
 </body>
