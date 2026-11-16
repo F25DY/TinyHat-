@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+    Menú lateral de las páginas con sesión iniciada. Es el único: no se copia en cada plantilla.
+    Parámetro: la sección activa ('dashboard' o 'proyectos').
+    El usuario sale de CurrentUserAdvice (correo y rol de quien inició sesión). Cerrar sesión es un POST con CSRF:
+    un enlace GET no cierra la sesión.
+-->
+<th:block th:fragment="sidebar(active)">
+    <aside class="sidebar">
+        <div class="logo-plataforma">
+            <div class="textos-marca">
+                <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
+            </div>
+        </div>
+
+        <nav class="menu" aria-label="Principal">
+            <ul>
+                <li>
+                    <a th:href="@{/dashboard}" class="enlace-menu" th:classappend="${active == 'dashboard'} ? 'activo'"
+                       th:attr="aria-current=${active == 'dashboard'} ? 'page' : null">
+                        <i class="fa-solid fa-house" aria-hidden="true"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/network-monitoring}" class="enlace-menu">
+                        <i class="fa-solid fa-network-wired" aria-hidden="true"></i> Escaneo de red
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/proyectos}" class="enlace-menu" th:classappend="${active == 'proyectos'} ? 'activo'"
+                       th:attr="aria-current=${active == 'proyectos'} ? 'page' : null">
+                        <i class="fa-solid fa-folder-closed" aria-hidden="true"></i> Proyectos
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="contenedor-usuario">
+            <div class="info-perfil">
+                <div class="avatar-usuario">
+                    <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                </div>
+                <div class="datos-texto">
+                    <span class="nombre-usuario" th:text="${rolActual} ?: 'Sesión iniciada'">Auditor</span>
+                    <span class="correo-usuario" th:text="${usuarioActual}" th:title="${usuarioActual}">usuario@ejemplo.com</span>
+                </div>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </aside>
+</th:block>
+</body>
+</html>

@@ -172,6 +172,23 @@ class FrontendTemplatesComplianceTest {
         assertThat(missing).as("páginas con scripts propios que no incluyen security-head").isEmpty();
     }
 
+    @Test
+    void theSidebarExistsOnlyAsASharedFragment() throws IOException {
+        // Copiado en cada plantilla, el menú se desincronizó: una página se quedó sin "Cerrar sesión" y todas mostraban
+        // un usuario fijo. Un solo fragmento (fragments/sidebar.html) lo evita.
+        List<String> copies = new ArrayList<>();
+        for (Path template : templates()) {
+            if (!name(template).equals("fragments/sidebar.html") && read(template).contains("<aside")) {
+                copies.add(name(template));
+            }
+        }
+        assertThat(copies).as("plantillas con su propio menú lateral; usa el fragmento sidebar").isEmpty();
+        assertThat(read(TEMPLATES.resolve("fragments").resolve("sidebar.html")))
+            .contains("action=\"@{/logout}\"")
+            .contains("${usuarioActual}")
+            .doesNotContain("@gmail.com");
+    }
+
     // --- utilidades ---
 
     private static void check(List<String> violations, Path template, String html, Pattern pattern, String message) {

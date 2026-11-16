@@ -12,189 +12,109 @@
 </head>
 <body class="pagina-dashboard">
 
-    <aside class="sidebar">
-        <div class="logo-plataforma">
-            <div class="textos-marca">
-                <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></th:block>
+
+    <main class="contenido-principal panel">
+        <header class="panel-cabecera">
+            <div>
+                <h1 class="panel-saludo" data-tinyhat-greeting>Hola</h1>
+                <p class="panel-sesion" th:text="${usuarioActual}">usuario@ejemplo.com</p>
             </div>
-        </div>
-
-        <nav class="menu">
-            <ul>
-                <li>
-                    <a th:href="@{/dashboard}" class="enlace-menu activo">
-                        <i class="fa-solid fa-house"></i> Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/network-monitoring}" class="enlace-menu">
-                        <i class="fa-solid fa-network-wired"></i> Escaneo de red
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/proyectos}" class="enlace-menu">
-                        <i class="fa-solid fa-folder-closed"></i> Proyectos
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
-        <div class="contenedor-usuario">
-            <div class="info-perfil">
-                <div class="avatar-usuario">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-                <div class="datos-texto">
-                    <span class="nombre-usuario">Analista</span>
-                    <span class="correo-usuario">analista@gmail.com</span>
-                </div>
-            </div>
-            <form th:action="@{/logout}" method="post">
-                <button type="submit" class="boton-cerrar-sesion">
-                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </button>
-            </form>
-        </div>
-
-    </aside>
-
-    <main class="contenido-principal">
-        <header class="encabezado-principal">
-            <div class="identidad-dashboard">
-                <p class="etiqueta-dashboard">CENTRO DE CONTROL</p>
-                <h1 class="titulo-pagina"><span class="texto-degradado">Dashboard</span></h1>
-                <p class="subtitulo-dashboard">Supervisa el estado de seguridad de tus proyectos.</p>
-            </div>
-            <div class="acciones-encabezado">
-                <div class="contenedor-notificaciones">
-                    <i class="fa-solid fa-bell"></i>
-                    <span class="punto-alerta"></span>
-                </div>
-            </div>
-        </header>
-
-        <section class="tinyhat-welcome" aria-labelledby="tinyhat-welcome-title">
-            <div class="row align-items-center g-3">
-                <div class="col-12 col-lg-8 tinyhat-welcome__content">
-                    <p class="tinyhat-welcome__eyebrow">
-                        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-                        Ponte el sombrero por tu seguridad
-                    </p>
-                    <h2 class="tinyhat-welcome__title" id="tinyhat-welcome-title">
-                        <span data-tinyhat-greeting>Bienvenido</span>,
-                        <span class="tinyhat-welcome__name">Analista <span aria-hidden="true">👋</span></span>
-                    </h2>
-                    <p class="tinyhat-welcome__description">Supervisa el estado de seguridad de tus proyectos.</p>
-                    <div class="tinyhat-welcome__actions">
-                        <a th:href="@{/proyectos/nuproyectos}" class="tinyhat-welcome__button tinyhat-welcome__button--primary rounded-pill">
-                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                            Crear Nuevo Proyecto
-                        </a>
-                        <a th:href="@{/proyectos}" class="tinyhat-welcome__button tinyhat-welcome__button--secondary rounded-pill">
-                            Ver Todos los Proyectos
-                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="col-12 col-lg-4 tinyhat-welcome__visual" aria-hidden="true">
-                    <span class="tinyhat-welcome__ring"></span>
-                    <span class="tinyhat-welcome__ring tinyhat-welcome__ring--outer"></span>
-                    <div class="tinyhat-welcome__logo">
-                        <img th:src="@{/imagen/logo.png}" alt="">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <div class="dashboard-scan-action">
-            <a th:href="@{/network-monitoring}" class="btn btn-primario">
+            <a th:href="@{/network-monitoring}" class="btn btn-primario panel-accion">
                 <i class="fa-solid fa-network-wired" aria-hidden="true"></i>
                 Escanear red WiFi
             </a>
-        </div>
+        </header>
 
-        <section class="seccion-metricas row g-3">
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo azul"><i class="fa-solid fa-folder-tree"></i></div>
-                <h2 class="numero-grande">12</h2>
-                <p class="texto-gris">Total Proyectos</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo naranja"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <h2 class="numero-grande">47</h2>
-                <p class="texto-gris">Vulnerabilidades Activas</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo rojo"><i class="fa-solid fa-bolt"></i></div>
-                <h2 class="numero-grande">8</h2>
-                <p class="texto-gris">Críticas</p>
-            </article>
-            <article class="tarjeta-blanca col-md-3">
-                <div class="icono-circulo verde"><i class="fa-solid fa-check-double"></i></div>
-                <h2 class="numero-grande">23</h2>
-                <p class="texto-gris">Mitigadas este mes</p>
-            </article>
+        <!-- Cuenta nueva: no hay nada que medir todavía. El recorrido sí es una secuencia. -->
+        <section th:if="${resumen.sinProyectos()}" class="panel-inicio" aria-labelledby="inicio-titulo">
+            <h2 id="inicio-titulo">Empieza por tu primer proyecto</h2>
+            <p>Un proyecto agrupa los departamentos de una empresa y los hallazgos de seguridad que encuentres en ellos.</p>
+            <ol class="pasos">
+                <li>
+                    <strong>Crea el proyecto</strong>
+                    <span>Indica la empresa, el tipo de auditoría y las fechas.</span>
+                </li>
+                <li>
+                    <strong>Añade un departamento</strong>
+                    <span>Por ejemplo, aplicaciones web o infraestructura.</span>
+                </li>
+                <li>
+                    <strong>Registra los hallazgos</strong>
+                    <span>TinyHat calcula el riesgo con la confidencialidad, la integridad y la disponibilidad.</span>
+                </li>
+            </ol>
+            <a th:href="@{/proyectos/nuproyectos}" class="btn btn-primario">Crear proyecto</a>
         </section>
 
-        <div class="grid-intermedio row g-3">
-            <section class="tarjeta-blanca container-riesgos col-md-6">
-                <h3>Distribución de Riesgos</h3>
-                <div class="risk-item">
-                    <div class="risk-info"><span>Crítico</span> <span class="badge bg-rojo">8</span></div>
-                    <div class="progress-bar"><div class="progress bg-rojo progreso-25"></div></div>
+        <th:block th:unless="${resumen.sinProyectos()}">
+            <section class="exposicion" aria-labelledby="exposicion-titulo">
+                <h2 id="exposicion-titulo" class="exposicion-total">
+                    <span class="exposicion-numero" th:text="${resumen.abiertos}">0</span>
+                    <span th:text="${resumen.abiertos == 1} ? 'hallazgo abierto' : 'hallazgos abiertos'">hallazgos abiertos</span>
+                </h2>
+
+                <div th:if="${resumen.abiertos > 0}" class="exposicion-barra" role="img"
+                     th:attr="aria-label=|Hallazgos abiertos por riesgo: ${#strings.listJoin(resumen.niveles.![nombre + ' ' + cantidad], ', ')}|">
+                    <span th:each="nivel : ${resumen.niveles}" th:if="${nivel.cantidad > 0}"
+                          class="segmento" th:classappend="${'riesgo-' + nivel.clave + ' ancho-' + nivel.porcentaje}"></span>
                 </div>
-                <div class="risk-item">
-                    <div class="risk-info"><span>Alto</span> <span class="badge bg-naranja">15</span></div>
-                    <div class="progress-bar"><div class="progress bg-naranja progreso-45"></div></div>
-                </div>
-                <div class="risk-item">
-                    <div class="risk-info"><span>Medio</span> <span class="badge bg-amarillo">18</span></div>
-                    <div class="progress-bar"><div class="progress bg-amarillo progreso-60"></div></div>
-                </div>
-                <div class="risk-item">
-                    <div class="risk-info"><span>Bajo</span> <span class="badge bg-verde">6</span></div>
-                    <div class="progress-bar"><div class="progress bg-verde progreso-15"></div></div>
-                </div>
-            </section>
-            <section class="tarjeta-blanca container-actividad col-md-6">
-                <h3>Actividad Reciente</h3>
-                <ul class="lista-actividad">
-                    <li>
-                        <i class="fa-solid fa-circle dot-rojo"></i>
-                        <div class="actividad-texto">
-                            <strong>Auditoría Sistema Bancario</strong>
-                            <p>Nueva vulnerabilidad crítica detectada</p>
-                            <small>Hace 2 horas</small>
-                        </div>
-                    </li>
-                    <li>
-                        <i class="fa-solid fa-circle dot-verde"></i>
-                        <div class="actividad-texto">
-                            <strong>Pentesting E-Commerce</strong>
-                            <p>Vulnerabilidad SQL Injection mitigada</p>
-                            <small>Hace 5 horas</small>
-                        </div>
-                    </li>
-                    <li>
-                        <i class="fa-solid fa-circle dot-azul"></i>
-                        <div class="actividad-texto">
-                            <strong>Análisis Infraestructura Cloud</strong>
-                            <p>Proyecto actualizado</p>
-                            <small>Hace 1 día</small>
-                        </div>
+
+                <p th:if="${resumen.sinHallazgosAbiertos()}" class="exposicion-vacia">
+                    No hay hallazgos abiertos. Cuando registres uno desde el departamento de un proyecto, aparecerá aquí.
+                </p>
+
+                <ul class="exposicion-leyenda">
+                    <li th:each="nivel : ${resumen.niveles}">
+                        <span class="punto-riesgo" th:classappend="${'riesgo-' + nivel.clave}" aria-hidden="true"></span>
+                        <span th:text="${nivel.nombre}">Crítico</span>
+                        <strong th:text="${nivel.cantidad}">0</strong>
                     </li>
                 </ul>
             </section>
-        </div>
 
-        <section class="tarjeta-blanca seccion-acciones">
-            <h3>Acciones Rápidas</h3>
-            <div class="contenedor-botones">
-                <a th:href="@{/proyectos/nuproyectos}" class="btn btn-primario">Crear Nuevo Proyecto</a>
-                <a th:href="@{/proyectos}" class="btn btn-secundario">Ver Todos los Proyectos</a>
-            </div>
-        </section>
+            <dl class="panel-cifras">
+                <div>
+                    <dt>Proyectos</dt>
+                    <dd th:text="${resumen.proyectos}">0</dd>
+                </div>
+                <div>
+                    <dt>Mitigados</dt>
+                    <dd th:text="${resumen.mitigados}">0</dd>
+                </div>
+                <div>
+                    <dt>Riesgo aceptado</dt>
+                    <dd th:text="${resumen.aceptados}">0</dd>
+                </div>
+            </dl>
+
+            <section class="recientes-seccion" aria-labelledby="recientes-titulo">
+                <h2 id="recientes-titulo">Hallazgos recientes</h2>
+
+                <ul th:if="${!#lists.isEmpty(resumen.recientes)}" class="recientes">
+                    <li th:each="hallazgo : ${resumen.recientes}">
+                        <span class="punto-riesgo" th:classappend="${'riesgo-' + hallazgo.claveNivel}" aria-hidden="true"></span>
+                        <div class="recientes-texto">
+                            <a th:href="@{/proyectos/{proyecto}/departamentos/{departamento}/vulnerabilidades/{hallazgo}(proyecto=${hallazgo.proyectoId}, departamento=${hallazgo.departamentoId}, hallazgo=${hallazgo.hallazgoId})}"
+                               th:text="${hallazgo.nombre}">Nombre del hallazgo</a>
+                            <span class="recientes-meta">
+                                <span th:text="${hallazgo.nivel}">Crítico</span>,
+                                <span th:text="${hallazgo.estado}">Abierta</span>.
+                                <span th:text="${hallazgo.proyecto}">Proyecto</span>,
+                                <span th:text="${hallazgo.departamento}">Departamento</span>
+                            </span>
+                        </div>
+                        <time class="recientes-fecha" th:datetime="${hallazgo.fecha}"
+                              th:text="${#temporals.format(hallazgo.fecha, 'dd/MM/yyyy')}">01/01/2026</time>
+                    </li>
+                </ul>
+
+                <p th:if="${#lists.isEmpty(resumen.recientes)}" class="recientes-vacio">
+                    Todavía no has registrado hallazgos.
+                    <a th:href="@{/proyectos}">Abre un proyecto</a> y añádelos desde su departamento.
+                </p>
+            </section>
+        </th:block>
     </main>
 
     <script th:src="@{/js/dashboard-greeting.js}" defer></script>

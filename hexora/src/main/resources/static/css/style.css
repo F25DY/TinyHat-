@@ -2241,3 +2241,440 @@ button.boton-cerrar-sesion {
   text-align: left;
   cursor: pointer;
 }
+
+
+/* ==========================================================================
+   Panel (dashboard) con datos reales
+   Una sola pieza protagonista: la barra de exposición. El color solo significa riesgo.
+   Los anchos de los segmentos son clases (.ancho-N) porque la CSP no admite style="..." en el HTML.
+   ========================================================================== */
+
+/* El correo de quien inició sesión puede ser largo: se recorta con puntos suspensivos en el menú. */
+.datos-texto {
+    min-width: 0;
+}
+
+.correo-usuario {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.panel {
+    max-width: 1100px;
+}
+
+.panel-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px 24px;
+    margin-bottom: 28px;
+}
+
+.panel-saludo {
+    margin: 0;
+    font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.panel-sesion {
+    margin: 6px 0 0;
+    color: rgb(238 245 255 / 68%);
+    overflow-wrap: anywhere;
+}
+
+.panel-accion {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* --- Exposición: lo que sigue abierto, repartido por riesgo --- */
+
+.exposicion {
+    padding: clamp(20px, 3vw, 32px);
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 20px;
+    background: rgb(255 255 255 / 5%);
+}
+
+.exposicion-total {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.exposicion-numero {
+    font-size: clamp(3rem, 2rem + 4vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.exposicion-barra {
+    display: flex;
+    gap: 4px;
+    height: 20px;
+    margin: 22px 0 18px;
+}
+
+.segmento {
+    flex: 0 1 auto;
+    height: 100%;
+    min-width: 6px;
+    border-radius: 6px;
+    transform-origin: left center;
+    animation: segmento-crece 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes segmento-crece {
+    from { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .segmento { animation: none; }
+}
+
+.exposicion-vacia {
+    margin: 16px 0 0;
+    color: rgb(238 245 255 / 72%);
+    max-width: 60ch;
+}
+
+.exposicion-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.exposicion-leyenda li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.exposicion-leyenda strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.punto-riesgo {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.riesgo-critico { background: var(--th-riesgo-critico); }
+.riesgo-alto { background: var(--th-riesgo-alto); }
+.riesgo-medio { background: var(--th-riesgo-medio); }
+.riesgo-bajo { background: var(--th-verde); }
+.riesgo-sin-nivel { background: rgb(238 245 255 / 40%); }
+
+/* --- Cifras de apoyo: una línea de datos, no tarjetas --- */
+
+.panel-cifras {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 28px 0 36px;
+}
+
+.panel-cifras > div {
+    padding: 4px 20px;
+    border-left: 1px solid rgb(255 255 255 / 14%);
+}
+
+.panel-cifras > div:first-child {
+    padding-left: 0;
+    border-left: 0;
+}
+
+.panel-cifras dt {
+    margin: 0;
+    color: rgb(238 245 255 / 68%);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.panel-cifras dd {
+    margin: 4px 0 0;
+    font-size: 1.9rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Hallazgos recientes: filas que llevan al hallazgo --- */
+
+.recientes-seccion h2 {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.recientes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.recientes li {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 4px 16px;
+    padding: 16px 0;
+    border-top: 1px solid rgb(255 255 255 / 10%);
+}
+
+.recientes .punto-riesgo {
+    margin-top: 7px;
+}
+
+.recientes-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.recientes-texto a {
+    color: #FFFFFF;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+.recientes-texto a:hover {
+    text-decoration: underline;
+}
+
+.recientes-meta {
+    color: rgb(238 245 255 / 68%);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.recientes-fecha {
+    color: rgb(238 245 255 / 68%);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.recientes-vacio {
+    margin: 0;
+    color: rgb(238 245 255 / 72%);
+}
+
+.recientes-vacio a,
+.panel-inicio a:not(.btn) {
+    color: var(--th-turquesa);
+}
+
+.panel a:focus-visible {
+    outline: 2px solid var(--th-turquesa);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* --- Cuenta nueva: el primer recorrido --- */
+
+.panel-inicio {
+    max-width: 60ch;
+}
+
+.panel-inicio h2 {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.panel-inicio p {
+    color: rgb(238 245 255 / 76%);
+}
+
+.pasos {
+    display: grid;
+    gap: 18px;
+    margin: 28px 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: paso;
+}
+
+.pasos li {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    column-gap: 16px;
+    row-gap: 2px;
+    counter-increment: paso;
+}
+
+.pasos li::before {
+    content: counter(paso);
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgb(255 255 255 / 28%);
+    border-radius: 50%;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.pasos li span {
+    color: rgb(238 245 255 / 70%);
+}
+
+@media (max-width: 560px) {
+    .panel-cifras {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .panel-cifras > div {
+        padding: 0 0 0 14px;
+        border-left: 2px solid rgb(255 255 255 / 14%);
+    }
+
+    .panel-cifras > div:first-child {
+        padding-left: 14px;
+        border-left: 2px solid rgb(255 255 255 / 14%);
+    }
+
+    .recientes li {
+        grid-template-columns: 10px minmax(0, 1fr);
+    }
+
+    .recientes-fecha {
+        grid-column: 2;
+    }
+
+    .panel-accion {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.panel .ancho-1 { width: 1%; }
+.panel .ancho-2 { width: 2%; }
+.panel .ancho-3 { width: 3%; }
+.panel .ancho-4 { width: 4%; }
+.panel .ancho-5 { width: 5%; }
+.panel .ancho-6 { width: 6%; }
+.panel .ancho-7 { width: 7%; }
+.panel .ancho-8 { width: 8%; }
+.panel .ancho-9 { width: 9%; }
+.panel .ancho-10 { width: 10%; }
+.panel .ancho-11 { width: 11%; }
+.panel .ancho-12 { width: 12%; }
+.panel .ancho-13 { width: 13%; }
+.panel .ancho-14 { width: 14%; }
+.panel .ancho-15 { width: 15%; }
+.panel .ancho-16 { width: 16%; }
+.panel .ancho-17 { width: 17%; }
+.panel .ancho-18 { width: 18%; }
+.panel .ancho-19 { width: 19%; }
+.panel .ancho-20 { width: 20%; }
+.panel .ancho-21 { width: 21%; }
+.panel .ancho-22 { width: 22%; }
+.panel .ancho-23 { width: 23%; }
+.panel .ancho-24 { width: 24%; }
+.panel .ancho-25 { width: 25%; }
+.panel .ancho-26 { width: 26%; }
+.panel .ancho-27 { width: 27%; }
+.panel .ancho-28 { width: 28%; }
+.panel .ancho-29 { width: 29%; }
+.panel .ancho-30 { width: 30%; }
+.panel .ancho-31 { width: 31%; }
+.panel .ancho-32 { width: 32%; }
+.panel .ancho-33 { width: 33%; }
+.panel .ancho-34 { width: 34%; }
+.panel .ancho-35 { width: 35%; }
+.panel .ancho-36 { width: 36%; }
+.panel .ancho-37 { width: 37%; }
+.panel .ancho-38 { width: 38%; }
+.panel .ancho-39 { width: 39%; }
+.panel .ancho-40 { width: 40%; }
+.panel .ancho-41 { width: 41%; }
+.panel .ancho-42 { width: 42%; }
+.panel .ancho-43 { width: 43%; }
+.panel .ancho-44 { width: 44%; }
+.panel .ancho-45 { width: 45%; }
+.panel .ancho-46 { width: 46%; }
+.panel .ancho-47 { width: 47%; }
+.panel .ancho-48 { width: 48%; }
+.panel .ancho-49 { width: 49%; }
+.panel .ancho-50 { width: 50%; }
+.panel .ancho-51 { width: 51%; }
+.panel .ancho-52 { width: 52%; }
+.panel .ancho-53 { width: 53%; }
+.panel .ancho-54 { width: 54%; }
+.panel .ancho-55 { width: 55%; }
+.panel .ancho-56 { width: 56%; }
+.panel .ancho-57 { width: 57%; }
+.panel .ancho-58 { width: 58%; }
+.panel .ancho-59 { width: 59%; }
+.panel .ancho-60 { width: 60%; }
+.panel .ancho-61 { width: 61%; }
+.panel .ancho-62 { width: 62%; }
+.panel .ancho-63 { width: 63%; }
+.panel .ancho-64 { width: 64%; }
+.panel .ancho-65 { width: 65%; }
+.panel .ancho-66 { width: 66%; }
+.panel .ancho-67 { width: 67%; }
+.panel .ancho-68 { width: 68%; }
+.panel .ancho-69 { width: 69%; }
+.panel .ancho-70 { width: 70%; }
+.panel .ancho-71 { width: 71%; }
+.panel .ancho-72 { width: 72%; }
+.panel .ancho-73 { width: 73%; }
+.panel .ancho-74 { width: 74%; }
+.panel .ancho-75 { width: 75%; }
+.panel .ancho-76 { width: 76%; }
+.panel .ancho-77 { width: 77%; }
+.panel .ancho-78 { width: 78%; }
+.panel .ancho-79 { width: 79%; }
+.panel .ancho-80 { width: 80%; }
+.panel .ancho-81 { width: 81%; }
+.panel .ancho-82 { width: 82%; }
+.panel .ancho-83 { width: 83%; }
+.panel .ancho-84 { width: 84%; }
+.panel .ancho-85 { width: 85%; }
+.panel .ancho-86 { width: 86%; }
+.panel .ancho-87 { width: 87%; }
+.panel .ancho-88 { width: 88%; }
+.panel .ancho-89 { width: 89%; }
+.panel .ancho-90 { width: 90%; }
+.panel .ancho-91 { width: 91%; }
+.panel .ancho-92 { width: 92%; }
+.panel .ancho-93 { width: 93%; }
+.panel .ancho-94 { width: 94%; }
+.panel .ancho-95 { width: 95%; }
+.panel .ancho-96 { width: 96%; }
+.panel .ancho-97 { width: 97%; }
+.panel .ancho-98 { width: 98%; }
+.panel .ancho-99 { width: 99%; }
+.panel .ancho-100 { width: 100%; }
+
+
+/* Títulos del panel: la regla global de h1/h2 los pinta en azul oscuro, ilegible sobre el fondo del panel. */
+.panel h1,
+.panel h2,
+.panel h3 {
+    color: #EEF5FF;
+}

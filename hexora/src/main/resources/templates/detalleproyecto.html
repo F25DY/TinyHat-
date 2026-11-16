@@ -13,49 +13,7 @@
 </head>
 <body>
 
-    <aside class="sidebar">
-        <div class="logo-plataforma">
-            <div class="textos-marca">
-                <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
-            </div>
-        </div>
-        <nav class="menu">
-            <ul>
-                <li>
-                    <a th:href="@{/dashboard}" class="enlace-menu">
-                        <i class="fa-solid fa-house"></i> Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/network-monitoring}" class="enlace-menu">
-                        <i class="fa-solid fa-network-wired"></i> Escaneo de red
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/proyectos}" class="enlace-menu activo">
-                        <i class="fa-solid fa-folder-closed"></i> Proyectos
-                    </a>
-                </li>
-            </ul>
-        </nav>
-        <div class="contenedor-usuario">
-            <div class="info-perfil">
-                <div class="avatar-usuario">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-                <div class="datos-texto">
-                    <span class="nombre-usuario">Analista</span>
-                    <span class="correo-usuario">analista@gmail.com</span>
-                </div>
-            </div>
-            <form th:action="@{/logout}" method="post">
-                <button type="submit" class="boton-cerrar-sesion">
-                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </button>
-            </form>
-        </div>
-    </aside>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
     <main class="contenido-principal">
 
