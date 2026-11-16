@@ -26,7 +26,12 @@ class RateLimitCategoryTest {
         assertEquals(RateLimitCategory.NETWORK_DISCOVER, classify("/api/network/discover", properties));
         assertEquals(RateLimitCategory.PDF, classify("/informes/1/pdf", properties));
         assertEquals(RateLimitCategory.POLL, classify("/api/network/events/latest", properties));
-        assertEquals(RateLimitCategory.API_GENERAL, classify("/api/network/status", properties));
+        // Fase 14 (H-1): las consultas periódicas de la pantalla de red son sondeos; las acciones del usuario no.
+        assertEquals(RateLimitCategory.POLL, classify("/api/network/status", properties));
+        assertEquals(RateLimitCategory.POLL, classify("/api/network/history", properties));
+        assertEquals(RateLimitCategory.POLL, classify("/api/network/discoveries/history", properties));
+        assertEquals(RateLimitCategory.API_GENERAL, classify("/api/network/scan", properties));
+        assertEquals(RateLimitCategory.API_GENERAL, classify("/api/network/detected-devices", properties));
     }
 
     private RateLimitCategory classify(String path, TinyHatSecurityProperties properties) {

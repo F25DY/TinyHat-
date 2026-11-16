@@ -167,7 +167,8 @@ public class TinyHatSecurityProperties {
 
         @NotEmpty
         private List<String> pollPaths = new ArrayList<>(
-            List.of("/api/network/events/**", "/api/poll/**", "/ws/**"));
+            List.of("/api/network/events/**", "/api/poll/**", "/ws/**",
+                "/api/network/status", "/api/network/history", "/api/network/discoveries/history"));
 
         public int getIdleMinutes() {
             return idleMinutes;
