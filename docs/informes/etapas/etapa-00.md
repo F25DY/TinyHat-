@@ -215,4 +215,9 @@ Necesito tu respuesta a lo siguiente antes de aprobar y pasar a la Etapa 1:
 - La BD local de desarrollo (MySQL en el puerto 3307) puede tener filas en `informe`; no se inspeccionó.
 - Sin cifrado en reposo (aceptado en §1.6) hasta usar datos reales.
 
+## Decisiones recibidas (2026-11-17)
+
+Detalle en el [log](../IMPLEMENTATION_LOG.md): D1 sobrescribir el módulo viejo (sin tocar el de red), D2 reutilizar `probabilidad`, D3/D4 derivar severidad y riesgo, D5 omitir campos inexistentes y usar `alcanceMetodologia` (evaluado: no se agrega alcance al proyecto), D6 `Cuenta.nombre`, D7 Bucket4j, D12 fuentes de la app (cursivas pendientes), D14 logo existente.
+
 ESTADO: EN ESPERA DE "APROBADA ETAPA 00"
+
