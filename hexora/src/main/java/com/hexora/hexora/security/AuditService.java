@@ -280,6 +280,37 @@ public class AuditService {
 		auditEventRepository.save(event);
 	}
 
+	/**
+	 * Evento del modulo de informes (§8.6), en una transaccion propia: un fallo o una reversion de la operacion no borra la
+	 * huella de que se intento. Nunca debe recibir contenido de narrativa ni de hallazgos. La IP y el agente salen de la
+	 * peticion en curso si la hay.
+	 */
+	@Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+	public void informeEvent(
+		AuditEventType type, TinyHatPrincipal principal, String result, String versionPublicId,
+		Map<String, Object> details
+	) {
+		AuditEvent event = new AuditEvent();
+		event.setEvento(type.name());
+		event.setResultado(result);
+		event.setCuentaId(principal.getCuentaId());
+		event.setUsuarioId(principal.getUserId());
+		event.setOrganizacionId(principal.getOrganizacionId());
+		event.setRecursoTipo("INFORME");
+		event.setRecursoPublicId(versionPublicId);
+		event.setCorrelationId(MDC.get(CorrelationIdFilter.MDC_KEY));
+		event.setDetalle(details == null ? Map.of() : details);
+		if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes()
+			instanceof org.springframework.web.context.request.ServletRequestAttributes web) {
+			event.setIp(web.getRequest().getRemoteAddr());
+			event.setUserAgent(limit(web.getRequest().getHeader("User-Agent"), 512));
+		} else {
+			event.setIp("127.0.0.1");
+			event.setUserAgent("TINYHAT_INFORMES");
+		}
+		auditEventRepository.save(event);
+	}
+
 	/** Effective, secret-free configuration written once per start (Phase 12, STARTUP_CONFIG). */
 	@Transactional
 	public void startupConfig(Map<String, Object> effectiveConfiguration) {

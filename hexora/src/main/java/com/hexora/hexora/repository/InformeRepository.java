@@ -14,6 +14,9 @@ public interface InformeRepository extends JpaRepository<Informe, Long> {
 
     Optional<Informe> findByPublicIdAndCuentaId(String publicId, Long cuentaId);
 
+    /** Por clave interna, siempre dentro de la cuenta (la búsqueda por clave no aplica el filtro de cuenta). */
+    Optional<Informe> findByIdAndCuentaId(Long id, Long cuentaId);
+
     /** La serie de un tipo en un proyecto (hay una sola: clave única proyecto + tipo). */
     Optional<Informe> findByProyectoIdAndTipoAndCuentaId(Long proyectoId, TipoInforme tipo, Long cuentaId);
 

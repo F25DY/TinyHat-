@@ -60,6 +60,14 @@ public class InformeArchivo implements TenantScopedEntity {
     protected InformeArchivo() {
     }
 
+    /** Con el UUID público ya elegido (el mismo que lleva el nombre del archivo en disco). */
+    public InformeArchivo(
+        String publicId, Long versionId, FormatoInforme formato, String rutaRelativa, String sha256, long bytes
+    ) {
+        this(versionId, formato, rutaRelativa, sha256, bytes);
+        this.publicId = publicId;
+    }
+
     public InformeArchivo(Long versionId, FormatoInforme formato, String rutaRelativa, String sha256, long bytes) {
         this.versionId = versionId;
         this.formato = formato;

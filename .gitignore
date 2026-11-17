@@ -19,3 +19,6 @@ hexora/logs/
 .DS_Store
 Thumbs.db
 *.swp
+
+# Archivos de informes publicados (ruta por defecto de desarrollo; en produccion TINYHAT_INFORMES_DIR)
+hexora/var/

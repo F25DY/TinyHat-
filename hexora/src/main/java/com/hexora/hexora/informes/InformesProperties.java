@@ -22,6 +22,74 @@ public class InformesProperties {
     @Min(1)
     private int maxNarrativaCaracteres = 20000;
 
+    /** Directorio de los archivos publicados (fuera de las rutas servidas; incluirlo en el respaldo, §8.3). */
+    @NotBlank
+    private String dir = "./var/informes";
+
+    /** Tamaño máximo de un archivo generado; si se supera, se aborta. */
+    @Min(1)
+    private long maxArchivoBytes = 26_214_400L;
+
+    /** Informes que pueden generarse a la vez; sin permiso se responde 503. */
+    @Min(1)
+    private int concurrenciaMax = 2;
+
+    /** Espera máxima por un permiso de generación, en milisegundos. */
+    @Min(0)
+    private long esperaConcurrenciaMs = 500;
+
+    private final Notificacion notificacion = new Notificacion();
+
+    /** Aviso a los CLIENTE_ADMIN al publicar (el notificador por defecto solo escribe en el registro). */
+    public static class Notificacion {
+
+        private boolean habilitada = false;
+
+        public boolean isHabilitada() {
+            return habilitada;
+        }
+
+        public void setHabilitada(boolean habilitada) {
+            this.habilitada = habilitada;
+        }
+    }
+
+    public String getDir() {
+        return dir;
+    }
+
+    public void setDir(String dir) {
+        this.dir = dir;
+    }
+
+    public long getMaxArchivoBytes() {
+        return maxArchivoBytes;
+    }
+
+    public void setMaxArchivoBytes(long maxArchivoBytes) {
+        this.maxArchivoBytes = maxArchivoBytes;
+    }
+
+    public int getConcurrenciaMax() {
+        return concurrenciaMax;
+    }
+
+    public void setConcurrenciaMax(int concurrenciaMax) {
+        this.concurrenciaMax = concurrenciaMax;
+    }
+
+    public long getEsperaConcurrenciaMs() {
+        return esperaConcurrenciaMs;
+    }
+
+    public void setEsperaConcurrenciaMs(long esperaConcurrenciaMs) {
+        this.esperaConcurrenciaMs = esperaConcurrenciaMs;
+    }
+
+    public Notificacion getNotificacion() {
+        return notificacion;
+    }
+
     public String getPlantillaVersion() {
         return plantillaVersion;
     }

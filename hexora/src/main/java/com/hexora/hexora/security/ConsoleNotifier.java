@@ -31,6 +31,11 @@ public class ConsoleNotifier implements Notifier {
     }
 
     @Override
+    public void sendReportAvailableEmail(String email, String loginUrl) {
+        LOGGER.info("[CONSOLE NOTIFIER] Report available notice for {}: enlace={}", email, loginUrl);
+    }
+
+    @Override
     public void sendAccountAlreadyExistsNotification(String email) {
         LOGGER.info(
             "[CONSOLE NOTIFIER] Notice for {}: An account already exists for this email address.",

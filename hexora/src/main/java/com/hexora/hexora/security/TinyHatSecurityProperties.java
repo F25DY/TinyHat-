@@ -403,6 +403,17 @@ public class TinyHatSecurityProperties {
         public void setPoll(Bucket poll) {
             this.poll = poll;
         }
+
+        /** Generar, previsualizar y publicar informes: operaciones costosas, por usuario (no por IP). */
+        private Bucket informeGeneracion = new Bucket(5, 5, 60);
+
+        public Bucket getInformeGeneracion() {
+            return informeGeneracion;
+        }
+
+        public void setInformeGeneracion(Bucket informeGeneracion) {
+            this.informeGeneracion = informeGeneracion;
+        }
     }
 
     public static class Bucket {
