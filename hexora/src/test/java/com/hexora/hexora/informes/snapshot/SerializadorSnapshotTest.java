@@ -103,4 +103,22 @@ class SerializadorSnapshotTest {
             b.fechaFin(), b.auditorNombre(), b.areas(), b.vulnerabilidades(), narrativa, b.trazabilidad(),
             b.generadoEn(), b.plantillaVersion(), b.maxHallazgos(), b.referencias());
     }
+
+    @Test
+    void elHistorialDeVersionesFormaParteDelContenidoYDeLaHuella() {
+        InformeSnapshot demo = com.hexora.hexora.informes.render.DatosDemo.snapshot(TipoInforme.TEC, false);
+        assertThat(demo.historial()).hasSize(2);
+        String json = SerializadorSnapshot.serializar(demo);
+        assertThat(json).contains("\"historial\":[{").contains("\"despublicadoEn\":\"2026-11-14T16:00:00-05:00\"")
+            .contains("\"motivo\":\"Se corrigió la clasificación de dos hallazgos");
+        assertThat(json.indexOf("\"generadoEn\"")).isLessThan(json.indexOf("\"historial\""));
+        assertThat(json.indexOf("\"historial\"")).isLessThan(json.indexOf("\"informe\""));
+
+        InformeSnapshot leido = SerializadorSnapshot.leer(json);
+        assertThat(leido.historial()).isEqualTo(demo.historial());
+        assertThat(SerializadorSnapshot.huella(leido)).isEqualTo(SerializadorSnapshot.huella(demo));
+        // Un historial distinto cambia la huella.
+        InformeSnapshot otro = com.hexora.hexora.informes.render.DatosDemo.snapshot(TipoInforme.TEC, true);
+        assertThat(SerializadorSnapshot.huella(otro)).isNotEqualTo(SerializadorSnapshot.huella(demo));
+    }
 }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" th:replace="~{base :: documento(~{::cuerpo}, false)}">
+<body>
+<th:block th:fragment="cuerpo">
+    <!-- Informe técnico: portada, control, índice, alcance, escala, resumen, fichas por área, anexos y referencias. -->
+    <th:block th:replace="~{fragmentos/portada :: portada}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <th:block th:replace="~{fragmentos/control :: control}"></th:block>
+    <th:block th:replace="~{fragmentos/avisos :: avisos}"></th:block>
+    <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <h1>Índice</h1>
+    <div class="indice">
+        <p th:each="e : ${v.indice}" th:classappend="${e.nivel == 2} ? 'indice-2'">
+            <a th:href="|#${e.ancla}|" th:text="${e.texto}">Sección</a>
+        </p>
+    </div>
+
+    <div class="nueva-pagina"></div>
+    <h1 id="sec-alcance" th:text="${v.secciones['alcanceMetodologia'].titulo}">Alcance y metodología</h1>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['alcanceMetodologia']})}"></th:block>
+
+    <h1 id="sec-escala">Escala de calificación</h1>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.escala})}"></th:block>
+    <th:block th:replace="~{fragmentos/mapa-calor :: matrizNiveles}"></th:block>
+
+    <h1 id="sec-resumen">Resumen de hallazgos</h1>
+    <p th:if="${#lists.isEmpty(v.resumenHallazgos)}">El informe no incluye hallazgos en el cuerpo.</p>
+    <th:block th:unless="${#lists.isEmpty(v.resumenHallazgos)}">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Resumen de hallazgos</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Hallazgo</th>
+                    <th>Área</th>
+                    <th class="centro">Severidad</th>
+                    <th>Probabilidad</th>
+                    <th class="centro">Riesgo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="r : ${v.resumenHallazgos}">
+                    <td class="mono cod" th:text="${r.codigo}">H-000000</td>
+                    <td th:text="${r.titulo}">Hallazgo</td>
+                    <td th:text="${r.area}">Área</td>
+                    <td class="centro" th:classappend="${r.severidad.clase}" th:text="${r.severidad.texto}">Severidad</td>
+                    <td th:text="${r.probabilidad}">Probabilidad</td>
+                    <td class="centro" th:classappend="${r.riesgo.clase}" th:text="${r.riesgo.texto}">Riesgo</td>
+                    <td th:text="${r.estado}">Estado</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> Las fichas completas están en la sección siguiente, agrupadas por área.</p>
+    </th:block>
+
+    <h1 id="sec-hallazgos">Hallazgos por área</h1>
+    <p th:if="${#lists.isEmpty(v.areasFichas)}">El proyecto no tiene áreas registradas.</p>
+    <th:block th:each="a : ${v.areasFichas}">
+        <h2 th:id="${a.ancla}" th:text="${a.nombre}">Área</h2>
+        <p th:if="${a.descripcion != null}" th:text="${a.descripcion}">Descripción</p>
+        <p th:if="${#lists.isEmpty(a.fichas)}">Sin hallazgos en el cuerpo del informe.</p>
+        <th:block th:each="f : ${a.fichas}">
+            <th:block th:replace="~{fragmentos/ficha-hallazgo :: ficha(${f})}"></th:block>
+        </th:block>
+    </th:block>
+
+    <th:block th:if="${v.secciones['conclusiones'].presente}">
+        <h1 id="sec-conclusiones" th:text="${v.secciones['conclusiones'].titulo}">Conclusiones</h1>
+        <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['conclusiones']})}"></th:block>
+    </th:block>
+
+    <th:block th:replace="~{fragmentos/anexo-a :: tabla}"></th:block>
+
+    <h1 id="sec-anexo-b">Anexo B. Glosario</h1>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.glosario})}"></th:block>
+
+    <th:block th:replace="~{fragmentos/referencias :: referencias}"></th:block>
+</th:block>
+</body>
+</html>

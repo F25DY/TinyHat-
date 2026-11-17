@@ -1,0 +1,6 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="referencias">
+    <h1 id="sec-referencias">Referencias</h1>
+    <p class="referencia" th:each="r : ${v.referencias}">
+        <th:block th:each="g : ${r.segmentos}"><em th:if="${g.cursiva}" th:text="${g.texto}">título</em><th:block th:unless="${g.cursiva}" th:text="${g.texto}">texto</th:block></th:block>
+    </p>
+</th:block>

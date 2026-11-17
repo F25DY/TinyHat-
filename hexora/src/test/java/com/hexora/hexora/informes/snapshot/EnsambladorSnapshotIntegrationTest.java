@@ -181,6 +181,44 @@ class EnsambladorSnapshotIntegrationTest extends IsolatedMySqlTestDatabase {
 		assertThat(ensamblar(m, TipoInforme.MR, false).trazabilidad()).isEmpty();
 	}
 
+	// ---------------------------------------------------------------- historial de versiones (D25)
+
+	@Test
+	void elHistorialListaLasVersionesAnterioresYLaEnCursoConElEstadoDelDocumento() {
+		Mundo m = mundo();
+		// MIT: la v1 está despublicada en la base; se genera la v2 como borrador.
+		InformeSnapshot mit = tenantsEnsamblar(m, TipoInforme.MIT, 2, EstadoVersion.BORRADOR, true);
+		assertThat(mit.historial()).hasSize(2);
+		var v1 = mit.historial().get(0);
+		assertThat(v1.version()).isEqualTo(1);
+		assertThat(v1.estado()).isEqualTo("DESPUBLICADO");
+		assertThat(v1.publicadoEn()).isEqualTo("2026-11-18T09:00:00-05:00");
+		assertThat(v1.despublicadoEn()).isEqualTo("2026-11-19T04:00:00-05:00");
+		assertThat(v1.motivo()).isEqualTo("Se corrige el informe publicado");
+		var v2 = mit.historial().get(1);
+		assertThat(v2.version()).isEqualTo(2);
+		assertThat(v2.estado()).isEqualTo("BORRADOR");
+		assertThat(v2.publicadoEn()).isNull();
+
+		// TEC: la v1 existe como publicada; al publicarla el documento lleva la fecha de la emisión.
+		InformeSnapshot tec = tenantsEnsamblar(m, TipoInforme.TEC, 1, EstadoVersion.PUBLICADO, false);
+		assertThat(tec.historial()).singleElement().satisfies(entrada -> {
+			assertThat(entrada.version()).isEqualTo(1);
+			assertThat(entrada.estado()).isEqualTo("PUBLICADO");
+			assertThat(entrada.publicadoEn()).isEqualTo("2026-11-20T10:15:00-05:00");
+		});
+	}
+
+	@Test
+	void sinSerieTodavíaElHistorialSoloTieneLaVersionEnCurso() {
+		Mundo m = mundo();
+		InformeSnapshot mr = tenantsEnsamblar(m, TipoInforme.MR, 1, EstadoVersion.BORRADOR, true);
+		assertThat(mr.historial()).singleElement().satisfies(entrada -> {
+			assertThat(entrada.version()).isEqualTo(1);
+			assertThat(entrada.estado()).isEqualTo("BORRADOR");
+		});
+	}
+
 	// ---------------------------------------------------------------- límite y red
 
 	@Test

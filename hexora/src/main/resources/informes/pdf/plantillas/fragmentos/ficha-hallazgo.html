@@ -1,0 +1,51 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="ficha(f)">
+    <div class="ficha">
+        <div class="ficha-cabecera">
+            <span class="codigo mono" th:text="${f.codigo}">H-000000</span>
+            <span th:text="|  ${f.titulo}|">Título</span>
+        </div>
+        <table class="chica">
+            <tbody>
+                <tr>
+                    <th>Calificación</th>
+                    <td>
+                        <span class="chip" th:classappend="${f.severidad.clase}" th:text="|Severidad: ${f.severidad.texto}|">Severidad</span>
+                        <br/>
+                        <span th:text="|${f.cia}|">C 0 · I 0 · A 0</span>
+                        <br/>
+                        <span th:text="|Probabilidad: ${f.probabilidad}|">Probabilidad</span>
+                        <br/>
+                        <span th:text="|Impacto: ${f.impacto}|">Impacto</span>
+                        <br/>
+                        <span class="chip" th:classappend="${f.riesgo.clase}" th:text="|Riesgo: ${f.riesgo.texto}|">Riesgo</span>
+                    </td>
+                </tr>
+                <tr th:if="${not #lists.isEmpty(f.cves)}">
+                    <th>CVE y CVSS</th>
+                    <td>
+                        <span th:each="c : ${f.cves}">
+                            <span class="mono" th:text="${c.id}">CVE-0000-0000</span>
+                            <span th:text="|  CVSS ${c.cvss}|">CVSS</span>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Acción</th>
+                    <td>
+                        <span th:text="${f.mitigacion}">Mitigación</span>
+                        <br/>
+                        <span th:text="|Estado: ${f.estado}|">Estado</span>
+                        <br/>
+                        <span th:text="|Fase sugerida: ${f.fase}|">Fase</span>
+                    </td>
+                </tr>
+                <tr th:if="${not #lists.isEmpty(f.referencias)}">
+                    <th>Referencias</th>
+                    <td>
+                        <span th:each="r : ${f.referencias}"><span class="mono wrap" th:text="${r}">referencia</span><br/></span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>

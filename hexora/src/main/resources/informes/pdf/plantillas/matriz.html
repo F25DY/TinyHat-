@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" th:replace="~{base :: documento(~{::cuerpo}, true)}">
+<body>
+<th:block th:fragment="cuerpo">
+    <!-- Matriz de riesgo: página horizontal. Resumen, mapa de calor, registro (filas coloreadas por riesgo) y Anexo A. -->
+    <th:block th:replace="~{fragmentos/portada :: portada}"></th:block>
+
+        <div class="nueva-pagina"></div>
+        <th:block th:replace="~{fragmentos/control :: control}"></th:block>
+        <th:block th:replace="~{fragmentos/avisos :: avisos}"></th:block>
+
+        <div class="nueva-pagina"></div>
+        <h1>Resumen</h1>
+        <p>
+            Proyecto <strong th:text="${v.doc.proyecto}">Proyecto</strong>, organización
+            <strong th:text="${v.doc.organizacion}">Organización</strong>.
+            <span th:text="|${v.totalHallazgos} hallazgo(s) en ${v.doc.totalAreas} área(s).|">0 hallazgos</span>
+        </p>
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Hallazgos por nivel de riesgo</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr><th>Nivel de riesgo</th><th class="numero">Hallazgos</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="n : ${v.conteoNiveles}">
+                    <td class="centro" th:classappend="${n.clase}" th:text="${n.etiqueta}">Nivel</td>
+                    <td class="numero" th:text="${n.cantidad}">0</td>
+                </tr>
+            </tbody>
+        </table>
+        <th:block th:replace="~{fragmentos/tabla-severidad :: conteo}"></th:block>
+        <p th:if="${v.sinProbabilidad > 0}" class="nota" th:text="|Hallazgos sin probabilidad: ${v.sinProbabilidad}.|"></p>
+        <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
+
+        <div class="nueva-pagina"></div>
+        <h1>Mapa de calor</h1>
+        <th:block th:replace="~{fragmentos/mapa-calor :: mapa}"></th:block>
+
+        <div class="nueva-pagina"></div>
+        <h1>Registro de riesgos</h1>
+        <p th:if="${#lists.isEmpty(v.registroMatriz)}">El informe no incluye hallazgos en el cuerpo.</p>
+        <th:block th:unless="${#lists.isEmpty(v.registroMatriz)}">
+            <div class="leyenda">
+                <p class="num-tabla"></p>
+                <p class="titulo-tabla">Registro de riesgos ordenado por nivel de riesgo</p>
+            </div>
+            <table class="minima fijo">
+                <thead>
+                    <tr>
+                        <th class="k-cod">Código</th>
+                        <th class="k-area">Área</th>
+                        <th class="k-hall">Hallazgo</th>
+                        <th class="k-cia centro">C</th>
+                        <th class="k-cia centro">I</th>
+                        <th class="k-cia centro">A</th>
+                        <th class="k-sev centro">Severidad</th>
+                        <th class="k-prob">Prob.</th>
+                        <th class="k-imp">Impacto</th>
+                        <th class="k-pts centro">Pts.</th>
+                        <th class="k-niv centro">Nivel de riesgo</th>
+                        <th class="k-cve">CVE</th>
+                        <th class="k-cvss centro">CVSS</th>
+                        <th class="k-est">Estado</th>
+                        <th class="k-mit">Mitigación recomendada</th>
+                        <th class="k-blanco">Activo</th>
+                        <th class="k-blanco">Resp.</th>
+                        <th class="k-plan">Plan cliente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${v.registroMatriz}" th:classappend="${r.clase}">
+                        <td class="mono cod" th:text="${r.codigo}">H-000000</td>
+                        <td th:text="${r.area}">Área</td>
+                        <td th:text="${r.titulo}">Hallazgo</td>
+                        <td class="centro" th:text="${r.c}">0</td>
+                        <td class="centro" th:text="${r.i}">0</td>
+                        <td class="centro" th:text="${r.a}">0</td>
+                        <td class="centro" th:text="${r.severidad.texto}">Severidad</td>
+                        <td th:text="${r.probabilidad}">Prob.</td>
+                        <td th:text="${r.impacto}">Impacto</td>
+                        <td class="centro" th:text="${r.puntaje}">0</td>
+                        <td class="centro" th:text="${r.riesgo.texto}">Nivel</td>
+                        <td class="mono" th:text="${r.cve}">CVE</td>
+                        <td class="centro" th:text="${r.cvss}">0.0</td>
+                        <td th:text="${r.estado}">Estado</td>
+                        <td th:text="${r.mitigacion}">Mitigación</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="nota"><em>Nota.</em> Las columnas Activo, Resp. (responsable) y Plan cliente (plan de mitigación del cliente) se dejan en blanco para que las complete el cliente. C, I y A son confidencialidad, integridad y disponibilidad (0 a 10); Pts. es probabilidad por impacto.</p>
+            <div class="nota">
+                <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoOrdenMr})}"></th:block>
+            </div>
+        </th:block>
+
+        <th:block th:if="${v.secciones['notas'].presente}">
+            <h1 th:text="${v.secciones['notas'].titulo}">Notas</h1>
+            <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['notas']})}"></th:block>
+        </th:block>
+
+    <th:block th:replace="~{fragmentos/anexo-a :: tabla}"></th:block>
+</th:block>
+</body>
+</html>

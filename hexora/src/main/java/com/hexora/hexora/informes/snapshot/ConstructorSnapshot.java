@@ -90,8 +90,22 @@ public final class ConstructorSnapshot {
         Instant generadoEn,
         String plantillaVersion,
         int maxHallazgos,
-        ReferenciasApa referencias
+        ReferenciasApa referencias,
+        List<InformeSnapshot.EntradaHistorial> historial
     ) {
+        /** Sin historial de versiones. */
+        public Entrada(
+            TipoInforme tipo, int numeroVersion, String estadoDocumento, boolean noPublicado, int anio,
+            String organizacionUuid, String proyectoUuid, String organizacionNombre, String proyectoNombre,
+            LocalDate fechaInicio, LocalDate fechaFin, String auditorNombre, List<FuenteArea> areas,
+            List<FuenteVulnerabilidad> vulnerabilidades, Map<String, String> narrativa,
+            List<EntradaTrazabilidad> trazabilidad, Instant generadoEn, String plantillaVersion, int maxHallazgos,
+            ReferenciasApa referencias
+        ) {
+            this(tipo, numeroVersion, estadoDocumento, noPublicado, anio, organizacionUuid, proyectoUuid,
+                organizacionNombre, proyectoNombre, fechaInicio, fechaFin, auditorNombre, areas, vulnerabilidades,
+                narrativa, trazabilidad, generadoEn, plantillaVersion, maxHallazgos, referencias, List.of());
+        }
     }
 
     public static InformeSnapshot construir(Entrada entrada) {
@@ -155,6 +169,7 @@ public final class ConstructorSnapshot {
             areas,
             anexoA,
             entrada.tipo() == TipoInforme.FIN ? entrada.trazabilidad() : List.of(),
+            entrada.historial(),
             entrada.narrativa(),
             entrada.referencias().construir(cvesDelCuerpo));
     }

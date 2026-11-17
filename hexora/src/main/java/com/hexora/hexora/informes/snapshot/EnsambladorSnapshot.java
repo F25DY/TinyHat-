@@ -135,7 +135,8 @@ public class EnsambladorSnapshot {
             generadoEn,
             propiedades.getPlantillaVersion(),
             propiedades.getMaxHallazgos(),
-            referencias));
+            referencias,
+            historial(proyecto, tipo, numeroVersion, estado, generadoEn)));
     }
 
     private FuenteVulnerabilidad fuente(AreaAuditable area, Vulnerabilidad v, Map<String, Optional<Cve>> cache) {
@@ -158,6 +159,37 @@ public class EnsambladorSnapshot {
             v.getPlanMitigacion(),
             codigo,
             fuenteCve);
+    }
+
+    /**
+     * Versiones de la serie hasta la que se está generando. La versión en curso lleva el estado que tiene el documento
+     * (al publicar, la base todavía la ve como borrador); las anteriores salen de la base.
+     */
+    private List<InformeSnapshot.EntradaHistorial> historial(
+        Auditoria proyecto, TipoInforme tipo, int numeroVersion, EstadoVersion estado, Instant generadoEn
+    ) {
+        long cuentaId = proyecto.getCuentaId();
+        List<InformeSnapshot.EntradaHistorial> entradas = new ArrayList<>();
+        Optional<Informe> serie = informes.findByProyectoIdAndTipoAndCuentaId(
+            proyecto.getIdAuditoria(), tipo, cuentaId);
+        if (serie.isPresent()) {
+            for (InformeVersion version : versiones.findByInformeIdAndCuentaIdOrderByNumeroDesc(
+                serie.get().getId(), cuentaId)) {
+                if (version.getNumero() < numeroVersion) {
+                    entradas.add(new InformeSnapshot.EntradaHistorial(
+                        version.getNumero(),
+                        version.getEstado().name(),
+                        version.getPublicadoEn() == null ? null : FormatoFechas.isoDesdeUtc(version.getPublicadoEn()),
+                        version.getDespublicadoEn() == null ? null
+                            : FormatoFechas.isoDesdeUtc(version.getDespublicadoEn()),
+                        version.getMotivoDespublicacion()));
+                }
+            }
+        }
+        entradas.add(new InformeSnapshot.EntradaHistorial(numeroVersion, estado.name(),
+            estado == EstadoVersion.PUBLICADO ? FormatoFechas.iso(generadoEn) : null, null, null));
+        entradas.sort(Comparator.comparingInt(InformeSnapshot.EntradaHistorial::version));
+        return entradas;
     }
 
     /** Versiones publicadas vigentes de los otros tipos del proyecto, con el hash de cada archivo. */

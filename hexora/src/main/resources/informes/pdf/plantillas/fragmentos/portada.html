@@ -1,0 +1,21 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="portada">
+    <div class="portada">
+        <img class="logo" src="classpath:informes/pdf/img/logo-tinyhat.png" alt="TinyHat" width="96" height="96"/>
+        <p class="portada-tipo" th:text="${v.doc.tipoNombre}">Tipo de informe</p>
+        <p class="portada-proyecto" th:text="${v.doc.proyecto}">Proyecto</p>
+        <p class="portada-organizacion" th:text="${v.doc.organizacion}">Organización</p>
+        <table class="portada-datos">
+            <tbody>
+                <tr><th>Identificador</th><td class="mono" th:text="${v.doc.id}">ID</td></tr>
+                <tr><th>Versión</th><td th:text="${v.doc.version}">1</td></tr>
+                <tr><th>Estado</th><td th:text="${v.doc.estado}">Publicado</td></tr>
+                <tr><th>Fecha de emisión</th><td th:text="${v.doc.fechaEmision}">Fecha</td></tr>
+                <tr><th>Auditor</th><td th:text="${v.doc.auditor}">Auditor</td></tr>
+            </tbody>
+        </table>
+        <p class="confidencial">CONFIDENCIAL</p>
+        <div class="aviso-np" th:if="${v.avisoNoPublicado != null}">
+            <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoNoPublicado})}"></th:block>
+        </div>
+    </div>
+</th:block>

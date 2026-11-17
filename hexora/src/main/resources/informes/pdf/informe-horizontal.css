@@ -1,0 +1,29 @@
+/*
+ * Documentos en página horizontal (matriz de riesgo y plan de mitigación). Se carga después de informe.css y cambia
+ * el tamaño de TODAS las páginas: OpenHTMLtoPDF calcula el ancho del contenido con la primera página, así que un
+ * documento horizontal debe serlo desde el principio (no sirve alternar páginas con nombre).
+ * Cualquier cambio en este archivo sube tinyhat.informes.plantilla-version.
+ */
+
+@page {
+    size: letter landscape;
+    margin: 2.54cm;
+    @top-right {
+        content: counter(page) " de " counter(pages);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 9pt;
+        color: #333333;
+    }
+    @bottom-center {
+        content: element(pie);
+    }
+}
+
+.marca-np {
+    top: 190pt;
+    left: 130pt;
+}
+
+.portada {
+    padding-top: 20pt;
+}

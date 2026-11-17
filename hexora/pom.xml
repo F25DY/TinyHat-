@@ -101,6 +101,16 @@
 			<version>0.32.0</version>
 		</dependency>
 
+		<!--
+			Informes en PDF (Etapa 4). LGPL 2.1: se usan los JAR sin modificar. No agregar openhtmltopdf-svg-support
+			(Batik), -mathml-support, -objects ni -java2d (plan de informes, seccion 2).
+		-->
+		<dependency>
+			<groupId>io.github.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-pdfbox</artifactId>
+			<version>1.1.114</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

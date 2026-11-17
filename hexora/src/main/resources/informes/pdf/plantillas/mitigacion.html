@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" th:replace="~{base :: documento(~{::cuerpo}, true)}">
+<body>
+<th:block th:fragment="cuerpo">
+    <!-- Plan de mitigación: introducción y tabla del plan (orden por severidad), en página horizontal. -->
+    <th:block th:replace="~{fragmentos/portada :: portada}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <th:block th:replace="~{fragmentos/control :: control}"></th:block>
+    <th:block th:replace="~{fragmentos/avisos :: avisos}"></th:block>
+
+    <th:block th:if="${v.secciones['introduccion'].presente}">
+        <h1 th:text="${v.secciones['introduccion'].titulo}">Introducción</h1>
+        <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['introduccion']})}"></th:block>
+    </th:block>
+
+    <h1>Plan de mitigación</h1>
+        <p th:if="${#lists.isEmpty(v.mitigacion)}">El informe no incluye hallazgos en el cuerpo.</p>
+        <th:block th:unless="${#lists.isEmpty(v.mitigacion)}">
+            <div class="leyenda">
+                <p class="num-tabla"></p>
+                <p class="titulo-tabla">Plan de mitigación ordenado por severidad</p>
+            </div>
+            <table class="chica">
+                <thead>
+                    <tr>
+                        <th class="centro">Prioridad</th>
+                        <th>Código</th>
+                        <th>Hallazgo</th>
+                        <th>Área</th>
+                        <th class="centro">Severidad</th>
+                        <th>Fase sugerida</th>
+                        <th>Acción de mitigación</th>
+                        <th>Estado</th>
+                        <th>Activo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="m : ${v.mitigacion}">
+                        <td class="centro" th:text="${m.prioridad}">1</td>
+                        <td class="mono cod" th:text="${m.codigo}">H-000000</td>
+                        <td th:text="${m.titulo}">Hallazgo</td>
+                        <td th:text="${m.area}">Área</td>
+                        <td class="centro" th:classappend="${m.severidad.clase}" th:text="${m.severidad.texto}">Severidad</td>
+                        <td th:text="${m.fase}">Fase</td>
+                        <td th:text="${m.accion}">Acción</td>
+                        <td th:text="${m.estado}">Estado</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="nota">
+                <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoFase})}"></th:block>
+            </div>
+        </th:block>
+    <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
+</th:block>
+</body>
+</html>

@@ -25,6 +25,7 @@ public record InformeSnapshot(
     List<Area> areas,
     List<EntradaAnexoA> anexoA,
     List<EntradaTrazabilidad> trazabilidad,
+    List<EntradaHistorial> historial,
     Map<String, String> narrativa,
     List<String> referenciasApa
 ) {
@@ -35,8 +36,20 @@ public record InformeSnapshot(
         areas = List.copyOf(areas);
         anexoA = List.copyOf(anexoA);
         trazabilidad = List.copyOf(trazabilidad);
+        historial = List.copyOf(historial);
         narrativa = Map.copyOf(narrativa);
         referenciasApa = List.copyOf(referenciasApa);
+    }
+
+    /** Sin historial de versiones (para quien no lo necesita). */
+    public InformeSnapshot(
+        int schemaVersion, String plantillaVersion, String generadoEn, DatosInforme informe,
+        DatosOrganizacion organizacion, DatosProyecto proyecto, DatosAuditor auditor, Metricas metricas,
+        List<Area> areas, List<EntradaAnexoA> anexoA, List<EntradaTrazabilidad> trazabilidad,
+        Map<String, String> narrativa, List<String> referenciasApa
+    ) {
+        this(schemaVersion, plantillaVersion, generadoEn, informe, organizacion, proyecto, auditor, metricas, areas,
+            anexoA, trazabilidad, List.of(), narrativa, referenciasApa);
     }
 
     /** Tipo, número de versión, ID del documento (con sufijo -NP si no está publicado) y estado. */
@@ -134,6 +147,14 @@ public record InformeSnapshot(
     public record EntradaAnexoA(String codigo, String titulo, String area, String severidad, String tipo) {
         public static final String ACEPTADO = "ACEPTADO";
         public static final String FALSO_POSITIVO = "FALSO_POSITIVO";
+    }
+
+    /**
+     * Una versión de la serie del tipo, para el "Control del documento" (§6.3). Se captura al ensamblar: es parte del
+     * contenido del documento y por eso va en el snapshot (desviación D25). Las fechas son ISO-8601 con zona Bogotá;
+     * {@code publicadoEn} es nulo en un borrador, y {@code despublicadoEn} y {@code motivo} solo existen si se despublicó.
+     */
+    public record EntradaHistorial(int version, String estado, String publicadoEn, String despublicadoEn, String motivo) {
     }
 
     /** Informe vigente (publicado) de otro tipo del mismo proyecto, con el hash de cada archivo (solo FIN). */

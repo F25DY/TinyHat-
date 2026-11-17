@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="es" th:fragment="documento(cuerpo, horizontal)">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title th:text="${v.doc.id}">Informe</title>
+    <link rel="stylesheet" type="text/css" href="classpath:informes/pdf/informe.css"/>
+    <link th:if="${horizontal}" rel="stylesheet" type="text/css" href="classpath:informes/pdf/informe-horizontal.css"/>
+</head>
+<body>
+    <!-- Marca de agua diagonal de las copias no publicadas: elemento fijo, se repite en cada página. -->
+    <div class="marca-np" th:if="${v.doc.noPublicado}" th:text="${v.doc.marcaAgua}">DOCUMENTO NO PUBLICADO</div>
+    <!-- Pie de cada página (elemento "running"): ID, CONFIDENCIAL y SHA-256 abreviado. -->
+    <div class="pie" th:text="${v.doc.pie}">pie</div>
+    <th:block th:replace="${cuerpo}">contenido</th:block>
+</body>
+</html>

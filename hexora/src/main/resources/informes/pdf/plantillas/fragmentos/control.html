@@ -1,0 +1,37 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="control">
+    <h1>Control del documento</h1>
+
+    <h2>Historial de versiones</h2>
+    <table class="chica">
+        <thead>
+            <tr>
+                <th>Versión</th>
+                <th>Estado</th>
+                <th>Publicada</th>
+                <th>Despublicada</th>
+                <th>Motivo de despublicación</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="h : ${v.historial}">
+                <td th:text="${h.version}">1</td>
+                <td th:text="${h.estado}">Publicado</td>
+                <td th:text="${h.publicado}">Fecha</td>
+                <td th:text="${h.despublicado}">Fecha</td>
+                <td th:text="${h.motivo}">Motivo</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="nota"><em>Nota.</em> Se listan las versiones de este tipo de informe en el proyecto hasta la presente.</p>
+
+    <h2>Datos de control</h2>
+    <table class="chica">
+        <tbody>
+            <tr><th>Identificador</th><td class="mono" th:text="${v.doc.id}">ID</td></tr>
+            <tr><th>SHA-256 del contenido</th><td class="mono wrap" th:text="${v.doc.hashCompleto}">hash</td></tr>
+            <tr><th>Versión de la plantilla</th><td th:text="${v.doc.plantillaVersion}">2026.1</td></tr>
+            <tr><th>Periodo del proyecto</th><td th:text="|${v.doc.fechaInicio} al ${v.doc.fechaFin}|">Periodo</td></tr>
+        </tbody>
+    </table>
+    <p class="nota"><em>Nota.</em> El SHA-256 se calcula sobre el contenido congelado del informe y permite comprobar que no fue alterado.</p>
+</th:block>

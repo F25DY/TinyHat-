@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" th:replace="~{base :: documento(~{::cuerpo}, false)}">
+<body>
+<th:block th:fragment="cuerpo">
+    <!-- Informe ejecutivo: de 3 a 5 páginas, sin jerga técnica ni CVE. -->
+    <th:block th:replace="~{fragmentos/portada :: portada}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <th:block th:replace="~{fragmentos/control :: control}"></th:block>
+    <th:block th:replace="~{fragmentos/avisos :: avisos}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <h1 th:text="${v.secciones['resumenEjecutivo'].titulo}">Resumen ejecutivo</h1>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['resumenEjecutivo']})}"></th:block>
+
+    <h1>Estado general</h1>
+    <p>
+        El proyecto incluye <strong th:text="${v.doc.totalAreas}">0</strong> área(s) y
+        <strong th:text="${v.totalHallazgos}">0</strong> hallazgo(s) en el cuerpo del informe.
+    </p>
+    <th:block th:replace="~{fragmentos/tabla-severidad :: conteo}"></th:block>
+    <th:block th:replace="~{fragmentos/tabla-severidad :: porArea}"></th:block>
+
+    <h1>Los riesgos principales</h1>
+    <p th:if="${#lists.isEmpty(v.riesgosPrincipales)}">El informe no incluye hallazgos en el cuerpo.</p>
+    <th:block th:unless="${#lists.isEmpty(v.riesgosPrincipales)}">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Riesgos principales</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th class="centro">N.°</th>
+                    <th>Hallazgo</th>
+                    <th>Área</th>
+                    <th class="centro">Severidad</th>
+                    <th class="centro">Riesgo</th>
+                    <th>Qué podría ocurrir</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="r : ${v.riesgosPrincipales}">
+                    <td class="centro" th:text="${r.posicion}">1</td>
+                    <td th:text="${r.titulo}">Hallazgo</td>
+                    <td th:text="${r.area}">Área</td>
+                    <td class="centro" th:classappend="${r.severidad.clase}" th:text="${r.severidad.texto}">Severidad</td>
+                    <td class="centro" th:classappend="${r.riesgo.clase}" th:text="${r.riesgo.texto}">Riesgo</td>
+                    <td th:text="${r.dimension}">Dimensión</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> Se muestran hasta cinco hallazgos, ordenados por severidad y nivel de riesgo.</p>
+    </th:block>
+
+    <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
+
+    <th:block th:if="${v.secciones['recomendaciones'].presente}">
+        <h1 th:text="${v.secciones['recomendaciones'].titulo}">Recomendaciones</h1>
+        <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['recomendaciones']})}"></th:block>
+    </th:block>
+</th:block>
+</body>
+</html>
