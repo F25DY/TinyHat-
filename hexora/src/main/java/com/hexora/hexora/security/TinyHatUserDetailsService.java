@@ -16,11 +16,14 @@ public class TinyHatUserDetailsService implements UserDetailsService {
 
 	private final UsuarioRepository usuarioRepository;
 	private final CuentaRepository cuentaRepository;
+	private final AccesoClienteProyecto accesoCliente;
 
 	public TinyHatUserDetailsService(
 		UsuarioRepository usuarioRepository,
-		CuentaRepository cuentaRepository
+		CuentaRepository cuentaRepository,
+		AccesoClienteProyecto accesoCliente
 	) {
+		this.accesoCliente = accesoCliente;
 		this.usuarioRepository = usuarioRepository;
 		this.cuentaRepository = cuentaRepository;
 	}
@@ -34,6 +37,7 @@ public class TinyHatUserDetailsService implements UserDetailsService {
 		Cuenta cuenta = cuentaRepository.findById(usuario.getCuentaId())
 			.orElseThrow(() -> new UsernameNotFoundException("Invalid credentials"));
 
-		return new TinyHatPrincipal(usuario, "ACTIVA".equals(cuenta.getEstado()));
+		return new TinyHatPrincipal(usuario, "ACTIVA".equals(cuenta.getEstado()),
+			accesoCliente.permitido(usuario.getRol(), usuario.getId(), usuario.getCuentaId()));
 	}
 }

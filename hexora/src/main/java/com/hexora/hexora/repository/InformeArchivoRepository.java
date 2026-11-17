@@ -32,7 +32,13 @@ public interface InformeArchivoRepository extends JpaRepository<InformeArchivo, 
               or
               (:rol = 'CLIENTE_ADMIN'
                   and i.organizacionId = :organizacionId
-                  and v.estado = com.hexora.hexora.informes.EstadoVersion.PUBLICADO)
+                  and v.estado = com.hexora.hexora.informes.EstadoVersion.PUBLICADO
+                  and exists (
+                      select ac.id.usuarioId from AsignacionClienteProyecto ac
+                      where ac.id.usuarioId = :usuarioId
+                        and ac.id.proyectoId = i.proyectoId
+                        and ac.id.cuentaId = i.cuentaId
+                        and ac.retiradoEn is null))
           )
         """)
     Optional<InformeArchivo> findVisibleByPublicId(

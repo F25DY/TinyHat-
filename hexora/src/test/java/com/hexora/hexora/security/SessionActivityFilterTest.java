@@ -174,7 +174,8 @@ class SessionActivityFilterTest {
                 sessionRegistry,
                 sessionTerminationEventPublisher,
                 auditService,
-                new ObjectMapper());
+                new ObjectMapper(),
+                new AccesoClienteProyecto(org.mockito.Mockito.mock(com.hexora.hexora.repository.AsignacionClienteProyectoRepository.class)));
             session.setAttribute(SessionActivityFilter.CREATED_AT_ATTRIBUTE, START);
             session.setAttribute(SessionActivityFilter.ORIGINAL_CREATED_AT_ATTRIBUTE, START);
             session.setAttribute(SessionActivityFilter.LAST_ACTIVITY_ATTRIBUTE, START);

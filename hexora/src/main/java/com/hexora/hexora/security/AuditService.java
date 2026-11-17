@@ -311,6 +311,20 @@ public class AuditService {
 		auditEventRepository.save(event);
 	}
 
+	/**
+	 * Acceso de un administrador de MiPyme a un proyecto (concedido, restablecido o retirado). Nunca recibe contraseñas.
+	 */
+	@Transactional
+	public void clienteAcceso(
+		AuditEventType type, TinyHatPrincipal auditor, HttpServletRequest request, Usuario cliente, String proyectoPublicId
+	) {
+		AuditEvent event = baseEvent(type.name(), "OK", auditor, request);
+		event.setRecursoTipo("USUARIO");
+		event.setRecursoPublicId(cliente.getPublicId());
+		event.setDetalle(Map.of("projectPublicId", proyectoPublicId));
+		auditEventRepository.save(event);
+	}
+
 	/** Effective, secret-free configuration written once per start (Phase 12, STARTUP_CONFIG). */
 	@Transactional
 	public void startupConfig(Map<String, Object> effectiveConfiguration) {

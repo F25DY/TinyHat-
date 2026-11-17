@@ -27,7 +27,7 @@ enum RateLimitCategory {
 
     static RateLimitCategory classify(HttpServletRequest request, TinyHatSecurityProperties properties) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if (matches(path, "/api/auth/**", "/oauth2/**", "/login/oauth2/**")
+        if (matches(path, "/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/cliente/contrasena")
             || ("/login".equals(path) && "POST".equalsIgnoreCase(request.getMethod()))) {
             return AUTH;
         }

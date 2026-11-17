@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+    Historial de informes del administrador de la MiPyme. Cada fila dice cuándo se publicó y, si el auditor lo retiró,
+    cuándo se despublicó; de un informe retirado no hay descarga ni verificación.
+-->
+<th:block th:fragment="tabla(lista)">
+    <div class="table-responsive">
+        <table class="tabla-hexora table cliente-historial">
+            <caption class="sr-only">Informes publicados por su auditor, con fecha de publicación y de retiro</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Informe</th>
+                    <th scope="col">Proyecto</th>
+                    <th scope="col">Publicado</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Archivos</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="i : ${lista}" th:classappend="${!i.vigente} ? 'fila-retirada'">
+                    <td>
+                        <strong th:text="${i.tipo} + ' · v' + ${i.numero}">Técnico · v1</strong>
+                        <span class="informe-id cliente-id" th:text="${i.id}">TH-2026-0000-0000-TEC-v1</span>
+                    </td>
+                    <td th:text="${i.proyecto}">Proyecto</td>
+                    <td>
+                        <time th:datetime="${i.publicadoEn}" th:text="${#temporals.format(i.publicadoEn, 'dd/MM/yyyy')}">01/01/2026</time>
+                        <span class="cliente-hora" th:text="${#temporals.format(i.publicadoEn, 'HH:mm')} + ' UTC'">10:00 UTC</span>
+                    </td>
+                    <td>
+                        <span class="informe-estado informe-estado-publicado" th:if="${i.vigente}">Vigente</span>
+                        <th:block th:unless="${i.vigente}">
+                            <span class="informe-estado informe-estado-despublicado">Retirado</span>
+                            <span class="cliente-hora" th:if="${i.despublicadoEn != null}">
+                                el <time th:datetime="${i.despublicadoEn}" th:text="${#temporals.format(i.despublicadoEn, 'dd/MM/yyyy')}">01/01/2026</time>
+                            </span>
+                        </th:block>
+                    </td>
+                    <td>
+                        <th:block th:if="${i.vigente}">
+                            <a class="informe-descarga" th:each="a : ${i.archivos}" th:href="@{/informes/archivos/{id}(id=${a.publicId})}"
+                               th:attr="aria-label='Descargar ' + ${a.formato} + ' de ' + ${i.tipo} + ' versión ' + ${i.numero}">
+                                <i class="fa-solid fa-download" aria-hidden="true"></i> <span th:text="${a.formato}">PDF</span>
+                            </a>
+                            <a class="cliente-verificar" th:href="@{/informes/versiones/{id}/verificacion(id=${i.versionPublicId})}">Verificar</a>
+                        </th:block>
+                        <span class="cliente-hora" th:unless="${i.vigente}">Ya no está disponible</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>

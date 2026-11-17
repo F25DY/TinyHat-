@@ -8,7 +8,8 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
     <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
-    <link rel="stylesheet" th:href="@{/css/informes.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/cliente.css(v=1)}">
     <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
 <body class="pagina-oscura">
@@ -21,45 +22,19 @@
         <section class="cabecera-gestion">
             <div class="texto-cabecera">
                 <h1 class="titulo-interno">Informes</h1>
-                <p class="subtitulo">Informes publicados para su organización</p>
+                <p class="subtitulo">Todo lo que su auditor ha publicado, del más reciente al más antiguo.</p>
             </div>
         </section>
 
         <section class="tarjeta-blanca">
             <p class="informe-vacio" th:if="${#lists.isEmpty(informes)}">Todavía no hay informes publicados.</p>
-            <div class="table-responsive" th:unless="${#lists.isEmpty(informes)}">
-                <table class="tabla-hexora table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Informe</th>
-                            <th scope="col">Proyecto</th>
-                            <th scope="col">Publicado</th>
-                            <th scope="col">Archivos</th>
-                            <th scope="col"><span class="sr-only">Verificación</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="i : ${informes}">
-                            <td>
-                                <strong th:text="${i.tipoNombre} + ' · v' + ${i.numero}">Técnico · v1</strong><br>
-                                <span class="informe-id" th:text="${i.id}">ID</span>
-                            </td>
-                            <td th:text="${i.proyecto}">Proyecto</td>
-                            <td th:text="${#temporals.format(i.publicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC'">fecha</td>
-                            <td>
-                                <a class="informe-descarga" th:each="a : ${i.archivos}" th:href="@{/informes/archivos/{id}(id=${a.publicId})}">
-                                    <i class="fa-solid fa-download" aria-hidden="true"></i> <span th:text="${a.formato}">PDF</span>
-                                </a>
-                            </td>
-                            <td class="acciones-tabla">
-                                <a class="btn btn-secundario" th:href="@{/informes/versiones/{id}/verificacion(id=${i.versionPublicId})}">
-                                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verificar
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <th:block th:unless="${#lists.isEmpty(informes)}">
+                <th:block th:replace="~{fragments/informes-cliente :: tabla(${informes})}"></th:block>
+                <p class="informe-nota">
+                    Un informe «Retirado» fue despublicado por su auditor y ya no se puede descargar; si lo corrige, publicará una versión nueva.
+                    La versión de referencia es el PDF.
+                </p>
+            </th:block>
         </section>
     </main>
 </body>

@@ -137,7 +137,8 @@ public class SecurityConfiguration {
 		com.hexora.hexora.repository.CuentaRepository cuentaRepository,
 		SessionRegistry sessionRegistry,
 		SessionTerminationEventPublisher sessionTerminationEventPublisher,
-		AuditService auditService
+		AuditService auditService,
+		AccesoClienteProyecto accesoCliente
 	) {
 		return new SessionActivityFilter(
 			securityProperties,
@@ -147,7 +148,8 @@ public class SecurityConfiguration {
 			sessionRegistry,
 			sessionTerminationEventPublisher,
 			auditService,
-			objectMapper
+			objectMapper,
+			accesoCliente
 		);
 	}
 
@@ -215,6 +217,18 @@ public class SecurityConfiguration {
 	@Bean
 	FilterRegistrationBean<LoginAttemptFilter> loginAttemptFilterRegistration(LoginAttemptFilter filter) {
 		FilterRegistrationBean<LoginAttemptFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	PasswordChangeRequiredFilter passwordChangeRequiredFilter() {
+		return new PasswordChangeRequiredFilter();
+	}
+
+	@Bean
+	FilterRegistrationBean<PasswordChangeRequiredFilter> passwordChangeRequiredFilterRegistration(PasswordChangeRequiredFilter filter) {
+		FilterRegistrationBean<PasswordChangeRequiredFilter> registration = new FilterRegistrationBean<>(filter);
 		registration.setEnabled(false);
 		return registration;
 	}
@@ -330,6 +344,7 @@ public class SecurityConfiguration {
 		LoginAttemptService loginAttemptService,
 		ClientIpResolver clientIpResolver,
 		MfaGateFilter mfaGateFilter,
+		PasswordChangeRequiredFilter passwordChangeRequiredFilter,
 		SecurityContextRepository securityContextRepository
 	) throws Exception {
 		http
@@ -389,7 +404,7 @@ public class SecurityConfiguration {
 				.requestMatchers("/informes/archivos/{archivoUuid}", "/informes/versiones/{versionUuid}/verificacion")
 					.hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
 				.requestMatchers("/informes/**").hasRole("AUDITOR")
-				.requestMatchers("/cliente/informes").hasRole("CLIENTE_ADMIN")
+				.requestMatchers("/cliente", "/cliente/**").hasRole("CLIENTE_ADMIN")
 				.anyRequest().denyAll())
 			.formLogin(form -> form
 				.loginPage("/login")
@@ -420,6 +435,7 @@ public class SecurityConfiguration {
 			.addFilterBefore(ipRateLimitFilter, org.springframework.security.web.context.SecurityContextHolderFilter.class)
 			.addFilterAfter(mfaGateFilter, SessionActivityFilter.class)
 			.addFilterAfter(userRateLimitFilter, MfaGateFilter.class)
+			.addFilterAfter(passwordChangeRequiredFilter, UserRateLimitFilter.class)
 			.addFilterBefore(loginAttemptFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
 			.headers(this::configureHeaders);
 		return http.build();
@@ -489,7 +505,11 @@ public class SecurityConfiguration {
 				securityContextRepository.saveContext(context, request, response);
 			}
 			auditService.loginSucceeded(principal, request);
-			response.sendRedirect(request.getContextPath() + "/dashboard");
+			String destino = "/dashboard";
+			if ("CLIENTE_ADMIN".equals(principal.getRol())) {
+				destino = principal.isDebeCambiarPassword() ? PasswordChangeRequiredFilter.RUTA_CAMBIO : "/cliente";
+			}
+			response.sendRedirect(request.getContextPath() + destino);
 		};
 	}
 

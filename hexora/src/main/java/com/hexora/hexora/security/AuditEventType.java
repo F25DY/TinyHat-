@@ -56,7 +56,11 @@ public enum AuditEventType {
     USER_VERIFIED,
     USER_REACTIVATED,
     /** Adicional al §8.6: eliminar un borrador también deja huella. */
-    INFORME_BORRADOR_ELIMINADO;
+    INFORME_BORRADOR_ELIMINADO,
+    /** Acceso de un administrador de MiPyme a un proyecto: concedido, contraseña temporal restablecida o retirado. */
+    CLIENTE_ACCESO_CONCEDIDO,
+    CLIENTE_ACCESO_RESTABLECIDO,
+    CLIENTE_ACCESO_RETIRADO;
 
     /** Events that have no emitter in v1. */
     public static final Set<AuditEventType> RESERVED = EnumSet.of(OAUTH_LINKED);

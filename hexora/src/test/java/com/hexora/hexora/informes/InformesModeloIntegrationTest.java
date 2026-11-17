@@ -573,6 +573,9 @@ class InformesModeloIntegrationTest extends IsolatedMySqlTestDatabase {
 		m.cliente2 = usuario(m.cuentaA, m.org2, "CLIENTE_ADMIN");
 		m.auditorB = usuario(m.cuentaB, null, "AUDITOR");
 		m.clienteB = usuario(m.cuentaB, m.orgB, "CLIENTE_ADMIN");
+		jdbc.update("INSERT INTO asignacion_cliente_proyecto (usuario_id, proyecto_id, cuenta_id) VALUES (?, ?, ?)", m.cliente1.getUserId(), m.proyecto1, m.cuentaA);
+		jdbc.update("INSERT INTO asignacion_cliente_proyecto (usuario_id, proyecto_id, cuenta_id) VALUES (?, ?, ?)", m.cliente2.getUserId(), m.proyecto2, m.cuentaA);
+		jdbc.update("INSERT INTO asignacion_cliente_proyecto (usuario_id, proyecto_id, cuenta_id) VALUES (?, ?, ?)", m.clienteB.getUserId(), m.proyectoB, m.cuentaB);
 
 		tenants.execute(m.cuentaA, () -> {
 			asignar(m.auditor1, m.proyecto1, m.cuentaA);

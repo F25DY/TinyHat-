@@ -32,7 +32,13 @@ public interface InformeVersionRepository extends JpaRepository<InformeVersion, 
             or
             (:rol = 'CLIENTE_ADMIN'
                 and i.organizacionId = :organizacionId
-                and v.estado = com.hexora.hexora.informes.EstadoVersion.PUBLICADO)
+                and v.estado = com.hexora.hexora.informes.EstadoVersion.PUBLICADO
+                and exists (
+                    select ac.id.usuarioId from AsignacionClienteProyecto ac
+                    where ac.id.usuarioId = :usuarioId
+                      and ac.id.proyectoId = i.proyectoId
+                      and ac.id.cuentaId = i.cuentaId
+                      and ac.retiradoEn is null))
         )
         """;
 
@@ -54,6 +60,27 @@ public interface InformeVersionRepository extends JpaRepository<InformeVersion, 
             @Param("organizacionId") Long organizacionId,
             @Param("usuarioId") Long usuarioId,
             @Param("rol") String rol);
+
+    /**
+     * Historial que ve un administrador de MiPyme: sus versiones publicadas y también las que luego se despublicaron
+     * (solo como fila con fechas; los archivos de una despublicada siguen sin ser visibles). Solo de los proyectos a los
+     * que tiene acceso vigente.
+     */
+    @Query("""
+        select v from InformeVersion v, Informe i
+        where i.id = v.informeId
+          and i.cuentaId = v.cuentaId
+          and v.cuentaId = :cuentaId
+          and v.publicadoEn is not null
+          and exists (
+              select ac.id.usuarioId from AsignacionClienteProyecto ac
+              where ac.id.usuarioId = :usuarioId
+                and ac.id.proyectoId = i.proyectoId
+                and ac.id.cuentaId = i.cuentaId
+                and ac.retiradoEn is null)
+        order by v.publicadoEn desc
+        """)
+    List<InformeVersion> historialParaCliente(@Param("cuentaId") Long cuentaId, @Param("usuarioId") Long usuarioId);
 
     /** Informes publicados de una organización, para la bandeja del CLIENTE_ADMIN (más recientes primero). */
     @Query("""

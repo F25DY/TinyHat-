@@ -629,6 +629,7 @@ class InformeServiceIntegrationTest extends IsolatedMySqlTestDatabase {
 			m.auditor.getUserId(), m.proyectoId, m.cuenta);
 		m.auditorSinAsignar = auditor(m, "sin-asignar");
 		m.cliente = cliente(m.cuenta, org.get().getId());
+		jdbc.update("INSERT INTO asignacion_cliente_proyecto (usuario_id, proyecto_id, cuenta_id) VALUES (?, ?, ?)", m.cliente.getUserId(), m.proyectoId, m.cuenta);
 		m.clienteOtraOrg = cliente(m.cuenta, otraOrg.get().getId());
 		long usuarioAjeno = insertarUsuario(ajena, null, "AUDITOR", "ajeno");
 		m.auditorAjeno = principal(usuarioAjeno);

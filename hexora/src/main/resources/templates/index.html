@@ -135,6 +135,7 @@
                 <p th:if="${param.registered}" class="feedback-success">Registro completado. Por favor, revisa tu correo para verificar tu cuenta.</p>
                 <p th:if="${param.verified}" class="feedback-success">Correo verificado exitosamente. Ya puedes iniciar sesión.</p>
                 <p th:if="${param.reset}" class="feedback-success">Contraseña restablecida exitosamente. Inicia sesión con tu nueva contraseña.</p>
+                <p th:if="${param.cambiada}" class="feedback-success">Contraseña cambiada. Inicia sesión con la nueva.</p>
                 <p th:if="${param.invited}" class="feedback-success">Invitación completada. Ya puedes iniciar sesión.</p>
                 <p th:if="${param.invalidToken}" class="feedback-error">El enlace no es válido o ha expirado.</p>
 

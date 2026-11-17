@@ -192,7 +192,10 @@ class InformeWebIntegrationTest extends IsolatedMySqlTestDatabase {
 			.param("motivo", "corto")).andReturn().getResponse().getStatus()).isEqualTo(400);
 		mockMvc.perform(post("/informes/versiones/{v}/despublicar", version).session(auditor).with(csrf())
 			.param("motivo", "Se corrige la clasificación de un hallazgo"));
-		assertThat(pagina(cliente, "/cliente/informes")).contains("Todavía no hay informes publicados");
+		// El historial del cliente conserva la fila con su fecha de retiro, pero sin descargas ni verificación.
+		String historial = pagina(cliente, "/cliente/informes");
+		assertThat(historial).contains("Retirado").contains("Ya no está disponible").doesNotContain("/informes/archivos/")
+			.doesNotContain("/verificacion");
 		for (String archivo : archivos) {
 			assertThat(mockMvc.perform(get("/informes/archivos/{a}", archivo).session(cliente)).andReturn().getResponse()
 				.getStatus()).isEqualTo(404);
@@ -351,6 +354,7 @@ class InformeWebIntegrationTest extends IsolatedMySqlTestDatabase {
 			m.auditor.getUserId(), m.proyectoId, cuenta);
 		m.auditorSinAsignar = principal(insertar(cuenta, null, "AUDITOR"));
 		m.cliente = principal(insertar(cuenta, org.get().getId(), "CLIENTE_ADMIN"));
+		jdbc.update("INSERT INTO asignacion_cliente_proyecto (usuario_id, proyecto_id, cuenta_id) VALUES (?, ?, ?)", m.cliente.getUserId(), m.proyectoId, cuenta);
 		m.auditorAjeno = principal(insertar(ajena, null, "AUDITOR"));
 		return m;
 	}

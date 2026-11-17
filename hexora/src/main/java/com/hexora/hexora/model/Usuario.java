@@ -44,6 +44,9 @@ public class Usuario implements TenantScopedEntity {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(name = "debe_cambiar_password", nullable = false)
+    private boolean debeCambiarPassword;
+
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
 
@@ -104,6 +107,14 @@ public class Usuario implements TenantScopedEntity {
 
     public void setEmailNormalizado(String emailNormalizado) {
         this.emailNormalizado = emailNormalizado;
+    }
+
+    public boolean isDebeCambiarPassword() {
+        return debeCambiarPassword;
+    }
+
+    public void setDebeCambiarPassword(boolean debeCambiarPassword) {
+        this.debeCambiarPassword = debeCambiarPassword;
     }
 
     public String getPasswordHash() {

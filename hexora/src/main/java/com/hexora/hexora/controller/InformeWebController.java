@@ -215,15 +215,6 @@ public class InformeWebController {
         return "informes/verificacion";
     }
 
-    // ---------------------------------------------------------------- CLIENTE_ADMIN
-
-    @GetMapping("/cliente/informes")
-    @PreAuthorize("hasRole('CLIENTE_ADMIN')")
-    public String informesDelCliente(@AuthenticationPrincipal TinyHatPrincipal principal, Model model) {
-        model.addAttribute("informes", servicio.listarPublicadas(principal));
-        return "informes/cliente";
-    }
-
     // ---------------------------------------------------------------- respuestas de descarga
 
     /** Tipo exacto, adjunto, sin sniffing y sin caché (§8.3). */
