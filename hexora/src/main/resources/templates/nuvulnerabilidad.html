@@ -156,6 +156,10 @@
                     <div class="campo-grupo">
                         <label for="f-prob">Probabilidad (0-10) <span class="requerido" aria-hidden="true">*</span></label>
                         <input class="form-control" id="f-prob" type="number" th:field="*{probabilidad}" min="0" max="10" data-risk-input required>
+                        <small class="texto-gris" id="ayuda-probabilidad">
+                            En los informes se presenta de 1 a 5: 0-1 Rara, 2-3 Improbable, 4-5 Posible, 6-7 Probable, 8-10 Casi segura.
+                            Considere la complejidad del ataque, los privilegios requeridos, la interacción del usuario y si existe un exploit público.
+                        </small>
                         <small class="mensaje-error" th:if="${#fields.hasErrors('probabilidad')}" th:errors="*{probabilidad}" data-tiene-error></small>
                     </div>
                 </div>

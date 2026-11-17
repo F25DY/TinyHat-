@@ -1,5 +1,6 @@
 package com.hexora.hexora.model;
 
+import com.hexora.hexora.informes.EscalaRiesgo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -288,6 +289,28 @@ public class Vulnerabilidad implements TenantScopedEntity {
 
     public void setPublicId(String publicId) {
         this.publicId = publicId;
+    }
+
+    // Presentación en la escala 1-5 de los informes. Son derivados (no se guardan): la columna sigue en 0-10.
+
+    /** Probabilidad en escala 1-5 de los informes. */
+    public int getProbabilidadEscala() {
+        return EscalaRiesgo.probabilidad(probabilidad);
+    }
+
+    /** "Rara", "Improbable", "Posible", "Probable" o "Casi segura". */
+    public String getEtiquetaProbabilidad() {
+        return EscalaRiesgo.etiquetaProbabilidad(getProbabilidadEscala());
+    }
+
+    /** Impacto en escala 1-5 de los informes (la dimensión CIA más alta). */
+    public int getImpactoEscala() {
+        return EscalaRiesgo.impacto(confidencialidad, integridad, disponibilidad);
+    }
+
+    /** Nivel de riesgo que imprimen los informes (tabla probabilidad × impacto), distinto de {@link #getNivelRiesgo()}. */
+    public String getRiesgoInforme() {
+        return EscalaRiesgo.nivel(getProbabilidadEscala(), getImpactoEscala()).etiqueta();
     }
 
     @PrePersist
