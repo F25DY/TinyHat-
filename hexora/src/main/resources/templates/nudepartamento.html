@@ -4,108 +4,74 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Nuevo Departamento</title>
+    <title>TinyHat - Nueva Área</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
-<body>
+<body class="pagina-oscura">
 
-    <aside class="sidebar">
-        <div class="logo-plataforma">
-            <div class="textos-marca">
-                <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
-            </div>
-        </div>
-        <nav class="menu">
-            <ul>
-                <li>
-                    <a th:href="@{/dashboard}" class="enlace-menu">
-                        <i class="fa-solid fa-house"></i> Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/network-monitoring}" class="enlace-menu">
-                        <i class="fa-solid fa-network-wired"></i> Escaneo de red
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/proyectos}" class="enlace-menu activo">
-                        <i class="fa-solid fa-folder-closed"></i> Proyectos
-                    </a>
-                </li>
-            </ul>
-        </nav>
-        <div class="contenedor-usuario">
-            <div class="info-perfil">
-                <div class="avatar-usuario">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-                <div class="datos-texto">
-                    <span class="nombre-usuario">Analista</span>
-                    <span class="correo-usuario">analista@gmail.com</span>
-                </div>
-            </div>
-            <form th:action="@{/logout}" method="post">
-                <button type="submit" class="boton-cerrar-sesion">
-                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </button>
-            </form>
-        </div>
-    </aside>
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-    <main class="contenido-principal">
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+      <div class="columna-central columna-formulario">
 
         <header class="encabezado-retorno">
-            <a th:href="@{/proyectos/{id}(id=${auditoria.publicId})}" class="link-volver">
-                <i class="fa-solid fa-arrow-left"></i>
+            <a th:href="@{/proyectos/{id}(id=${auditoria.publicId})}" class="link-volver" aria-label="Volver al proyecto">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </a>
             <div class="titulos-nuevo">
-                <h1 class="titulo-pagina" th:text="${areaEditing} ? 'Editar Departamento' : 'Agregar Nuevo Departamento'">
-                    Agregar Nuevo Departamento
+                <h1 class="titulo-pagina" th:text="${areaEditing} ? 'Editar área' : 'Agregar área'">
+                    Agregar área
                 </h1>
-                <p class="subtitulo" th:text="${areaEditing} ? 'Actualiza la información del área auditable' : 'Crea un departamento para organizar las vulnerabilidades del proyecto'">
-                    Crea un departamento para organizar las vulnerabilidades del proyecto
+                <p class="subtitulo" th:text="${areaEditing} ? 'Actualiza la información del área auditable' : 'Un área es lo que se audita: un servidor, una aplicación, una página web, un datacenter o la infraestructura'">
+                    Un área es lo que se audita: un servidor, una aplicación, una página web, un datacenter o la infraestructura
                 </p>
             </div>
         </header>
 
-        <section class="tarjeta-blanca contenedor-formulario">
-            <h3 class="seccion-form-titulo" th:text="${areaEditing} ? 'Editar área auditable' : 'Información del Departamento'">
-                Información del Departamento
-            </h3>
+        <section class="tarjeta-blanca formulario-simple">
+            <h2 class="seccion-form-titulo" th:text="${areaEditing} ? 'Editar área auditable' : 'Información del área'">
+                Información del área
+            </h2>
 
             <form th:action="${areaAction}"
                     th:object="${areaForm}"
                     method="post"
                     class="form-proyecto">
 
-                <div class="campo-grupo">
-                    <label>Nombre del Departamento <span class="requerido">*</span></label>
-                    <input type="text"
-                            th:field="*{nombre}"
-                            placeholder="Ej: Aplicaciones Web, API REST, Infraestructura" required>
+                <div class="grid-paso grid-una-columna">
+                    <div class="campo-grupo">
+                        <label for="nombre">Nombre del área <span class="requerido" aria-hidden="true">*</span></label>
+                        <input class="form-control" type="text"
+                            th:field="*{nombre}" maxlength="150"
+                            placeholder="Ej: Aplicaciones web, API REST, Infraestructura" required>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></small>
+                    </div>
+
+                    <div class="campo-grupo">
+                        <label for="descripcion">Descripción <span class="requerido" aria-hidden="true">*</span></label>
+                        <textarea class="form-control" th:field="*{descripcion}"
+                                  rows="5" maxlength="10000"
+                                  placeholder="Describe qué se audita y hasta dónde llega el alcance..." required></textarea>
+                        <small class="mensaje-error" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}"></small>
+                    </div>
                 </div>
 
-                <div class="campo-grupo">
-                    <label>Descripción <span class="requerido">*</span></label>
-                    <textarea th:field="*{descripcion}"
-                                rows="5"
-                                placeholder="Describe el alcance y área de este departamento..."required></textarea>
-                </div>
-
-                <div class="acciones-formulario">
-                    <a th:href="@{/proyectos/{id}(id=${auditoria.publicId})}">
-                        <button type="button" class="btn-cancelar">Cancelar</button>
-                    </a>
-                    <button type="submit" class="btn-guardar">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span th:text="${areaEditing} ? 'Actualizar Departamento' : 'Crear Departamento'">Crear Departamento</span>
+                <div class="paso-acciones">
+                    <a th:href="@{/proyectos/{id}(id=${auditoria.publicId})}" class="btn btn-secundario">Cancelar</a>
+                    <button type="submit" class="btn btn-primario">
+                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                        <span th:text="${areaEditing} ? 'Actualizar área' : 'Crear área'">Crear área</span>
                     </button>
                 </div>
 
             </form>
         </section>
 
+      </div>
     </main>
 
 </body>

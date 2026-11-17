@@ -4,77 +4,28 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Proyectos</title>
+    <title>TinyHat - Proyectos</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
 </head>
-<body>
+<body class="pagina-oscura">
 
-    <aside class="sidebar">
-        <div class="logo-plataforma">
-            <div class="textos-marca">
-                <img th:src="@{/imagen/logo.png}" width="40" alt="Logo">
-                <span class="nombre-completo">Hexora</span>
-            </div>
-        </div>
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-        <nav class="menu">
-            <ul>
-                <li>
-                    <a th:href="@{/dashboard}" class="enlace-menu">
-                        <i class="fa-solid fa-house"></i> Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a th:href="@{/network-monitoring}" class="enlace-menu">
-                        <i class="fa-solid fa-network-wired"></i> Escaneo de red
-                    </a>
-                </li>
-
-                <li>
-                    <a th:href="@{/proyectos}" class="enlace-menu activo">
-                        <i class="fa-solid fa-folder-closed"></i> Proyectos
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
-        <div class="contenedor-usuario">
-
-            <div class="info-perfil">
-
-                <div class="avatar-usuario">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-
-                <div class="datos-texto">
-                    <span class="nombre-usuario">Analista</span>
-                    <span class="correo-usuario">analista@gmail.com</span>
-                </div>
-
-            </div>
-
-            <form th:action="@{/logout}" method="post">
-                <button type="submit" class="boton-cerrar-sesion">
-                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </button>
-            </form>
-
-        </div>
-    </aside>
-
-    <main class="contenido-principal">
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
 
         <section class="cabecera-gestion">
 
             <div class="texto-cabecera">
-                <h2 class="titulo-interno">Gestión de Proyectos</h2>
+                <h1 class="titulo-interno">Gestión de proyectos</h1>
                 <p class="subtitulo">Administra tus proyectos de auditoría y pentesting</p>
             </div>
 
-            <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}" class="no-underline">
-                <button class="btn-crear">
-                    <i class="fa-solid fa-plus"></i> Crear Proyecto
-                </button>
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}" class="btn btn-primario">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo proyecto
             </a>
 
         </section>
@@ -82,70 +33,77 @@
         <section class="tarjeta-blanca contenedor-busqueda">
 
             <div class="campo-busqueda">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="buscador"
-                    placeholder="Buscar proyectos por nombre o empresa..."
-                    >
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <label for="buscador" class="sr-only">Buscar proyectos por nombre, empresa o estado</label>
+                <input class="form-control" type="search" id="buscador" autocomplete="off"
+                    placeholder="Buscar por nombre, empresa o estado">
             </div>
 
         </section>
 
         <section class="tabla-contenedor tarjeta-blanca">
-            <p class="contador-proyectos" th:text="'Proyectos cargados: ' + ${#lists.size(auditorias)}"></p>
-            <table class="tabla-hexora">
+            <p class="contador-proyectos" id="contador-proyectos" role="status" aria-live="polite"
+               th:attr="data-total=${#lists.size(auditorias)}"
+               th:text="${#lists.size(auditorias) == 1} ? '1 proyecto' : ${#lists.size(auditorias)} + ' proyectos'">2 proyectos</p>
+            <div class="table-responsive">
+            <table class="tabla-hexora table">
                 <thead>
                     <tr>
-                        <th>Proyecto</th>
-                        <th>Empresa</th>
-                        <th>Estado</th>
-                        <th>Fecha inicio</th>
-                        <th>Fecha fin</th>
-                        <th>Acciones</th>
+                        <th scope="col">Proyecto</th>
+                        <th scope="col">Empresa</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Inicio</th>
+                        <th scope="col">Fin</th>
+                        <th scope="col"><span class="sr-only">Acciones</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:if="${#lists.isEmpty(auditorias)}">
-                        <td colspan="6" class="text-centered">No hay proyectos registrados</td>
+                        <td colspan="6" class="tabla-vacia">
+                            Todavía no hay proyectos.
+                            <a th:if="${canManageProjects}" th:href="@{/proyectos/nuproyectos}">Crea el primero</a>
+                        </td>
                     </tr>
 
-                    <tr th:each="aud : ${auditorias}">
+                    <tr th:each="aud : ${auditorias}" class="fila-enlace"
+                        th:data-href="@{/proyectos/{id}(id=${aud.publicId})}"
+                        th:data-busqueda="${aud.nombre + ' ' + (aud.empresa != null ? aud.empresa.nombre : '') + ' ' + aud.estado}">
                         <td class="nombre-destacado">
-                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="no-underline inherit-color">
-                                <span th:text="${aud.nombre}"></span>
-                            </a>
-                            <br>
-                            <small class="project-public-link" th:text="@{/proyectos/{id}(id=${aud.publicId})}"></small>
+                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" th:text="${aud.nombre}">Nombre del proyecto</a>
                         </td>
                         <td class="texto-empresa">
-                            <i class="fa-solid fa-building"></i>
-                            <span th:text="${aud.empresa.nombre}"></span>
+                            <i class="fa-solid fa-building" aria-hidden="true"></i>
+                            <span th:text="${aud.empresa != null} ? ${aud.empresa.nombre} : '—'">Empresa</span>
                         </td>
                         <td>
                             <span th:text="${aud.estado}"
                                 th:classappend="${aud.estado == 'Completado'} ? 'badge-verde' : (${aud.estado == 'Planificado'} ? 'badge-gris' : 'badge-azul')"
                                 class="badge"></span>
                         </td>
-                        <td th:text="${aud.fechaInico}"></td>
-                        <td th:text="${aud.fechaFin}"></td>
-                        <td>
-                            <a th:href="@{/proyectos/{id}(id=${aud.publicId})}" class="btn-verdetalle">Ver</a>
+                        <td class="fecha-tabla" th:text="${#temporals.format(aud.fechaInico, 'dd/MM/yyyy')} ?: '—'">01/01/2026</td>
+                        <td class="fecha-tabla" th:text="${#temporals.format(aud.fechaFin, 'dd/MM/yyyy')} ?: '—'">01/01/2026</td>
+                        <td class="acciones-tabla">
                             <form th:if="${canManageProjects}" th:action="@{/proyectos/{id}/eliminar(id=${aud.publicId})}" method="post" class="inline-form" data-confirm-message="¿Eliminar proyecto?">
-                                <button type="submit" class="btn-eliminar">
-                                    <i class="fa-solid fa-trash-can"></i>
+                                <button type="submit" class="btn btn-eliminar" th:attr="aria-label=|Eliminar proyecto ${aud.nombre}|">
+                                    <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                                 </button>
                             </form>
+                            <i class="fa-solid fa-chevron-right indicador-fila" aria-hidden="true"></i>
+                        </td>
+                    </tr>
+
+                    <tr id="sin-resultados" hidden>
+                        <td colspan="6" class="tabla-vacia">
+                            Ningún proyecto coincide con <strong id="sin-resultados-texto"></strong>.
                         </td>
                     </tr>
                 </tbody>
             </table>
-
-            <p class="contador-proyectos" th:if="${not #lists.isEmpty(auditorias)}"
-                th:text="'Mostrando ' + ${#lists.size(auditorias)} + ' proyectos'">
-            </p>
+            </div>
         </section>
 
     </main>
 
-    <script th:src="@{/js/project-list-filter.js(v=1)}" defer></script>
+    <script th:src="@{/js/project-list-filter.js(v=3)}" defer></script>
 </body>
 </html>

@@ -2,17 +2,40 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Códigos de recuperación</title>
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Códigos de recuperación</title>
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
 </head>
 <body>
-<main>
-    <h1>Guarda tus códigos de recuperación</h1>
-    <p>Se muestran una sola vez. Cada código puede utilizarse una sola vez.</p>
-    <ul>
-        <li th:each="code : ${recoveryCodes}" th:text="${code}"></li>
-    </ul>
-    <a th:href="@{/dashboard}">Continuar</a>
-</main>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
+
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
+
+            <th:block th:replace="~{fragments/acceso :: hero('Guarda tus códigos', 'en un lugar seguro.', 'Son tu plan B si pierdes el acceso a tu teléfono. Cada código funciona una sola vez y no volverás a verlos, así que anótalos o guárdalos en tu gestor de contraseñas.')}"></th:block>
+
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-life-ring"></i></div>
+
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo">Tus códigos de recuperación</h1>
+                        <p class="login-subtitulo">Se muestran una sola vez. Cada código puede usarse una sola vez.</p>
+                    </div>
+
+                    <ul class="codigos-grid" aria-label="Códigos de recuperación">
+                        <li th:each="code : ${recoveryCodes}"><code th:text="${code}">ABCD-EFGH</code></li>
+                    </ul>
+
+                    <a th:href="@{/dashboard}" class="btn btn-primario w-100">Ya los guardé, continuar</a>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
+    </main>
+
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
 </body>
 </html>

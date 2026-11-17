@@ -2,19 +2,56 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Verificar segundo factor</title>
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Verifica tu identidad</title>
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
 </head>
 <body>
-<main>
-    <h1>Verifica tu identidad</h1>
-    <p>Ingresa el código de tu aplicación TOTP o uno de tus códigos de recuperación.</p>
-    <p th:if="${error}" role="alert" th:text="${error}"></p>
-    <form method="post" th:action="@{/mfa/verify}">
-        <label for="code">Código</label>
-        <input id="code" name="code" autocomplete="one-time-code" required>
-        <button type="submit">Continuar</button>
-    </form>
-</main>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
+
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
+
+            <th:block th:replace="~{fragments/acceso :: hero('Un paso más y', 'sigues trabajando tranquilo.', 'Confirmar tu identidad toma unos segundos. Así mantenemos la información de tu empresa y de tus clientes solo al alcance de quienes deben verla.')}"></th:block>
+
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-shield-halved"></i></div>
+
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo">Confirma que eres tú</h1>
+                        <p class="login-subtitulo">Abre tu aplicación de autenticación e ingresa el código de 6 dígitos que aparece en pantalla.</p>
+                    </div>
+
+                    <form method="post" th:action="@{/mfa/verify}" class="verificacion-form">
+                        <label for="code">Código de verificación</label>
+                        <div class="campo-codigo">
+                            <input id="code" name="code" type="text" inputmode="text" autocomplete="one-time-code"
+                                   autocapitalize="off" spellcheck="false" maxlength="64" required autofocus
+                                   placeholder="123456"
+                                   th:attr="aria-invalid=${error != null} ? 'true' : null, aria-describedby=${error != null} ? 'acceso-error' : 'verificacion-ayuda'">
+                        </div>
+
+                        <p th:if="${error}" id="acceso-error" role="alert" class="feedback-error" th:text="${error}">Código no válido.</p>
+
+                        <button type="submit" class="btn btn-primario w-100">Verificar y continuar</button>
+                    </form>
+
+                    <p class="verificacion-ayuda" id="verificacion-ayuda">
+                        ¿No tienes tu aplicación a la mano? Escribe en el mismo campo uno de tus códigos de recuperación.
+                    </p>
+
+                    <form th:action="@{/logout}" method="post" class="verificacion-salir">
+                        <button type="submit" class="boton-texto">Cancelar e iniciar sesión con otra cuenta</button>
+                    </form>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
+    </main>
+
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
 </body>
 </html>

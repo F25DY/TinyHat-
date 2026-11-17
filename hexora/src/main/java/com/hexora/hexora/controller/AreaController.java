@@ -1,15 +1,18 @@
 package com.hexora.hexora.controller;
 
 import com.hexora.hexora.dto.AreaForm;
+import com.hexora.hexora.dto.DashboardResumen;
 import com.hexora.hexora.model.AreaAuditable;
 import com.hexora.hexora.model.Auditoria;
 import com.hexora.hexora.model.Vulnerabilidad;
 import com.hexora.hexora.repository.AreaAuditableRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
 import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.service.DashboardService;
 import com.hexora.hexora.service.PermissionService;
 import jakarta.validation.Valid;
 import java.text.Normalizer;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -167,9 +170,22 @@ public class AreaController {
                 : permissionService.requireArea(principal, proyectoPublicId, areaPublicId);
         Auditoria project = area.getAuditoria();
         boolean auditor = "AUDITOR".equals(principal.getRol());
-        List<Vulnerabilidad> findings = auditor
+        // De la más crítica a la de riesgo bajo; dentro de cada nivel, la más reciente primero.
+        List<Vulnerabilidad> findings = (auditor
                 ? vulnerabilidadRepository.findByAreaAuditableAndCuentaId(area, principal.getCuentaId())
-                : List.of();
+                : List.<Vulnerabilidad>of())
+                .stream()
+                .sorted(Comparator
+                        .comparingInt((Vulnerabilidad finding) -> riskRank(finding.getNivelRiesgo()))
+                        .thenComparing(Vulnerabilidad::getFechaDeteccion,
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        long critico = countRisk(findings, "Critico");
+        long alto = countRisk(findings, "Alto");
+        long medio = countRisk(findings, "Medio");
+        long bajo = countRisk(findings, "Bajo");
+        long total = critico + alto + medio + bajo;
 
         model.addAttribute("area", area);
         model.addAttribute("departamento", area);
@@ -177,13 +193,30 @@ public class AreaController {
         model.addAttribute("proyecto", project);
         model.addAttribute("canManageProjects", auditor);
         model.addAttribute("vulnerabilidades", findings);
-        model.addAttribute("canManageProjects", auditor);
-        model.addAttribute("metricas", Map.of(
-                "critico", countRisk(findings, "Critico"),
-                "alto", countRisk(findings, "Alto"),
-                "medio", countRisk(findings, "Medio"),
-                "bajo", countRisk(findings, "Bajo")));
+        model.addAttribute("metricas", Map.of("critico", critico, "alto", alto, "medio", medio, "bajo", bajo));
+
+        // Barra de exposición: los mismos niveles y el mismo formato que el panel y el proyecto.
+        model.addAttribute("totalHallazgos", total);
+        model.addAttribute("niveles", List.of(
+                new DashboardResumen.Nivel("Crítico", "critico", critico, DashboardService.porcentaje(critico, total)),
+                new DashboardResumen.Nivel("Alto", "alto", alto, DashboardService.porcentaje(alto, total)),
+                new DashboardResumen.Nivel("Medio", "medio", medio, DashboardService.porcentaje(medio, total)),
+                new DashboardResumen.Nivel("Bajo", "bajo", bajo, DashboardService.porcentaje(bajo, total))));
         return "detalle-area";
+    }
+
+    /** Posición de un nivel de riesgo en el orden de criticidad; lo desconocido va al final. */
+    private int riskRank(String level) {
+        if (level == null) {
+            return 4;
+        }
+        return switch (normalize(level.trim())) {
+            case "critico" -> 0;
+            case "alto" -> 1;
+            case "medio" -> 2;
+            case "bajo" -> 3;
+            default -> 4;
+        };
     }
 
     private void populateAreaForm(

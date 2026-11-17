@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!-- Hojas de estilo de las pantallas de acceso (van dentro de <head>) -->
+    <th:block th:fragment="estilos">
+        <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+        <link rel="stylesheet" th:href="@{/vendor/fonts/fonts.css}">
+        <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+        <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+        <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    </th:block>
+</head>
+<body>
+<!--
+    Estructura común de las pantallas de acceso (inicio de sesión, verificación, recuperación, registro...):
+    fondo animado + barra de marca, mensaje a la izquierda y una tarjeta vertical a la derecha.
+    Cada página pone su propia tarjeta (<section class="login login-vertical">) en la columna derecha.
+-->
+
+<!-- Fondo animado y barra de marca -->
+<th:block th:fragment="fondo">
+    <div class="fondo-decorativo" aria-hidden="true">
+        <canvas class="trafico-datos" id="trafico-datos"></canvas>
+    </div>
+
+    <header class="barra-marca">
+        <span class="marca-enlace">
+            <img th:src="@{/imagen/logo.png}" alt="" class="marca-logo">
+            <span class="marca-textos">
+                <span class="marca-nombre"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
+                <span class="marca-subtitulo">Pentesting &amp; Monitoreo</span>
+            </span>
+        </span>
+    </header>
+</th:block>
+
+<!-- Mensaje de la izquierda: tono de tranquilidad y servicio, no de amenaza -->
+<section th:fragment="hero(titulo, destacado, texto)" class="col-12 col-lg-6 order-2 order-lg-1 hero">
+    <h2 class="hero-titulo">
+        <span th:text="${titulo}">Un paso más y</span>
+        <span class="texto-degradado" th:text="${destacado}">sigues trabajando tranquilo.</span>
+    </h2>
+
+    <p class="hero-texto" th:text="${texto}">Texto de apoyo.</p>
+
+    <div class="hero-logo-marco">
+        <img th:src="@{/imagen/logo.png}" alt="Imagotipo de TinyHat" class="hero-logo">
+    </div>
+
+    <div class="row g-3 hero-capacidades">
+        <div class="col-12 col-md-4">
+            <article class="capacidad capacidad-turquesa">
+                <div class="capacidad-icono"><i class="fa-solid fa-user-check" aria-hidden="true"></i></div>
+                <h3 class="capacidad-titulo">Acceso personal</h3>
+                <p class="capacidad-texto">Solo tú puedes entrar a tu cuenta.</p>
+            </article>
+        </div>
+        <div class="col-12 col-md-4">
+            <article class="capacidad capacidad-verde">
+                <div class="capacidad-icono"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
+                <h3 class="capacidad-titulo">Datos protegidos</h3>
+                <p class="capacidad-texto">Tus proyectos e informes siguen en privado.</p>
+            </article>
+        </div>
+        <div class="col-12 col-md-4">
+            <article class="capacidad capacidad-magenta">
+                <div class="capacidad-icono"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+                <h3 class="capacidad-titulo">Confianza</h3>
+                <p class="capacidad-texto">Tu equipo y tus clientes saben que sus datos están seguros.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- Pie legal -->
+<footer th:fragment="pie" class="pie-legal w-100">
+    <span>© 2026 <strong><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span> Cybersecurity</strong>. Todos los derechos reservados.</span>
+    <span class="pie-programa">Tecnología en Gestión de Redes de Computadoras y Seguridad Informática</span>
+</footer>
+
+<!-- Script del fondo animado -->
+<th:block th:fragment="scripts">
+    <script th:src="@{/js/login-effects.js}" defer></script>
+</th:block>
+</body>
+</html>

@@ -4,62 +4,97 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Historial de detecciones</title>
+    <title>TinyHat - Historial de detecciones</title>
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <link rel="stylesheet" th:href="@{/css/network-monitoring.css(v=11)}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/css/network-modulo.css(v=2)}">
 </head>
-<body class="network-page">
-<main class="network-shell">
-    <header class="network-header">
-        <a class="network-brand" th:href="@{/dashboard}">
-            <img th:src="@{/imagen/logo.png}" width="40" height="40" alt="Hexora">
-            <span>Hexora</span>
-        </a>
-        <div class="network-heading">
-            <p class="network-eyebrow">INFRAESTRUCTURA</p>
+<!-- Mismo marco que el módulo de monitoreo: oscuro, sin fondo animado. -->
+<body class="pagina-oscura network-modulo">
+<th:block th:replace="~{fragments/sidebar :: sidebar('red')}"></th:block>
+
+<main id="contenido-principal" tabindex="-1" class="contenido-principal">
+  <div class="net-columna">
+
+    <header class="net-cabecera" id="net-cabecera">
+        <div class="net-titulos">
             <h1>Historial de detecciones</h1>
-            <p class="network-subtitle">Resultados guardados cada vez que detectas dispositivos en la red.</p>
+            <p class="net-subtitulo">Resultados guardados cada vez que detectas dispositivos en la red.</p>
         </div>
-        <div class="network-header-actions">
-            <a id="current-devices-link" class="network-action-button" th:href="@{/network-monitoring}">Volver a dispositivos actuales</a>
+        <div class="net-acciones">
+            <a id="current-devices-link" class="btn btn-secundario" th:href="@{/network-monitoring}">Volver a dispositivos actuales</a>
         </div>
     </header>
 
-    <section class="network-card">
-        <label>
-            Proyecto
-            <select id="history-project-select" required>
-                <option value="">Cargando proyectos autorizados…</option>
-            </select>
-        </label>
+    <div class="net-alcance">
+        <label for="history-project-select" class="net-alcance-etiqueta">Proyecto</label>
+        <select id="history-project-select" required>
+            <option value="">Cargando proyectos autorizados…</option>
+        </select>
+    </div>
+
+    <p id="discovery-history-message" class="network-message" role="status" aria-live="polite">Cargando historial...</p>
+
+    <!-- Resumen: siempre visible, calculado con las detecciones guardadas -->
+    <section class="metricas-vuln net-metricas" aria-label="Resumen del historial">
+        <article class="metrica-vuln">
+            <p class="metrica-etiqueta">Detecciones guardadas</p>
+            <p class="metrica-valor" id="hist-detecciones">0</p>
+            <p class="metrica-pie">Cada vez que detectas dispositivos</p>
+        </article>
+        <article class="metrica-vuln">
+            <p class="metrica-etiqueta">Disponibilidad observada</p>
+            <p class="metrica-valor" id="hist-disponibilidad">—</p>
+            <p class="metrica-pie">Estimación por muestras</p>
+        </article>
+        <article class="metrica-vuln">
+            <p class="metrica-etiqueta">Observaciones</p>
+            <p class="metrica-valor" id="hist-muestras">0</p>
+            <p class="metrica-pie">Estados de dispositivo medidos</p>
+        </article>
+        <article class="metrica-vuln">
+            <p class="metrica-etiqueta">Dispositivos distintos</p>
+            <p class="metrica-valor" id="hist-dispositivos">0</p>
+            <p class="metrica-pie">Vistos en el historial</p>
+        </article>
     </section>
 
-    <section class="network-card" aria-labelledby="availability-heading">
-        <div class="section-heading">
-            <div>
-                <p class="network-eyebrow">MUESTRAS DEL HISTORIAL</p>
+    <div class="net-pestanas" role="tablist" aria-label="Secciones del historial" id="net-pestanas">
+        <button type="button" role="tab" id="tab-disponibilidad" class="net-pestana" aria-controls="panel-disponibilidad" aria-selected="true">Disponibilidad</button>
+        <button type="button" role="tab" id="tab-detecciones" class="net-pestana" aria-controls="panel-detecciones" aria-selected="false" tabindex="-1">
+            Detecciones <span class="net-contador" id="detecciones-contador" hidden>0</span>
+        </button>
+    </div>
+
+    <section role="tabpanel" id="panel-disponibilidad" class="net-panel" aria-labelledby="tab-disponibilidad" tabindex="0">
+        <section class="net-bloque" aria-labelledby="availability-heading">
+            <div class="net-bloque-cabecera">
                 <h2 id="availability-heading">Disponibilidad estimada</h2>
-                <p id="availability-summary" class="management-help">Cargando el historial de detecciones...</p>
+                <span class="chart-caption">No representa medición continua</span>
             </div>
-            <span class="chart-caption">No representa medición continua</span>
-        </div>
-        <div class="table-scroll">
-            <table>
-                <thead>
-                <tr><th>Dispositivo</th><th>Muestras en línea</th><th>Muestras sin respuesta</th><th>Disponibilidad observada</th></tr>
-                </thead>
-                <tbody id="availability-body">
-                <tr><td colspan="4" class="empty-state">Cargando muestras...</td></tr>
-                </tbody>
-            </table>
-        </div>
+            <p id="availability-summary" class="net-ayuda">Cargando el historial de detecciones...</p>
+            <div class="table-scroll table-alta">
+                <table>
+                    <thead>
+                    <tr><th scope="col">Dispositivo</th><th scope="col">Muestras en línea</th><th scope="col">Muestras sin respuesta</th><th scope="col">Disponibilidad observada</th></tr>
+                    </thead>
+                    <tbody id="availability-body">
+                    <tr><td colspan="4" class="empty-state">Cargando muestras...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </section>
 
-    <p id="discovery-history-message" class="network-card network-message" role="status" aria-live="polite">
-        Cargando historial...
-    </p>
-    <div id="discovery-history-list" class="discovery-history-list"></div>
+    <section role="tabpanel" id="panel-detecciones" class="net-panel" aria-labelledby="tab-detecciones" tabindex="0" hidden>
+        <p class="net-ayuda">La más reciente aparece abierta. Abre cualquier otra para ver sus dispositivos.</p>
+        <div id="discovery-history-list" class="discovery-history-list"></div>
+    </section>
+
+  </div>
 </main>
-<script th:src="@{/js/network-monitoring-history.js(v=6)}" defer></script>
+<script th:src="@{/js/network-monitoring-history.js(v=7)}" defer></script>
+<script th:src="@{/js/network-layout.js(v=2)}" defer></script>
 </body>
 </html>

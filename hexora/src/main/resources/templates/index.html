@@ -4,26 +4,130 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora</title>
+    <title>TinyHat</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <!-- NUEVO: fuentes de la marca e íconos (van después de Bootstrap y antes de nuestro CSS) -->
+    <link rel="stylesheet" th:href="@{/vendor/fonts/fonts.css}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" href="../static/css/responsive-tablet.css" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
 </head>
 <body>
-    <main>
+
+    <!-- Fondo decorativo con tráfico de datos -->
+    <div class="fondo-decorativo" aria-hidden="true">
+        <canvas class="trafico-datos" id="trafico-datos"></canvas>
+    </div>
+
+    <!-- NUEVO: barra superior con la marca -->
+    <header class="barra-marca">
+        <a class="marca-enlace" th:href="@{/}" aria-label="Ir al inicio de TinyHat">
+            <img src="../static/imagen/logo.png" th:src="@{/imagen/logo.png}" alt="Logo TinyHat" class="marca-logo">
+            <div class="marca-textos">
+                <span class="marca-nombre"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
+                <span class="marca-subtitulo">Pentesting &amp; Monitoreo</span>
+            </div>
+        </a>
+    </header>
+
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+
+        <!-- NUEVO: fila de Bootstrap que pone el hero a la izquierda y la tarjeta a la derecha -->
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
+
+            <!-- NUEVO: columna izquierda (hero) -->
+            <section class="col-12 col-lg-6 order-2 order-lg-1 hero">
+                <h2 class="hero-titulo">
+                    Ponte el sombrero por
+                    <span class="texto-degradado">tu seguridad.</span>
+                </h2>
+
+                <p class="hero-texto">
+                    <strong>No esperes a sufrir un ataque para proteger tu empresa.</strong> El Sombrerito te protege,
+                    detecta amenazas a tiempo y mantiene a salvo tus servidores, datos y activos tecnológicos.
+                </p>
+
+                <div class="hero-logo-marco">
+                    <img src="../static/imagen/logo.png" th:src="@{/imagen/logo.png}" alt="Imagotipo de TinyHat" class="hero-logo">
+                </div>
+
+                <div class="row g-3 hero-capacidades">
+                    <div class="col-12 col-md-4">
+                        <article class="capacidad capacidad-turquesa">
+                            <div class="capacidad-icono"><i class="fa-solid fa-folder-tree"></i></div>
+                            <h3 class="capacidad-titulo">Gestión por Proyectos</h3>
+                            <p class="capacidad-texto">Organiza cada auditoría por proyecto y área.</p>
+                        </article>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <article class="capacidad capacidad-verde">
+                            <div class="capacidad-icono"><i class="fa-solid fa-gauge-high"></i></div>
+                            <h3 class="capacidad-titulo">Riesgo CIA</h3>
+                            <p class="capacidad-texto">Prioriza según confidencialidad, integridad y disponibilidad.</p>
+                        </article>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <article class="capacidad capacidad-magenta">
+                            <div class="capacidad-icono"><i class="fa-solid fa-list-check"></i></div>
+                            <h3 class="capacidad-titulo">Seguimiento</h3>
+                            <p class="capacidad-texto">Controla el estado de cada vulnerabilidad hasta mitigarla.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- NUEVO: columna derecha que envuelve tu tarjeta de login -->
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+
         <section class="login">
             <header>
-                <img th:src="@{/imagen/logo.png}" alt="Logo Hexora">
-                <h1>Hexora</h1>
+                <img src="../static/imagen/logo.png" th:src="@{/imagen/logo.png}" alt="Logo TinyHat">
+                <h1><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></h1>
                 <p>Plataforma de Gestión de Vulnerabilidades</p>
             </header>
+
+            <!-- NUEVO: encabezado de la tarjeta -->
+            <div class="login-encabezado">
+                <h2 class="login-titulo">Bienvenido</h2>
+                <p class="login-subtitulo">Ingresa tus credenciales autorizadas para gestionar tus activos.</p>
+            </div>
+
+            <!-- NUEVO: selector de rol (solo visual, sin name: no viaja en el formulario) -->
+            <div class="selector-rol" role="group" aria-label="Tipo de usuario">
+                <button type="button" class="rol-opcion activo" aria-pressed="true">Analista de Seguridad</button>
+                <button type="button" class="rol-opcion" aria-pressed="false">Administrador MiPyme</button>
+            </div>
 
             <form th:action="@{/login}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
                 <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" name="email" placeholder="usuario@gmail.com" required>
+                <!-- NUEVO: contenedor + ícono; el input no cambia -->
+                <div class="campo-con-icono">
+                    <i class="fa-regular fa-envelope icono-campo"></i>
+                <input class="form-control" type="email" id="email" name="email" placeholder="usuario@gmail.com" required>
+                </div>
 
                 <label for="contraseña">Contraseña</label>
-                <input type="password" id="contraseña" name="password" placeholder="••••••••" required>
+                <!-- NUEVO: contenedor + ícono + botón del ojo; el input no cambia -->
+                <div class="campo-con-icono">
+                    <i class="fa-solid fa-lock icono-campo"></i>
+                <input class="form-control" type="password" id="contraseña" name="password" placeholder="••••••••" required>
+                    <button type="button" id="boton-ojo" class="boton-ojo" aria-label="Mostrar u ocultar contraseña">
+                        <i class="fa-regular fa-eye" id="icono-ojo"></i>
+                    </button>
+                </div>
+
+                <!-- NUEVO: opciones extra (solo visuales, sin name) -->
+                <div class="opciones-sesion">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="recordar-sesion">
+                        <label class="form-check-label" for="recordar-sesion">Recordar sesión (30 días)</label>
+                    </div>
+                    <button type="button" class="boton-passkey">
+                        <i class="fa-solid fa-key"></i> Usar Passkey
+                    </button>
+                </div>
 
                 <p th:if="${param.error}" class="feedback-error">Credenciales no válidas.</p>
                 <p th:if="${param.expired}" class="feedback-error">La sesión terminó. Inicia sesión de nuevo.</p>
@@ -34,7 +138,7 @@
                 <p th:if="${param.invited}" class="feedback-success">Invitación completada. Ya puedes iniciar sesión.</p>
                 <p th:if="${param.invalidToken}" class="feedback-error">El enlace no es válido o ha expirado.</p>
 
-                <button type="submit">Iniciar Sesión</button>
+                <button class="btn btn-primario w-100" type="submit">Iniciar Sesión</button>
 
             </form>
 
@@ -43,11 +147,30 @@
                 <a th:href="@{/registro}">Registrarse como Auditor</a>
             </p>
 
+            <!-- NUEVO -->
+            <p class="login-registro">
+                ¿Tu empresa aún no tiene el sombrerito activo?
+                <a href="#">Solicitar registro o auditoría</a>
+            </p>
+
         </section>
+
+            </div>
+        </div>
+
+        <!-- NUEVO: bloque legal (va antes de tu footer original) -->
+        <footer class="pie-legal w-100">
+            <span>© 2026 <strong><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span> Cybersecurity</strong>. Todos los derechos reservados.</span>
+            <span class="pie-programa">Tecnología en Gestión de Redes de Computadoras y Seguridad Informática</span>
+            <nav class="pie-enlaces">
+                <a href="#">Política de Privacidad</a>
+                <a href="#">Términos del Servicio</a>
+            </nav>
+        </footer>
+
     </main>
 
-    <footer class="pie-pagina-login">
-        <p>Secure Access &bull; Encrypted Connection</p>
-    </footer>
+    <!-- NUEVO: mostrar/ocultar contraseña y cambio visual de las pestañas de rol -->
+    <script th:src="@{/js/login-effects.js}" defer></script>
 </body>
 </html>

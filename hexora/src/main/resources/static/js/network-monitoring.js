@@ -411,6 +411,8 @@ async function loadAuthorizedRanges() {
             </div>
         </article>`).join("")
         : '<p class="empty-state">Este proyecto todavía no tiene rangos autorizados.</p>';
+    // Sin un rango vigente no se puede detectar ni escanear: la pantalla lo usa para abrir "Administrar" la primera vez.
+    authorizedRangeList.dataset.sinRangoVigente = String(!hasActiveAuthorizedRange);
     updateProjectControls();
 }
 
@@ -535,13 +537,14 @@ function renderDetectedInventory(devices, subnet, trackChanges = true) {
     detectedDevicesBody.innerHTML = filteredDevices.map(device => {
         const status = String(device.status || "UNKNOWN").toLowerCase();
         const registered = device.registered === true;
+        // El punto de color lo pone el estilo (.status-pill::before); aquí solo va el texto.
         const stateLabel = status === "online"
-            ? registered ? "🟢 Online" : "🟢 Online · No registrado"
+            ? registered ? "En línea" : "En línea · No registrado"
             : status === "offline"
-                ? registered ? "🔴 Offline" : "🔴 Offline · No registrado"
-                : "🟡 No registrado";
+                ? registered ? "Sin respuesta" : "Sin respuesta · No registrado"
+                : "No registrado";
         const isGateway = device.gateway === true || (device.detectionMethod && device.detectionMethod.includes("Puerta de enlace"));
-        const gatewayBadge = isGateway ? ' <span class="gateway-badge" title="Puerta de enlace predeterminada (Gateway)">🌐 Gateway</span>' : "";
+        const gatewayBadge = isGateway ? ' <span class="gateway-badge" title="Puerta de enlace predeterminada (Gateway)">Gateway</span>' : "";
         const pillClass = status === "online" ? "online" : status === "offline" ? "offline" : "unregistered";
         const identityKey = deviceIdentityKey(device);
         const metadata = localDeviceMetadata[identityKey] || {};
@@ -658,7 +661,7 @@ function renderPorts(scans) {
     const rows = [...latestByHostAndPort.values()]
         .sort((left, right) => left.port - right.port || left.hostName.localeCompare(right.hostName));
     if (!rows.length) {
-        portsBody.innerHTML = '<tr><td colspan="5" class="empty-state">No port observations yet.</td></tr>';
+        portsBody.innerHTML = '<tr><td colspan="5" class="empty-state">Todavía no hay observaciones de puertos.</td></tr>';
         return;
     }
     portsBody.innerHTML = rows.map(port => {
@@ -704,14 +707,30 @@ function updateHistorySelection() {
     selectAllHistoryCheckbox.disabled = checkboxes.length === 0;
 }
 
+const EVENT_TYPE_LABELS = {
+    HOST_ONLINE: "Equipo en línea",
+    HOST_OFFLINE: "Equipo sin respuesta",
+    PORT_OPENED: "Puerto abierto",
+    PORT_CLOSED: "Puerto cerrado",
+    DEVICE_DETECTED: "Dispositivo detectado",
+    DEVICE_DISCONNECTED: "Dispositivo desconectado",
+    DEVICE_ONLINE: "Dispositivo en línea",
+    DEVICE_IP_CHANGED: "Cambió la IP",
+    DEVICE_MAC_CHANGED: "Cambió la MAC"
+};
+
+function eventTypeLabel(type) {
+    return EVENT_TYPE_LABELS[type] || String(type).replaceAll("_", " ").toLowerCase();
+}
+
 function renderEvents(events) {
     if (!events.length) {
-        eventList.innerHTML = '<p class="empty-state">No state changes recorded.</p>';
+        eventList.innerHTML = '<p class="empty-state">Todavía no hay cambios de estado registrados.</p>';
         return;
     }
     eventList.innerHTML = events.map(event => `<article class="event-item">
         <span class="event-dot"></span>
-        <div><strong>${escapeHtml(event.hostName)} - ${escapeHtml(event.type.replaceAll("_", " "))}</strong>
+        <div><strong>${escapeHtml(event.hostName)} · ${escapeHtml(eventTypeLabel(event.type))}</strong>
         <p>${escapeHtml(event.description)}</p></div>
         <time>${escapeHtml(formatDate(event.createdAt))}</time>
     </article>`).join("");
@@ -984,8 +1003,8 @@ function renderChart(scans, totalHosts) {
     const points = [...groups.entries()].sort((left, right) => left[0] - right[0]).slice(-12)
         .map(([, statuses]) => [...statuses.values()].filter(status => status === "ONLINE").length);
     if (!points.length || !width || !height) {
-        context.fillStyle = "#6d8792";
-        context.font = "13px sans-serif";
+        context.fillStyle = "#C3BEDD";
+        context.font = "13px 'Plus Jakarta Sans', sans-serif";
         context.fillText("La actividad aparecerá después de la primera revisión.", 8, 24);
         return;
     }
@@ -994,7 +1013,7 @@ function renderChart(scans, totalHosts) {
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
     const maximum = Math.max(totalHosts, 1);
-    context.strokeStyle = "#e4eef1";
+    context.strokeStyle = "#3A2E63";
     context.lineWidth = 1;
     context.beginPath();
     context.moveTo(padding.left, padding.top + plotHeight);
@@ -1005,7 +1024,7 @@ function renderChart(scans, totalHosts) {
         x: padding.left + (points.length === 1 ? plotWidth / 2 : index * plotWidth / (points.length - 1)),
         y: padding.top + plotHeight - (value / maximum) * plotHeight
     }));
-    context.strokeStyle = "#00a8c5";
+    context.strokeStyle = "#29B6E0";
     context.lineWidth = 2.5;
     context.beginPath();
     coordinates.forEach((point, index) => {
@@ -1016,13 +1035,13 @@ function renderChart(scans, totalHosts) {
     coordinates.forEach(point => {
         context.beginPath();
         context.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        context.fillStyle = "#00c2e0";
+        context.fillStyle = "#29B6E0";
         context.fill();
     });
-    context.fillStyle = "#6d8792";
-    context.font = "11px sans-serif";
-    context.fillText(`Online / ${maximum}`, 4, padding.top + 8);
-    context.fillText("Recent checks", Math.max(4, width - 82), height - 4);
+    context.fillStyle = "#C3BEDD";
+    context.font = "11px 'Plus Jakarta Sans', sans-serif";
+    context.fillText(`En línea / ${maximum}`, 4, padding.top + 8);
+    context.fillText("Revisiones recientes", Math.max(4, width - 118), height - 4);
 }
 
 async function refreshDashboard() {

@@ -132,6 +132,25 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
     }
 
     @Test
+    void discoveryHistoryUsesTheSameDarkFrameWithMetricsTwoTabsAndNoBackgroundAnimation() throws Exception {
+        String html = performAsAuditor(get("/network-monitoring/history"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        int header = html.indexOf("id=\"net-cabecera\"");
+        int metrics = html.indexOf("id=\"hist-detecciones\"");
+        int tabs = html.indexOf("role=\"tablist\"");
+        org.assertj.core.api.Assertions.assertThat(header).isPositive();
+        org.assertj.core.api.Assertions.assertThat(metrics).as("el resumen va justo después de la cabecera").isGreaterThan(header);
+        org.assertj.core.api.Assertions.assertThat(tabs).isGreaterThan(metrics);
+        org.assertj.core.api.Assertions.assertThat(html.split("role=\"tab\"", -1).length - 1).isEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(html).contains("pagina-oscura").contains("current-devices-link")
+            .contains("hist-disponibilidad").contains("discovery-history-list");
+        org.assertj.core.api.Assertions.assertThat(html).doesNotContain("trafico-datos").doesNotContain("network-eyebrow")
+            .doesNotContain(" style=\"");
+    }
+
+    @Test
     void rendersProjectAndOrganizationNamesAsEscapedText() throws Exception {
         String payload = "<img src=\"http://127.0.0.1:9/track\">";
         Long organizationId = jdbcTemplate.queryForObject(
@@ -467,7 +486,47 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Detectar dispositivos en la red")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Método de detección")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Dispositivos conectados")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("ACTUALIZACIÓN AUTOMÁTICA")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("se actualiza automáticamente cada 30 segundos")));
+    }
+
+    @Test
+    void monitoringPageKeepsMetricsFirstAReviewAccordionClosedAndFiveTabsWithoutBackgroundAnimation() throws Exception {
+        String html = performAsAuditor(get("/network-monitoring"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        int header = html.indexOf("id=\"net-cabecera\"");
+        int metrics = html.indexOf("id=\"host-count\"");
+        int accordion = html.indexOf("id=\"acordeon-revision\"");
+        int tabs = html.indexOf("role=\"tablist\"");
+        org.assertj.core.api.Assertions.assertThat(header).isPositive();
+        org.assertj.core.api.Assertions.assertThat(metrics).as("las métricas van justo después de la cabecera").isGreaterThan(header);
+        org.assertj.core.api.Assertions.assertThat(accordion).isGreaterThan(metrics);
+        org.assertj.core.api.Assertions.assertThat(tabs).as("las pestañas van después del acordeón").isGreaterThan(accordion);
+
+        String accordionTag = html.substring(accordion - 40, html.indexOf('>', accordion));
+        org.assertj.core.api.Assertions.assertThat(accordionTag).as("el acordeón de revisión entra colapsado")
+            .doesNotContain(" open");
+        org.assertj.core.api.Assertions.assertThat(html.split("role=\"tab\"", -1).length - 1)
+            .as("cuatro pestañas: las alertas ya no son una pestaña").isEqualTo(4);
+        org.assertj.core.api.Assertions.assertThat(html).doesNotContain("id=\"tab-alertas\"");
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"tab-administrar\""))
+            .as("Administrar es el primer paso: va de primero").isGreaterThan(tabs)
+            .isLessThan(html.indexOf("id=\"tab-estado\""));
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"panel-administrar\""))
+            .isLessThan(html.indexOf("id=\"panel-estado\""));
+
+        int aside = html.indexOf("id=\"net-lateral\"");
+        org.assertj.core.api.Assertions.assertThat(aside).as("el panel de alertas va fijo a la derecha").isGreaterThan(tabs);
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"local-alert-list\"")).isGreaterThan(aside);
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"aside-estado\"")).isGreaterThan(aside);
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"alertas-contador\"")).isGreaterThan(aside);
+        org.assertj.core.api.Assertions.assertThat(html.indexOf("id=\"snapshot-diff-list\""))
+            .as("los cambios entre detecciones viven en el historial").isLessThan(aside);
+        org.assertj.core.api.Assertions.assertThat(html).contains("id=\"export-network-report\"")
+            .contains("id=\"history-link\"").contains("id=\"discover-network-button\"");
+        org.assertj.core.api.Assertions.assertThat(html).doesNotContain("trafico-datos").doesNotContain("fondo-red")
+            .doesNotContain(" style=\"");
     }
 
     @Test

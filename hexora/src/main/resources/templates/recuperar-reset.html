@@ -4,35 +4,48 @@
     <meta charset="UTF-8">
     <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hexora - Nueva Contraseña</title>
-    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <title>TinyHat - Crea una nueva contraseña</title>
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
 </head>
 <body>
-    <main>
-        <section class="login">
-            <header>
-                <img th:src="@{/imagen/logo.png}" alt="Logo Hexora">
-                <h1>Hexora</h1>
-                <p>Establecer Nueva Contraseña</p>
-            </header>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
 
-            <form th:action="@{/recuperar/{token}(token=${token})}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-between g-4 g-xl-5">
 
-                <label for="password">Nueva Contraseña (mínimo 12 caracteres)</label>
-                <input type="password" id="password" name="password" placeholder="••••••••••••" required>
+            <th:block th:replace="~{fragments/acceso :: hero('Elige una contraseña', 'fuerte y fácil de recordar para ti.', 'Usa al menos 12 caracteres. Una frase corta que solo tú conozcas es una muy buena opción.')}"></th:block>
 
-                <button type="submit">Actualizar Contraseña</button>
-            </form>
+            <div class="col-12 col-md-10 col-lg-5 order-1 order-lg-2">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-lock"></i></div>
 
-            <p class="spaced-paragraph">
-                <a th:href="@{/login}">Volver al inicio de sesión</a>
-            </p>
-        </section>
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo">Crea tu nueva contraseña</h1>
+                        <p class="login-subtitulo">Escríbela una vez y quedará lista para tu próximo inicio de sesión.</p>
+                    </div>
+
+                    <form th:action="@{/recuperar/{token}(token=${token})}" method="post" class="verificacion-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                        <label for="password">Nueva contraseña (mínimo 12 caracteres)</label>
+                        <div class="campo-con-icono">
+                            <i class="fa-solid fa-lock icono-campo" aria-hidden="true"></i>
+                            <input type="password" id="password" name="password" placeholder="••••••••••••" required autocomplete="new-password" autofocus>
+                        </div>
+
+                        <button type="submit" class="btn btn-primario w-100">Actualizar contraseña</button>
+                    </form>
+
+                    <p class="acceso-enlaces">
+                        <a th:href="@{/login}">Volver al inicio de sesión</a>
+                    </p>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
     </main>
 
-    <footer class="pie-pagina-login">
-        <p>Secure Access &bull; Encrypted Connection</p>
-    </footer>
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
 </body>
 </html>

@@ -1,0 +1,1169 @@
+/*
+ * Módulo de red (tema oscuro): hoja única del monitoreo y de su historial (reemplazó a network-monitoring.css).
+ * Usa los tokens oscuros de style.css (--th-noche-*).
+ */
+
+.network-modulo [hidden] {
+    display: none !important;
+}
+
+.network-modulo {
+    scrollbar-color: var(--th-noche-borde) transparent;
+}
+
+.network-modulo ::selection {
+    background: rgb(41 182 224 / 35%);
+    color: #FFFFFF;
+}
+
+.network-modulo input,
+.network-modulo textarea {
+    caret-color: var(--th-turquesa);
+}
+
+.net-columna {
+    width: 100%;
+    max-width: 1360px;
+    margin-inline: auto;
+}
+
+/* ---------- Cabecera: sticky, se esconde al bajar y vuelve al subir ---------- */
+
+.net-cabecera {
+    position: sticky;
+    z-index: 30;
+    top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    margin: 0 0 16px;
+    padding: 14px 0 14px;
+    border-bottom: 1px solid var(--th-noche-borde);
+    background: var(--th-noche);
+    transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.net-cabecera-oculta {
+    transform: translateY(-110%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .net-cabecera {
+        transition: none;
+    }
+}
+
+.net-titulos h1 {
+    margin: 0;
+    color: var(--th-noche-hueso);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.net-subtitulo {
+    margin: 4px 0 0;
+    color: var(--th-noche-suave);
+    font-size: 0.92rem;
+}
+
+.net-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.network-modulo .btn {
+    min-height: 40px;
+}
+
+.network-modulo .btn-chico {
+    min-height: 34px;
+}
+
+.network-modulo .btn:focus-visible,
+.network-modulo summary:focus-visible,
+.network-modulo .net-pestana:focus-visible,
+.network-modulo [tabindex="0"]:focus-visible {
+    outline: 2px solid var(--th-turquesa);
+    outline-offset: 2px;
+}
+
+#discover-network-button.is-scanning {
+    gap: 9px;
+    cursor: wait;
+    opacity: 0.92;
+}
+
+#discover-network-button.is-scanning::before {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgb(255 255 255 / 40%);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    content: "";
+    animation: net-girar 0.75s linear infinite;
+}
+
+@keyframes net-girar {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #discover-network-button.is-scanning::before {
+        animation-duration: 2.5s;
+    }
+}
+
+/* ---------- Proyecto: etiqueta a la izquierda y selector al final ---------- */
+
+.net-alcance {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.net-alcance-etiqueta {
+    color: var(--th-noche-suave);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* ---------- Campos ---------- */
+
+.network-modulo select,
+.network-modulo input[type="text"],
+.network-modulo input[type="search"],
+.network-modulo input[type="number"],
+.network-modulo input[type="datetime-local"],
+.network-modulo textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio-chico);
+    background-color: var(--th-noche);
+    color: var(--th-noche-texto);
+    font: inherit;
+    color-scheme: dark;
+}
+
+.net-alcance select {
+    width: min(100%, 340px);
+}
+
+.network-modulo select:focus,
+.network-modulo input:focus,
+.network-modulo textarea:focus {
+    border-color: var(--th-turquesa);
+    box-shadow: 0 0 0 3px rgb(41 182 224 / 22%);
+    outline: none;
+}
+
+.network-modulo input::placeholder,
+.network-modulo textarea::placeholder {
+    color: var(--th-noche-suave);
+    opacity: 0.75;
+}
+
+.network-modulo input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    accent-color: var(--th-turquesa);
+}
+
+.network-modulo label {
+    color: var(--th-noche-hueso);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.device-form,
+.scan-form {
+    display: grid;
+    align-items: end;
+    gap: 12px;
+}
+
+.device-form {
+    grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(220px, 1.5fr) auto;
+}
+
+.device-form.form-rangos {
+    grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.3fr) minmax(180px, 1fr) auto;
+}
+
+.scan-form {
+    grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
+}
+
+.device-form label,
+.scan-form label,
+.device-port-add-form label,
+.inventory-filters label {
+    display: grid;
+    gap: 6px;
+}
+
+.network-toggle,
+.inline-setting {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.network-toggle {
+    margin-bottom: 8px;
+}
+
+/* ---------- Métricas (usan .metricas-vuln de style.css) ---------- */
+
+.net-metricas {
+    margin-bottom: 16px;
+}
+
+.net-metricas .metrica-etiqueta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.metrica-pie {
+    margin: 6px 0 0;
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+}
+
+/* ---------- Acordeones ---------- */
+
+.net-acordeon {
+    margin-bottom: 20px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio);
+    background: var(--th-noche-superficie);
+}
+
+.net-acordeon > summary {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    border-radius: var(--th-radio);
+    color: var(--th-noche-hueso);
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+
+.net-acordeon > summary::-webkit-details-marker {
+    display: none;
+}
+
+.net-acordeon > summary:hover {
+    background: var(--th-noche-hover);
+}
+
+.net-acordeon-titulo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.net-acordeon-titulo i {
+    color: var(--th-noche-suave);
+}
+
+.net-acordeon-flecha {
+    color: var(--th-noche-suave);
+    transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.net-acordeon[open] > summary .net-acordeon-flecha {
+    transform: rotate(180deg);
+}
+
+.net-acordeon[open] > summary {
+    border-bottom: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio) var(--th-radio) 0 0;
+}
+
+.net-acordeon-cuerpo {
+    display: grid;
+    gap: 12px;
+    padding: 16px 18px 18px;
+}
+
+.net-acordeon-suave {
+    margin: 0;
+    background: transparent;
+}
+
+.net-ajustes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+}
+
+.net-ajustes select {
+    width: auto;
+    min-width: 120px;
+}
+
+.net-ajustes-nota {
+    flex: 1 1 100%;
+}
+
+.net-detalle {
+    margin: 4px 0 12px;
+}
+
+.net-detalle > summary {
+    display: inline-block;
+    color: var(--th-texto-info);
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.net-detalle[open] > summary {
+    margin-bottom: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .net-acordeon-flecha {
+        transition: none;
+    }
+}
+
+/* ---------- Pestañas ---------- */
+
+.net-pestanas {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--th-noche-borde);
+    scrollbar-width: thin;
+}
+
+.net-pestana {
+    display: inline-flex;
+    min-height: 46px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--th-noche-suave);
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.net-pestana:hover {
+    background: var(--th-noche-hover);
+    color: var(--th-noche-hueso);
+}
+
+.net-pestana[aria-selected="true"] {
+    border-bottom-color: var(--th-turquesa);
+    color: var(--th-noche-hueso);
+}
+
+.net-contador {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--th-turquesa);
+    color: #0B1424;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.net-panel {
+    display: grid;
+    gap: 16px;
+    padding: 20px 0 8px;
+}
+
+/* ---------- Bloques de contenido ---------- */
+
+.net-bloque {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio);
+    background: var(--th-noche-superficie);
+}
+
+.net-bloque-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-bottom: 14px;
+}
+
+.net-bloque-cabecera h2 {
+    margin: 0;
+    color: var(--th-noche-hueso);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.net-bloque-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+}
+
+.net-ayuda {
+    max-width: 75ch;
+    margin: 0 0 12px;
+    color: var(--th-noche-suave);
+    font-size: 0.9rem;
+}
+
+.net-rejilla {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+    gap: 16px;
+}
+
+.chart-caption,
+.connection-state {
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.connection-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.connection-state::before {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--th-noche-suave);
+    content: "";
+}
+
+.connection-state.connected::before {
+    background: var(--th-verde);
+}
+
+/* ---------- Mensajes y estados vacíos ---------- */
+
+.network-message {
+    margin: 0 0 8px;
+    color: var(--th-noche-suave);
+    font-size: 0.88rem;
+}
+
+.network-message:empty {
+    display: none;
+}
+
+.network-message.error {
+    color: var(--th-texto-error);
+}
+
+.empty-state {
+    margin: 0;
+    padding: 16px 8px;
+    color: var(--th-noche-suave);
+    text-align: center;
+}
+
+/* ---------- Tarjetas de dispositivos monitorizados ---------- */
+
+.host-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px;
+}
+
+.host-card {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio-chico);
+    background: var(--th-noche);
+}
+
+.host-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.host-card h3 {
+    margin: 0;
+    color: var(--th-noche-hueso);
+    font-size: 1rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.host-address {
+    margin: 0;
+    color: var(--th-noche-suave);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.host-fact {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.host-fact span {
+    color: var(--th-noche-suave);
+}
+
+.host-fact strong {
+    color: var(--th-noche-hueso);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* ---------- Gráfico ---------- */
+
+#activity-chart {
+    display: block;
+    width: 100%;
+    height: 190px;
+}
+
+.chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+}
+
+.chart-legend span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--th-turquesa);
+}
+
+/* ---------- Tablas ---------- */
+
+.table-scroll {
+    overflow: auto;
+    scrollbar-width: thin;
+}
+
+.table-alta {
+    max-height: 60vh;
+}
+
+.network-modulo table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--th-noche-texto);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.network-modulo th {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--th-noche-borde);
+    background: var(--th-noche-superficie);
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.network-modulo td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--th-noche-borde);
+    color: var(--th-noche-texto);
+    vertical-align: top;
+}
+
+.network-modulo tbody tr:hover td {
+    background: var(--th-noche-hover);
+    color: var(--th-noche-hueso);
+}
+
+.network-modulo tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.selected-device-row td {
+    background: var(--th-noche-hover);
+}
+
+.tabla-inventario td:nth-child(2),
+.tabla-inventario td:nth-child(6),
+.tabla-inventario td:nth-child(7) {
+    white-space: nowrap;
+}
+
+/* ---------- Estado: punto de color y texto, nunca solo color ---------- */
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-pill::before {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+}
+
+.status-online,
+.status-open {
+    border-color: rgb(30 240 140 / 40%);
+    background: rgb(30 240 140 / 12%);
+    color: var(--th-texto-ok);
+}
+
+.status-offline,
+.status-closed {
+    border-color: rgb(229 72 77 / 50%);
+    background: rgb(229 72 77 / 14%);
+    color: var(--th-texto-error);
+}
+
+.status-unknown {
+    border-color: var(--th-noche-borde);
+    background: rgb(255 255 255 / 6%);
+    color: var(--th-noche-suave);
+}
+
+.status-unregistered {
+    border-color: rgb(245 179 1 / 45%);
+    background: rgb(245 179 1 / 12%);
+    color: var(--th-texto-aviso);
+}
+
+.gateway-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border: 1px solid rgb(41 182 224 / 45%);
+    border-radius: 999px;
+    background: rgb(41 182 224 / 14%);
+    color: var(--th-texto-info);
+    font-size: 0.75rem;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.evidence-label {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgb(41 182 224 / 14%);
+    color: var(--th-texto-info);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.evidence-source {
+    display: block;
+    max-width: 220px;
+    margin-top: 4px;
+    color: var(--th-noche-suave);
+    font-size: 0.78rem;
+    white-space: normal;
+}
+
+/* ---------- Filtros del inventario ---------- */
+
+.inventory-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+/* Etiqueta y nota de cada dispositivo: compacto, para que las filas no se estiren. */
+.device-metadata-editor {
+    display: grid;
+    min-width: 230px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+}
+
+.device-metadata-editor textarea {
+    grid-column: 1 / -1;
+    min-height: 38px;
+    height: 38px;
+    resize: vertical;
+}
+
+.device-metadata-editor input,
+.device-metadata-editor textarea {
+    min-height: 36px;
+    font-size: 0.85rem;
+}
+
+.network-action-button,
+.device-port-add-form button,
+.monitored-port-item button {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio-chico);
+    background: transparent;
+    color: var(--th-noche-texto);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.network-action-button:hover:not(:disabled),
+.device-port-add-form button:hover:not(:disabled) {
+    border-color: var(--th-turquesa);
+    background: var(--th-noche-hover);
+    color: var(--th-noche-hueso);
+}
+
+.network-modulo button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* ---------- Administración de dispositivos y puertos ---------- */
+
+.device-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.device-item {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio-chico);
+    background: var(--th-noche);
+}
+
+.device-item-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.device-item-heading div {
+    display: grid;
+}
+
+.device-item-heading strong {
+    color: var(--th-noche-hueso);
+}
+
+.device-item-heading span,
+.device-port-count {
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+}
+
+.monitored-port-list {
+    display: grid;
+    gap: 6px;
+}
+
+.monitored-port-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio-chico);
+    background: var(--th-noche-superficie);
+}
+
+.monitored-port-item label {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.port-monitor-state {
+    color: var(--th-noche-suave);
+    font-size: 0.8rem;
+}
+
+.device-port-add-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+}
+
+.device-port-add-form label {
+    flex: 0 1 220px;
+}
+
+.device-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.remove-port-button,
+.remove-device-button {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--th-radio-chico);
+    background: transparent;
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.remove-port-button:hover,
+.remove-device-button:hover,
+.remove-port-button:focus-visible,
+.remove-device-button:focus-visible {
+    border-color: rgb(229 72 77 / 45%);
+    background: rgb(229 72 77 / 14%);
+    color: var(--th-texto-error);
+}
+
+/* ---------- Eventos y alertas ---------- */
+
+.event-list {
+    display: grid;
+}
+
+.lista-alta {
+    max-height: 56vh;
+    overflow: auto;
+    scrollbar-width: thin;
+}
+
+.event-item {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    padding: 12px 4px;
+    border-top: 1px solid var(--th-noche-borde);
+}
+
+.event-item:first-child {
+    border-top: 0;
+}
+
+.event-item strong {
+    color: var(--th-noche-hueso);
+    font-weight: 600;
+}
+
+.event-item p {
+    margin: 2px 0 0;
+    color: var(--th-noche-suave);
+    font-size: 0.88rem;
+}
+
+.event-item time {
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.event-dot {
+    width: 10px;
+    height: 10px;
+    margin-top: 6px;
+    border-radius: 50%;
+    background: var(--th-turquesa);
+}
+
+.local-alert-item .event-dot {
+    background: var(--th-riesgo-medio);
+}
+
+.snapshot-diff-list {
+    display: grid;
+}
+
+/* ---------- Pantallas medianas y chicas ---------- */
+
+@media (max-width: 1000px) {
+    .net-rejilla,
+    .device-form,
+    .device-form.form-rangos,
+    .scan-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .net-rejilla {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .device-form,
+    .device-form.form-rangos,
+    .scan-form,
+    .inventory-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .net-alcance {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .net-alcance select {
+        width: 100%;
+    }
+
+    .event-item {
+        grid-template-columns: 10px minmax(0, 1fr);
+    }
+
+    .event-item time {
+        grid-column: 2;
+    }
+
+    .net-acciones .btn {
+        flex: 1 1 auto;
+    }
+}
+
+/* ---------- Historial de detecciones ---------- */
+
+.discovery-history-list {
+    display: grid;
+    gap: 12px;
+}
+
+.discovery-history-list .net-acordeon {
+    margin: 0;
+}
+
+/* Cada detección: número y fecha a la izquierda, datos de la muestra al centro y la flecha al final. */
+.discovery-history-entry > summary {
+    flex-wrap: wrap;
+}
+
+.discovery-history-entry .net-acordeon-titulo {
+    gap: 12px;
+}
+
+.deteccion-fecha {
+    color: var(--th-noche-suave);
+    font-weight: 500;
+}
+
+.deteccion-meta {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px 18px;
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Disponibilidad por dispositivo: el número y una barra fina para compararlos de un vistazo. */
+.disponibilidad-valor {
+    color: var(--th-noche-hueso);
+    font-weight: 600;
+}
+
+.disponibilidad-valor small {
+    color: var(--th-noche-suave);
+    font-weight: 500;
+}
+
+.barra-disp {
+    display: block;
+    max-width: 220px;
+    height: 6px;
+    margin-top: 6px;
+}
+
+/* ---------- Cuerpo en dos columnas: pestañas a la izquierda, alertas siempre a la vista a la derecha ---------- */
+
+.net-cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 20px;
+}
+
+.net-principal {
+    min-width: 0;
+}
+
+.net-lateral {
+    position: sticky;
+    top: 96px;            /* deja libre la cabecera cuando está a la vista */
+    max-height: calc(100vh - 112px);
+    overflow: auto;
+    scrollbar-width: thin;
+}
+
+.net-lateral .net-bloque {
+    padding: 16px;
+}
+
+.net-lateral .net-bloque-cabecera {
+    margin-bottom: 10px;
+}
+
+.net-lateral .net-bloque-cabecera h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+}
+
+.lista-lateral {
+    max-height: 40vh;
+}
+
+.net-lateral .event-item {
+    grid-template-columns: 10px minmax(0, 1fr);
+}
+
+.net-lateral .event-item time {
+    grid-column: 2;
+    white-space: normal;
+}
+
+.net-ayuda-chica {
+    margin: 12px 0;
+    font-size: 0.82rem;
+}
+
+.net-lateral .net-ajustes {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.net-lateral .net-ajustes select {
+    width: 100%;
+}
+
+/* Qué está pasando ahora: refleja la detección en curso o el último aviso de la revisión manual. */
+.net-estado-vivo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--th-noche-borde);
+    border-radius: var(--th-radio-chico);
+    background: var(--th-noche);
+    color: var(--th-noche-suave);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.net-estado-vivo::before {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--th-noche-suave);
+    content: "";
+}
+
+.net-estado-activo {
+    border-color: rgb(41 182 224 / 55%);
+    color: var(--th-noche-hueso);
+}
+
+.net-estado-activo::before {
+    background: var(--th-turquesa);
+    animation: net-pulso 1.2s ease-in-out infinite;
+}
+
+@keyframes net-pulso {
+    50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .net-estado-activo::before {
+        animation: none;
+    }
+}
+
+/* En pantallas medianas el panel pasa arriba de las pestañas y deja de ser fijo. */
+@media (max-width: 1200px) {
+    .net-cuerpo {
+        grid-template-columns: 1fr;
+    }
+
+    .net-lateral {
+        position: static;
+        max-height: none;
+        order: -1;
+    }
+
+    .lista-lateral {
+        max-height: 240px;
+    }
+}

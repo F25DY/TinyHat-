@@ -1,5 +1,6 @@
 package com.hexora.hexora.controller;
 
+import com.hexora.hexora.dto.DashboardResumen;
 import com.hexora.hexora.dto.ProyectoForm;
 import com.hexora.hexora.dto.ProyectoView;
 import com.hexora.hexora.dto.ProyectoView.DepartamentoView;
@@ -15,6 +16,7 @@ import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.repository.EmpresaRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
 import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.service.DashboardService;
 import com.hexora.hexora.service.PermissionService;
 import jakarta.validation.Valid;
 import java.text.Normalizer;
@@ -170,6 +172,16 @@ public class ProyectosController {
         model.addAttribute("departamentos", areasView);
         model.addAttribute("areas", areas);
         model.addAttribute("metricas", metrics);
+
+        // Barra de exposición del proyecto: los mismos niveles y el mismo formato que el panel.
+        long totalHallazgos = metrics.values().stream().mapToLong(Long::longValue).sum();
+        model.addAttribute("totalHallazgos", totalHallazgos);
+        model.addAttribute("niveles", List.of(
+                nivel("Crítico", "critico", metrics.get("critico"), totalHallazgos),
+                nivel("Alto", "alto", metrics.get("alto"), totalHallazgos),
+                nivel("Medio", "medio", metrics.get("medio"), totalHallazgos),
+                nivel("Bajo", "bajo", metrics.get("bajo"), totalHallazgos)));
+
         model.addAttribute("canManageProjects", auditor);
         return "detalleproyecto";
     }
@@ -264,6 +276,11 @@ public class ProyectosController {
         empresa.setNombre(form.getNombreEmpresa());
         empresa.setNit(form.getNit());
         empresa.setSector(form.getSector());
+    }
+
+    private static DashboardResumen.Nivel nivel(String nombre, String clave, Long cantidad, long total) {
+        long valor = cantidad == null ? 0 : cantidad;
+        return new DashboardResumen.Nivel(nombre, clave, valor, DashboardService.porcentaje(valor, total));
     }
 
     private long countRisk(List<Vulnerabilidad> findings, String... levels) {

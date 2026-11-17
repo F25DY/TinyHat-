@@ -92,6 +92,9 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
             .andReturn();
         String secret = (String) enrollment.getModelAndView().getModel().get("secret");
         assertThat(secret).isNotBlank();
+        String enrollmentHtml = enrollment.getResponse().getContentAsString();
+        assertThat(enrollmentHtml).contains("class=\"clave-mfa\"").contains(secret).contains("Genera tu clave")
+            .contains("trafico-datos").doesNotContain(" style=\"");
         assertThat((String) enrollment.getModelAndView().getModel().get("provisioningUri"))
             .startsWith("otpauth://totp/")
             .contains("algorithm=SHA1", "digits=6", "period=30");
@@ -118,6 +121,7 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
                 .param("code", totpService.codeForStep(secret, step)))
             .andExpect(status().isOk())
             .andReturn();
+        assertThat(confirmation.getResponse().getContentAsString()).contains("codigos-grid").contains("Tus códigos de recuperación");
 
         assertThat(session.getId()).isNotEqualTo(oldSessionId);
         assertThat((Boolean) jdbcTemplate.queryForObject(
@@ -255,6 +259,35 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
             userId
         )).isEqualTo(1);
         assertThat(session.isInvalid()).isTrue();
+    }
+
+    @Test
+    void publicAccessPagesUseTheSharedLoginLayout() throws Exception {
+        for (String[] page : new String[][] {
+            {"/registro", "Crea tu cuenta de auditor"},
+            {"/recuperar", "¿Olvidaste tu contraseña?"}
+        }) {
+            String html = mockMvc.perform(get(page[0]).with(fromClientIp()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+            assertThat(html).contains(page[1]).contains("trafico-datos").contains("login-vertical")
+                .contains("login-effects.js").doesNotContain(" style=\"");
+        }
+    }
+
+    @Test
+    void errorPageUsesTheBrandAndNeverLeaksThePathOrTheInternalMessage() throws Exception {
+        String html = mockMvc.perform(get("/error")
+                .requestAttr("jakarta.servlet.error.status_code", 404)
+                .requestAttr("jakarta.servlet.error.request_uri", "/ruta-secreta-123")
+                .requestAttr("jakarta.servlet.error.message", "detalle interno del servidor")
+                .accept("text/html")
+                .with(fromClientIp()))
+            .andReturn().getResponse().getContentAsString();
+
+        assertThat(html).contains("No encontramos esa página").contains("Código").contains("login-vertical")
+            .contains("Volver al panel").doesNotContain("ruta-secreta-123").doesNotContain("detalle interno")
+            .doesNotContain("Whitelabel").doesNotContain(" style=\"");
     }
 
     private List<String> enrollAndGetRecoveryCodes() throws Exception {

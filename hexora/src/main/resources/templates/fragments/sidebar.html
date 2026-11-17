@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+    Menú lateral de las páginas con sesión iniciada. Es el único: no se copia en cada plantilla.
+    Parámetro: la sección activa ('dashboard', 'red' o 'proyectos').
+    El logo lleva siempre al panel. "Nuevo proyecto" está a un clic desde cualquier página.
+    El usuario sale de CurrentUserAdvice (correo y rol de quien inició sesión). Cerrar sesión es un POST con CSRF:
+    un enlace GET no cierra la sesión.
+-->
+<th:block th:fragment="sidebar(active)">
+    <!-- Primer elemento al tabular: salta el menú e ingresa directo al contenido -->
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
+    <aside class="sidebar">
+        <div class="logo-plataforma">
+            <a th:href="@{/dashboard}" class="textos-marca" aria-label="TinyHat, ir al panel">
+                <img th:src="@{/imagen/logo.png}" width="40" alt="">
+                <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
+            </a>
+        </div>
+
+        <nav class="menu" aria-label="Principal">
+            <ul>
+                <li>
+                    <a th:href="@{/dashboard}" class="enlace-menu" title="Panel" th:classappend="${active == 'dashboard'} ? 'activo'"
+                       th:attr="aria-current=${active == 'dashboard'} ? 'page' : null">
+                        <i class="fa-solid fa-house" aria-hidden="true"></i> Panel
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/network-monitoring}" class="enlace-menu" title="Escaneo de red" th:classappend="${active == 'red'} ? 'activo'"
+                       th:attr="aria-current=${active == 'red'} ? 'page' : null">
+                        <i class="fa-solid fa-network-wired" aria-hidden="true"></i> Escaneo de red
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/proyectos}" class="enlace-menu" title="Proyectos" th:classappend="${active == 'proyectos'} ? 'activo'"
+                       th:attr="aria-current=${active == 'proyectos'} ? 'page' : null">
+                        <i class="fa-solid fa-folder-closed" aria-hidden="true"></i> Proyectos
+                    </a>
+                </li>
+                <li class="menu-accion">
+                    <a th:href="@{/proyectos/nuproyectos}" class="enlace-menu enlace-accion" title="Nuevo proyecto">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo proyecto
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="contenedor-usuario">
+            <div class="info-perfil">
+                <div class="avatar-usuario">
+                    <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                </div>
+                <div class="datos-texto">
+                    <span class="nombre-usuario" th:text="${rolActual} ?: 'Sesión iniciada'">Auditor</span>
+                    <span class="correo-usuario" th:text="${usuarioActual}" th:title="${usuarioActual}">usuario@ejemplo.com</span>
+                </div>
+            </div>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="boton-cerrar-sesion" title="Cerrar sesión">
+                    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </aside>
+</th:block>
+</body>
+</html>
