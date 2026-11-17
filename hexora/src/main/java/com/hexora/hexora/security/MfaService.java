@@ -4,12 +4,10 @@ import com.hexora.hexora.model.MfaCredential;
 import com.hexora.hexora.model.MfaRecoveryCode;
 import com.hexora.hexora.repository.MfaCredentialRepository;
 import com.hexora.hexora.repository.MfaRecoveryCodeRepository;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -31,7 +29,6 @@ public class MfaService {
     private final MfaRecoveryCodeRepository recoveryCodeRepository;
     private final PasswordEncoder passwordEncoder;
     private final TotpService totpService;
-    private final TinyHatSecurityProperties properties;
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
     private final SecretKeySpec encryptionKey;
@@ -48,7 +45,6 @@ public class MfaService {
         this.recoveryCodeRepository = recoveryCodeRepository;
         this.passwordEncoder = passwordEncoder;
         this.totpService = totpService;
-        this.properties = properties;
         this.clock = clock;
         if (!MfaKeyValidator.isValid(properties.getMfa().getKey())) {
             throw new IllegalStateException("tinyhat.security.mfa.key must be a Base64-encoded 256-bit key");

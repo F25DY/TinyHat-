@@ -56,7 +56,6 @@ public final class GeneradorPdf {
         throws IOException {
         try {
             PdfRendererBuilder constructor = new PdfRendererBuilder();
-            constructor.useFastMode();
             constructor.useUriResolver(resolvedor);
             constructor.useProtocolsStreamImplementation(resolvedor, ResolvedorRecursosSeguro.ESQUEMA.replace(":", ""));
             ResolvedorRecursosSeguro.FabricaRechazada rechazada = new ResolvedorRecursosSeguro.FabricaRechazada(resolvedor);

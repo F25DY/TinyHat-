@@ -138,7 +138,7 @@ public class InformeWebController {
     public String publicar(
         @AuthenticationPrincipal TinyHatPrincipal principal,
         @PathVariable @Pattern(regexp = UUID_RE) String versionUuid,
-        @RequestParam(name = "formatos", required = false) List<FormatoInforme> formatos,
+        @RequestParam(required = false) List<FormatoInforme> formatos,
         RedirectAttributes aviso
     ) {
         Set<FormatoInforme> elegidos = formatos == null || formatos.isEmpty()

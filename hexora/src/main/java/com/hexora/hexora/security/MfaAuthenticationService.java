@@ -92,7 +92,7 @@ public class MfaAuthenticationService {
         HttpServletResponse response,
         boolean rotateSessionId
     ) throws IOException {
-        HttpSession session = request.getSession();
+        request.getSession();
         if (rotateSessionId) {
             request.changeSessionId();
         }

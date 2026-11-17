@@ -34,7 +34,7 @@ public class CveController {
     // Ejemplo: http://localhost:8080/api/cves/buscar?q=CVE-2021-44228
     @GetMapping("/buscar")
     public List<Cve> buscar(
-            @RequestParam("q")
+            @RequestParam
             @Size(min = 3, max = 100)
             @Pattern(regexp = "(?i)(?:CVE-\\d{4}-\\d{4,19}|[A-Za-z0-9][A-Za-z0-9 ._-]{2,99})")
             String q) {
@@ -46,7 +46,7 @@ public class CveController {
     // Ejemplo: http://localhost:8080/api/cves/CVE-2021-44228/detalle
     @GetMapping("/{codigo}/detalle")
     public ResponseEntity<Cve> detalle(
-            @PathVariable("codigo")
+            @PathVariable
             @Pattern(regexp = "(?i)CVE-\\d{4}-\\d{4,19}")
             String codigo) {
         return cveService.obtenerDetalle(codigo)

@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.hexora.hexora.model.Cuenta;
 import com.hexora.hexora.model.Empresa;
-import com.hexora.hexora.model.TokenSeguridad;
 import com.hexora.hexora.model.Usuario;
 import com.hexora.hexora.repository.CuentaRepository;
 import com.hexora.hexora.repository.EmpresaRepository;
@@ -25,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -78,8 +76,6 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private SessionRegistry sessionRegistry;
@@ -164,7 +160,7 @@ class PhaseEightRegistrationSecurityIntegrationTest extends IsolatedMySqlTestDat
 
         // 2. Find verification token generated for this user
         Usuario user = usuarioRepository.findByEmailNormalizado(email).orElseThrow();
-        TokenSeguridad tokenEntity = tokenRepository.findByUsuarioIdAndUsadoEnIsNull(user.getId())
+        tokenRepository.findByUsuarioIdAndUsadoEnIsNull(user.getId())
             .stream()
             .filter(t -> "VERIFICACION".equals(t.getTipo()))
             .findFirst()

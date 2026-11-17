@@ -5,7 +5,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Service;
@@ -25,10 +24,10 @@ public class RateLimitService {
     }
 
     private Bucket createBucket(TinyHatSecurityProperties.Bucket limits) {
-        Bandwidth bandwidth = Bandwidth.classic(
-            limits.getCapacity(),
-            Refill.intervally(limits.getRefillTokens(), Duration.ofSeconds(limits.getRefillSeconds()))
-        );
+        Bandwidth bandwidth = Bandwidth.builder()
+            .capacity(limits.getCapacity())
+            .refillIntervally(limits.getRefillTokens(), Duration.ofSeconds(limits.getRefillSeconds()))
+            .build();
         return Bucket.builder().addLimit(bandwidth).build();
     }
 }

@@ -51,8 +51,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -994,7 +992,7 @@ public class NetworkMonitoringService {
 
     @Transactional
     public void removeMonitoredPort(Long hostId, Integer port) {
-        NetworkHost host = requireManagedHost(hostId);
+        requireManagedHost(hostId);
         MonitoredPort monitoredPort = monitoredPortRepository.findByHost_IdAndPort(hostId, port)
             .orElseThrow(() -> new EntityNotFoundException("Monitored port was not found"));
         monitoredPortRepository.delete(monitoredPort);

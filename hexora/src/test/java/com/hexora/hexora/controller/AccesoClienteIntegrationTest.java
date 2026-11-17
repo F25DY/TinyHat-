@@ -234,7 +234,7 @@ class AccesoClienteIntegrationTest extends IsolatedMySqlTestDatabase {
 		String correo = agregar(auditor, m, "reset-" + UUID.randomUUID() + "@empresa.test");
 		String primera = jdbcTemporal;
 		String usuarioUuid = jdbc.queryForObject("SELECT public_id FROM usuario WHERE email_normalizado = ?", String.class, correo);
-		MvcResult r = mockMvc.perform(post("/proyectos/{p}/acceso-cliente/{u}/restablecer", m.proyectoUuid, usuarioUuid)
+		mockMvc.perform(post("/proyectos/{p}/acceso-cliente/{u}/restablecer", m.proyectoUuid, usuarioUuid)
 			.session(auditor).with(csrf())).andReturn();
 		String pantalla = mockMvc.perform(get("/proyectos/{p}/acceso-cliente", m.proyectoUuid).session(auditor)).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 		Matcher nueva = CLAVE.matcher(pantalla);
@@ -323,7 +323,7 @@ class AccesoClienteIntegrationTest extends IsolatedMySqlTestDatabase {
 
 	/** Agrega al cliente por la pantalla del auditor y devuelve su correo; deja la temporal en {@code jdbcTemporal}. */
 	private String agregar(MockHttpSession auditor, Mundo m, String correo) throws Exception {
-		MvcResult r = mockMvc.perform(post("/proyectos/{p}/acceso-cliente", m.proyectoUuid).session(auditor).with(csrf())
+		mockMvc.perform(post("/proyectos/{p}/acceso-cliente", m.proyectoUuid).session(auditor).with(csrf())
 			.param("correo", correo)).andReturn();
 		String pantalla = mockMvc.perform(get("/proyectos/{p}/acceso-cliente", m.proyectoUuid).session(auditor)).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 		Matcher clave = CLAVE.matcher(pantalla);

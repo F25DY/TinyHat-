@@ -411,7 +411,7 @@ class NetworkMonitoringWebTest extends IsolatedMySqlTestDatabase {
         performAsAuditor(post("/api/network/scan").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"hostId\":" + hostId + ",\"projectPublicId\":\"" + projectPublicId + "\"}"))
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isUnprocessableContent());
 
         org.junit.jupiter.api.Assertions.assertEquals(1, jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM audit_event WHERE evento = 'SCAN_REJECTED' "

@@ -51,7 +51,7 @@ public class LoginAttemptService {
         List<Integer> schedule = properties.getLogin().getThrottle().getScheduleSeconds();
         int delayIndex = Math.min(failures - 1, schedule.size() - 1);
         Instant blockedUntil = schedule.get(delayIndex) == 0 ? Instant.EPOCH : now.plusSeconds(schedule.get(delayIndex));
-        Instant windowStarted = failures == 1 ? now : previous.windowStarted();
+        Instant windowStarted = failures == 1 || previous == null ? now : previous.windowStarted();
         return new AttemptState(failures, windowStarted, blockedUntil);
     }
 

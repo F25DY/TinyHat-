@@ -2,7 +2,6 @@ package com.hexora.hexora.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -24,13 +23,11 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.util.ClassUtils;
-import org.springframework.web.method.HandlerMethod;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -58,6 +55,7 @@ import org.testcontainers.mysql.MySQLContainer;
 class PhaseThreeSecurityIntegrationTest {
 
 	private static final String DB_PASSWORD = "phase3_test_password";
+	@SuppressWarnings("resource")
 	private static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0.46")
 		.withCommand("--log-bin-trust-function-creators=1")
 		.withDatabaseName("hexora_phase3")
@@ -85,7 +83,6 @@ class PhaseThreeSecurityIntegrationTest {
 	private UserDetailsService userDetailsService;
 
 	private String email;
-	private UserDetails principal;
 
 	@DynamicPropertySource
 	static void configureDatabase(DynamicPropertyRegistry registry) {
@@ -114,7 +111,7 @@ class PhaseThreeSecurityIntegrationTest {
 			email,
 			passwordEncoder.encode("phase3-test-password")
 		);
-		principal = userDetailsService.loadUserByUsername(email);
+		userDetailsService.loadUserByUsername(email);
 	}
 
 	@Test

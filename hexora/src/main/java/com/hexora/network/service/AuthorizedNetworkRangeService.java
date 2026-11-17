@@ -6,7 +6,6 @@ import com.hexora.hexora.security.AuditService;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import com.hexora.hexora.service.Capability;
 import com.hexora.hexora.service.CapabilityService;
-import com.hexora.hexora.service.Capability;
 import com.hexora.hexora.service.PermissionService;
 import com.hexora.network.model.AuthorizedNetworkRange;
 import com.hexora.network.model.AuthorizedNetworkRangeDto;

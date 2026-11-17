@@ -1,6 +1,5 @@
 package com.hexora.hexora.security;
 
-import com.hexora.hexora.security.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;

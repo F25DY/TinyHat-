@@ -31,7 +31,7 @@ public class NetworkApiExceptionHandler {
     ) {
         LOGGER.warn("Network endpoint {} rejected operation; correlationId={}",
             request.getRequestURI(), MDC.get(CorrelationIdFilter.MDC_KEY));
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
             .body(error("SCOPE_REJECTED"));
     }
 

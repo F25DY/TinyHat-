@@ -108,7 +108,6 @@ public class InformeService {
     private final RateLimitService limitador;
     private final TinyHatSecurityProperties seguridad;
     private final ApplicationEventPublisher eventos;
-    private final InformesProperties propiedades;
     private final Clock reloj;
     private final VistaPreviaInforme vistaPrevia;
 
@@ -147,7 +146,6 @@ public class InformeService {
         this.limitador = limitador;
         this.seguridad = seguridad;
         this.eventos = eventos;
-        this.propiedades = propiedades;
         this.reloj = reloj;
         this.vistaPrevia = vistaPrevia;
     }

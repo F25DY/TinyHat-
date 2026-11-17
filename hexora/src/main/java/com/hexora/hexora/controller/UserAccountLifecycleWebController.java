@@ -125,7 +125,7 @@ public class UserAccountLifecycleWebController {
     @PostMapping("/invitacion/{token}")
     public String acceptInvitationForm(
         @PathVariable String token,
-        @RequestParam("password") String password,
+        @RequestParam String password,
         HttpServletRequest request
     ) {
         registrationService.acceptInvitation(token, password, request);
@@ -153,7 +153,7 @@ public class UserAccountLifecycleWebController {
 
     @PostMapping("/recuperar")
     public String recuperarForm(
-        @RequestParam("email") String email,
+        @RequestParam String email,
         HttpServletRequest request
     ) {
         registrationService.requestPasswordReset(email, request);
@@ -184,7 +184,7 @@ public class UserAccountLifecycleWebController {
     @PostMapping("/recuperar/{token}")
     public String resetPasswordForm(
         @PathVariable String token,
-        @RequestParam("password") String password,
+        @RequestParam String password,
         HttpServletRequest request
     ) {
         registrationService.resetPassword(token, password, request);
