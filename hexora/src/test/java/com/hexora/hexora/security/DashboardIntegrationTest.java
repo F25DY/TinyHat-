@@ -162,6 +162,8 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		assertThat(html).as("la ruta ya no se muestra como texto").doesNotContain("project-public-link")
 			.doesNotContain("Proyectos cargados");
 		assertThat(html).contains("id=\"buscador\"").contains("fila-enlace");
+		assertThat(html).as("enlace para saltar al contenido, con su destino").contains("class=\"saltar-contenido\"")
+			.contains("id=\"contenido-principal\"");
 		assertThat(html).doesNotContain("Proyecto Gamma").doesNotContain("Proyecto Ajeno");
 		assertThat(html).as("sin estilos en línea (CSP)").doesNotContain(" style=\"");
 	}

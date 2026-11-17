@@ -15,7 +15,7 @@
     <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-    <main class="contenido-principal">
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
       <div class="columna-central columna-formulario">
         <header class="encabezado-retorno">
             <a th:href="@{/proyectos}" class="link-volver" aria-label="Volver a proyectos">

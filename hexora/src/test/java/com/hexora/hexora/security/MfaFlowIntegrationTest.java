@@ -275,6 +275,21 @@ class MfaFlowIntegrationTest extends IsolatedMySqlTestDatabase {
         }
     }
 
+    @Test
+    void errorPageUsesTheBrandAndNeverLeaksThePathOrTheInternalMessage() throws Exception {
+        String html = mockMvc.perform(get("/error")
+                .requestAttr("jakarta.servlet.error.status_code", 404)
+                .requestAttr("jakarta.servlet.error.request_uri", "/ruta-secreta-123")
+                .requestAttr("jakarta.servlet.error.message", "detalle interno del servidor")
+                .accept("text/html")
+                .with(fromClientIp()))
+            .andReturn().getResponse().getContentAsString();
+
+        assertThat(html).contains("No encontramos esa página").contains("Código").contains("login-vertical")
+            .contains("Volver al panel").doesNotContain("ruta-secreta-123").doesNotContain("detalle interno")
+            .doesNotContain("Whitelabel").doesNotContain(" style=\"");
+    }
+
     private List<String> enrollAndGetRecoveryCodes() throws Exception {
         MockHttpSession session = login();
         MvcResult enrollment = mockMvc.perform(post("/mfa/enroll/start")

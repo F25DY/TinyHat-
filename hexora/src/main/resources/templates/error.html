@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Algo no salió como esperábamos</title>
+    <!-- Sin security-head: esta página también se muestra sin sesión ni token CSRF. -->
+    <th:block th:replace="~{fragments/acceso :: estilos}"></th:block>
+</head>
+<body>
+    <th:block th:replace="~{fragments/acceso :: fondo}"></th:block>
+
+    <!--
+        Pantalla de error con la identidad de TinyHat. Muestra solo el código y un mensaje general:
+        nunca la ruta pedida, el mensaje interno ni la traza.
+    -->
+    <main class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 px-3">
+        <div class="row w-100 mx-auto contenido-login align-items-center justify-content-center g-4">
+            <div class="col-12 col-md-10 col-lg-5">
+                <section class="login login-vertical" aria-labelledby="acceso-titulo">
+                    <div class="verificacion-icono" aria-hidden="true"><i class="fa-solid fa-compass"></i></div>
+
+                    <div class="login-encabezado">
+                        <h1 class="login-titulo verificacion-titulo" id="acceso-titulo"
+                            th:text="${status == 404} ? 'No encontramos esa página'
+                                   : (${status == 403} ? 'No tienes acceso a esto'
+                                   : (${status == 401} ? 'Tu sesión terminó' : 'Algo salió mal de nuestro lado'))">
+                            Algo salió mal de nuestro lado
+                        </h1>
+                        <p class="login-subtitulo"
+                           th:text="${status == 404} ? 'El enlace puede estar incompleto o la página ya no existe.'
+                                  : (${status == 403} ? 'Tu cuenta no tiene permiso para ver esta sección. Si crees que es un error, avisa a quien administra tu organización.'
+                                  : (${status == 401} ? 'Inicia sesión de nuevo para continuar.' : 'Ya quedó registrado. Intenta de nuevo en unos minutos.'))">
+                            Ya quedó registrado. Intenta de nuevo en unos minutos.
+                        </p>
+                    </div>
+
+                    <p class="error-codigo" th:if="${status != null}">Código <span th:text="${status}">500</span></p>
+
+                    <a th:href="@{/dashboard}" class="btn btn-primario w-100">Volver al panel</a>
+                    <p class="acceso-enlaces"><a th:href="@{/login}">Ir al inicio de sesión</a></p>
+                </section>
+            </div>
+        </div>
+
+        <th:block th:replace="~{fragments/acceso :: pie}"></th:block>
+    </main>
+
+    <th:block th:replace="~{fragments/acceso :: scripts}"></th:block>
+</body>
+</html>

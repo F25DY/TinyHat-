@@ -15,7 +15,7 @@
     <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
-    <main class="contenido-principal panel-detalle"
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal panel-detalle"
           th:with="claveRiesgo=${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'critico' : (${vulnerabilidad.nivelRiesgo == 'Alto'} ? 'alto' : (${vulnerabilidad.nivelRiesgo == 'Medio'} ? 'medio' : 'bajo')),
                    nombreRiesgo=${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'Crítico' : ${vulnerabilidad.nivelRiesgo}">
       <div class="columna-central">

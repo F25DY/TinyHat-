@@ -9,6 +9,8 @@
     un enlace GET no cierra la sesión.
 -->
 <th:block th:fragment="sidebar(active)">
+    <!-- Primer elemento al tabular: salta el menú e ingresa directo al contenido -->
+    <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
     <aside class="sidebar">
         <div class="logo-plataforma">
             <a th:href="@{/dashboard}" class="textos-marca" aria-label="TinyHat, ir al panel">
@@ -20,25 +22,25 @@
         <nav class="menu" aria-label="Principal">
             <ul>
                 <li>
-                    <a th:href="@{/dashboard}" class="enlace-menu" th:classappend="${active == 'dashboard'} ? 'activo'"
+                    <a th:href="@{/dashboard}" class="enlace-menu" title="Panel" th:classappend="${active == 'dashboard'} ? 'activo'"
                        th:attr="aria-current=${active == 'dashboard'} ? 'page' : null">
                         <i class="fa-solid fa-house" aria-hidden="true"></i> Panel
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/network-monitoring}" class="enlace-menu" th:classappend="${active == 'red'} ? 'activo'"
+                    <a th:href="@{/network-monitoring}" class="enlace-menu" title="Escaneo de red" th:classappend="${active == 'red'} ? 'activo'"
                        th:attr="aria-current=${active == 'red'} ? 'page' : null">
                         <i class="fa-solid fa-network-wired" aria-hidden="true"></i> Escaneo de red
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/proyectos}" class="enlace-menu" th:classappend="${active == 'proyectos'} ? 'activo'"
+                    <a th:href="@{/proyectos}" class="enlace-menu" title="Proyectos" th:classappend="${active == 'proyectos'} ? 'activo'"
                        th:attr="aria-current=${active == 'proyectos'} ? 'page' : null">
                         <i class="fa-solid fa-folder-closed" aria-hidden="true"></i> Proyectos
                     </a>
                 </li>
                 <li class="menu-accion">
-                    <a th:href="@{/proyectos/nuproyectos}" class="enlace-menu enlace-accion">
+                    <a th:href="@{/proyectos/nuproyectos}" class="enlace-menu enlace-accion" title="Nuevo proyecto">
                         <i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo proyecto
                     </a>
                 </li>
@@ -56,7 +58,7 @@
                 </div>
             </div>
             <form th:action="@{/logout}" method="post">
-                <button type="submit" class="boton-cerrar-sesion">
+                <button type="submit" class="boton-cerrar-sesion" title="Cerrar sesión">
                     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión
                 </button>
             </form>

@@ -25,6 +25,19 @@
     --th-noche-suave: #C3BEDD;
     --th-radio: 12px;
     --th-radio-chico: 8px;
+
+    /* Acción principal: el texto blanco llega a 4,5:1 en los dos extremos del degradado (el turquesa puro daba 2,4:1). */
+    --th-accion-a: #3F5FC9;
+    --th-accion-b: #2878B8;
+    --th-accion-hover-a: #344FB0;
+    --th-accion-hover-b: #1E659C;
+
+    /* Texto de estado sobre superficies oscuras (todos ≥ 7:1 sobre --th-noche-superficie). */
+    --th-texto-info: #8FDCF4;
+    --th-texto-ok: #7BF5BD;
+    --th-texto-error: #FF9DA0;
+    --th-texto-aviso: #F7D56A;
+    --th-texto-naranja: #FFB27A;
 }
 
 /* Base */
@@ -158,7 +171,7 @@ p:last-child {
 
 .marca-subtitulo {
     color: #B9B7CF;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
 }
 
 .sidebar {
@@ -261,14 +274,9 @@ p:last-child {
     color: #FFFFFF;
 }
 
-/* La sección actual se marca con una barra y no solo con el fondo. */
-.enlace-menu.activo::before {
-    position: absolute;
-    inset: 10px auto 10px 0;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: var(--th-turquesa);
-    content: "";
+/* La sección actual: fondo, texto claro y el ícono en turquesa (además de aria-current en el enlace). */
+.enlace-menu.activo > i {
+    color: var(--th-turquesa);
 }
 
 .menu-accion {
@@ -486,35 +494,6 @@ p:last-child {
     border-radius: 18px;
     background: var(--th-superficie);
     box-shadow: 0 8px 24px rgb(27 27 75 / 5%);
-}
-
-.pagina-dashboard .tarjeta-blanca {
-    border-color: rgb(255 255 255 / 8%);
-    background: rgb(255 255 255 / 6%);
-    color: #EEF5FF;
-    box-shadow: 0 12px 30px rgb(0 0 0 / 22%);
-    transition: transform 200ms ease, border-color 300ms ease, box-shadow 300ms ease;
-}
-
-.pagina-dashboard .tarjeta-blanca:hover {
-    transform: scale(0.98);
-    border-color: rgb(192 151 227 / 45%);
-    box-shadow: 0 0 30px 1px rgb(88 55 180 / 30%), 0 12px 30px rgb(0 0 0 / 22%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .pagina-dashboard .tarjeta-blanca {
-        transition: none;
-    }
-
-    .pagina-dashboard .tarjeta-blanca:hover {
-        transform: none;
-    }
-
-}
-
-.pagina-dashboard .tarjeta-blanca > h3 {
-    color: #EEF5FF;
 }
 
 .pagina-dashboard .numero-grande {
@@ -930,7 +909,7 @@ p:last-child {
 .btn-primario,
 .btn-crear,
 .btn-guardar {
-    background: linear-gradient(110deg, var(--th-azul), var(--th-turquesa));
+    background: linear-gradient(110deg, var(--th-accion-a), var(--th-accion-b));
     color: #FFFFFF;
     box-shadow: 0 5px 13px rgb(68 102 204 / 18%);
 }
@@ -939,7 +918,7 @@ p:last-child {
 .btn-crear:hover,
 .btn-guardar:hover {
     transform: translateY(-1px);
-    background: linear-gradient(110deg, #3858BA, #159FC9);
+    background: linear-gradient(110deg, var(--th-accion-hover-a), var(--th-accion-hover-b));
     color: #FFFFFF;
     box-shadow: 0 8px 18px rgb(68 102 204 / 25%);
 }
@@ -959,7 +938,7 @@ p:last-child {
 }
 
 .pagina-dashboard .contenedor-botones .btn-primario {
-    background: linear-gradient(110deg, #4466CC, #29B6E0);
+    background: linear-gradient(110deg, var(--th-accion-a), var(--th-accion-b));
     color: #FFFFFF;
 }
 
@@ -1537,7 +1516,7 @@ body:has(.login) main {
 .capacidad-texto {
     margin-bottom: 0;
     color: #AAA8BE;
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     line-height: 1.4;
 }
 
@@ -1552,7 +1531,7 @@ body:has(.login) main {
     border-top: 1px solid rgb(255 255 255 / 8%);
     background: rgb(7 7 19 / 55%);
     color: #85839D;
-    font-size: 0.62rem;
+    font-size: 0.75rem;
 }
 
 .pie-legal > span {
@@ -1665,7 +1644,7 @@ body:has(.login) main {
     background: transparent;
     box-shadow: none;
     color: #B9B7CF;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.2;
     white-space: nowrap;
 }
@@ -1777,7 +1756,7 @@ body:has(.login) main {
 
 .opciones-sesion .form-check-label {
     margin: 0;
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     line-height: 1.2;
 }
 
@@ -1788,7 +1767,7 @@ body:has(.login) main {
     background: transparent;
     box-shadow: none;
     color: #72D9F1;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     white-space: nowrap;
 }
 
@@ -1815,7 +1794,7 @@ body:has(.login) main {
     padding: 12px 18px;
     border: 0;
     border-radius: 11px;
-    background: linear-gradient(110deg, var(--th-azul), var(--th-turquesa));
+    background: linear-gradient(110deg, var(--th-accion-a), var(--th-accion-b));
     color: #FFFFFF;
     cursor: pointer;
     font-weight: 700;
@@ -1843,7 +1822,7 @@ body:has(.login) main {
 .login-registro {
     margin: 12px 0 0;
     color: #B9B7CF;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     line-height: 1.4;
     text-align: center;
 }
@@ -3004,7 +2983,7 @@ button.boton-cerrar-sesion {
 .pagina-oscura .btn-eliminar:focus-visible {
     border-color: rgb(229 72 77 / 45%);
     background: rgb(229 72 77 / 14%);
-    color: #FF8E92;
+    color: var(--th-texto-error);
 }
 
 .pagina-oscura .btn:focus-visible {
@@ -3016,13 +2995,13 @@ button.boton-cerrar-sesion {
 .pagina-oscura .badge-verde {
     border-color: rgb(30 240 140 / 40%);
     background: rgb(30 240 140 / 12%);
-    color: #7BF5BD;
+    color: var(--th-texto-ok);
 }
 
 .pagina-oscura .badge-azul {
     border-color: rgb(41 182 224 / 45%);
     background: rgb(41 182 224 / 14%);
-    color: #8FDCF4;
+    color: var(--th-texto-info);
 }
 
 .pagina-oscura .badge-gris {
@@ -3366,7 +3345,7 @@ button.boton-cerrar-sesion {
 }
 
 .pagina-oscura .reports-message.is-error {
-    color: #FF8E92;
+    color: var(--th-texto-error);
 }
 
 .pagina-oscura .reports-actions .btn {
@@ -3430,19 +3409,19 @@ button.boton-cerrar-sesion {
 .pagina-oscura .badge-rojo {
     border-color: rgb(229 72 77 / 50%);
     background: rgb(229 72 77 / 14%);
-    color: #FF9DA0;
+    color: var(--th-texto-error);
 }
 
 .pagina-oscura .badge-naranja {
     border-color: rgb(247 107 21 / 50%);
     background: rgb(247 107 21 / 14%);
-    color: #FFB27A;
+    color: var(--th-texto-naranja);
 }
 
 .pagina-oscura .badge-amarillo {
     border-color: rgb(245 179 1 / 45%);
     background: rgb(245 179 1 / 12%);
-    color: #F7D56A;
+    color: var(--th-texto-aviso);
 }
 
 /* Botones de icono de las filas: discretos hasta que se les apunta. */
@@ -3559,7 +3538,7 @@ button.boton-cerrar-sesion {
 }
 
 .dialogo .requerido {
-    color: #FF8E92;
+    color: var(--th-texto-error);
 }
 
 .dialogo-acciones {
@@ -3710,7 +3689,7 @@ button.boton-cerrar-sesion {
 }
 
 .pagina-oscura .paso .requerido {
-    color: #FF8E92;
+    color: var(--th-texto-error);
 }
 
 .pagina-oscura .paso .form-control,
@@ -3751,13 +3730,13 @@ button.boton-cerrar-sesion {
 }
 
 .pagina-oscura .paso [aria-invalid="true"] {
-    border-color: #FF8E92;
+    border-color: var(--th-texto-error);
 }
 
 .mensaje-error {
     display: block;
     margin-top: 6px;
-    color: #FF9DA0;
+    color: var(--th-texto-error);
     font-size: 0.85rem;
     font-weight: 500;
 }
@@ -4083,7 +4062,7 @@ button.boton-cerrar-sesion {
 }
 
 .pagina-oscura .formulario-simple .requerido {
-    color: #FF8E92;
+    color: var(--th-texto-error);
 }
 
 .pagina-oscura .formulario-simple .form-control,
@@ -4119,7 +4098,7 @@ button.boton-cerrar-sesion {
 }
 
 .pagina-oscura .formulario-simple [aria-invalid="true"] {
-    border-color: #FF8E92;
+    border-color: var(--th-texto-error);
 }
 
 .pagina-oscura .formulario-simple .tarjeta-blanca,
@@ -4212,7 +4191,7 @@ button.boton-cerrar-sesion {
 }
 
 .login .campo-codigo input[aria-invalid="true"] {
-    border-color: #FF8E92;
+    border-color: var(--th-texto-error);
 }
 
 .login-vertical .verificacion-form .btn {
@@ -4222,7 +4201,7 @@ button.boton-cerrar-sesion {
 
 .login .feedback-error {
     margin: 0;
-    color: #FF9DA0;
+    color: var(--th-texto-error);
     font-size: 0.9rem;
     text-align: center;
 }
@@ -4242,7 +4221,7 @@ button.boton-cerrar-sesion {
     padding: 8px;
     border: 0;
     background: transparent;
-    color: #8FDCF4;
+    color: var(--th-texto-info);
     font-size: 0.85rem;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -4265,7 +4244,7 @@ button.boton-cerrar-sesion {
 
 .login .feedback-success {
     margin: 0;
-    color: #7BF5BD;
+    color: var(--th-texto-ok);
     font-size: 0.9rem;
     text-align: center;
 }
@@ -4282,7 +4261,7 @@ button.boton-cerrar-sesion {
 }
 
 .login .acceso-enlaces a {
-    color: #8FDCF4;
+    color: var(--th-texto-info);
     text-decoration: underline;
     text-underline-offset: 3px;
 }
@@ -4306,7 +4285,7 @@ button.boton-cerrar-sesion {
 
 .btn-peligro:hover,
 .btn-peligro:focus-visible {
-    border-color: #FF8E92;
+    border-color: var(--th-texto-error);
     background: rgb(229 72 77 / 24%);
     color: #FFFFFF;
 }
@@ -4341,7 +4320,7 @@ button.boton-cerrar-sesion {
     place-items: center;
     border: 1px solid rgb(41 182 224 / 55%);
     border-radius: 50%;
-    color: #8FDCF4;
+    color: var(--th-texto-info);
     content: counter(paso-acceso);
     font-size: 0.85rem;
     font-weight: 700;
@@ -4380,7 +4359,7 @@ button.boton-cerrar-sesion {
 }
 
 .detalle-uri summary {
-    color: #8FDCF4;
+    color: var(--th-texto-info);
     font-size: 0.85rem;
     cursor: pointer;
 }
@@ -4414,4 +4393,49 @@ button.boton-cerrar-sesion {
     font-size: 1rem;
     letter-spacing: 0.06em;
     user-select: all;
+}
+
+/* ==========================================================================
+   Auditoría: enlace para saltar al contenido, pantalla de error y objetivos táctiles
+   ========================================================================== */
+
+/* Primer elemento al tabular: queda fuera de pantalla hasta recibir el foco. */
+.saltar-contenido {
+    position: fixed;
+    z-index: 2000;
+    top: 8px;
+    left: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--th-turquesa);
+    border-radius: var(--th-radio-chico);
+    background: var(--th-noche-superficie);
+    color: var(--th-noche-hueso);
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-160%);
+}
+
+.saltar-contenido:focus {
+    transform: none;
+    outline: 2px solid var(--th-turquesa);
+    outline-offset: 2px;
+}
+
+/* El contenido recibe el foco al saltar: sin recuadro, no es un control. */
+#contenido-principal:focus {
+    outline: none;
+}
+
+.error-codigo {
+    margin: 0 0 20px;
+    color: #C3BEDD;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Casillas de tablas y listas: 20 px con aire alrededor para acertar con el dedo. */
+.network-modulo input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
 }

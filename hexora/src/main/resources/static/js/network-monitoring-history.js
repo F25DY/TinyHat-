@@ -4,6 +4,11 @@ const availabilitySummary = document.querySelector("#availability-summary");
 const availabilityBody = document.querySelector("#availability-body");
 const projectSelect = document.querySelector("#history-project-select");
 const currentDevicesLink = document.querySelector("#current-devices-link");
+const metricSnapshots = document.querySelector("#hist-detecciones");
+const metricAvailability = document.querySelector("#hist-disponibilidad");
+const metricSamples = document.querySelector("#hist-muestras");
+const metricDevices = document.querySelector("#hist-dispositivos");
+const snapshotsCounter = document.querySelector("#detecciones-contador");
 const deviceMetadataStorageKey = "hexora.network-monitoring.v1.device-metadata";
 let metadataReadFailed = false;
 let projectPublicId = new URLSearchParams(window.location.search).get("projectPublicId") || "";
@@ -81,12 +86,21 @@ function renderAvailability(snapshots) {
         : snapshots.length
             ? "Las detecciones guardadas no contienen estados utilizables para calcular la disponibilidad."
             : "Todavía no hay detecciones guardadas para estimar la disponibilidad.";
+    metricSnapshots.textContent = String(snapshots.length);
+    metricAvailability.textContent = samples ? `${((online / samples) * 100).toFixed(1)}%` : "—";
+    metricSamples.textContent = String(samples);
+    metricDevices.textContent = String(rows.length);
+    snapshotsCounter.textContent = String(snapshots.length);
+    snapshotsCounter.hidden = snapshots.length === 0;
     availabilityBody.innerHTML = rows.length
         ? rows.map(device => `<tr>
             <td>${escapeHtml(device.name)} <small class="evidence-source">${escapeHtml(device.address)}</small></td>
             <td>${device.online}</td>
             <td>${device.offline}</td>
-            <td>${device.percentage === null ? "Sin datos" : `${device.percentage.toFixed(1)}% (${device.samples} muestras)`}</td>
+            <td>${device.percentage === null
+                ? "Sin datos"
+                : `<span class="disponibilidad-valor">${device.percentage.toFixed(1)}% <small>(${device.samples} muestras)</small></span>
+                   <span class="barra-cia barra-disp" aria-hidden="true"><span class="barra-cia-relleno ancho-${Math.round(device.percentage)}"></span></span>`}</td>
         </tr>`).join("")
         : `<tr><td colspan="4" class="empty-state">${snapshots.length
             ? "No hay dispositivos en las detecciones."
@@ -106,19 +120,19 @@ function evidenceDescription(method) {
 function renderHistory(snapshots) {
     const metadataByDevice = readDeviceMetadata();
     if (!snapshots.length) {
-        historyList.innerHTML = '<section class="network-card"><p class="empty-state">Todavía no hay detecciones guardadas. Pulsa “Detectar dispositivos en la red” para crear la primera.</p></section>';
+        historyList.innerHTML = '<p class="empty-state">Todavía no hay detecciones guardadas. Pulsa “Detectar dispositivos en la red” en la página de dispositivos actuales para crear la primera.</p>';
         return;
     }
 
-    historyList.innerHTML = snapshots.map(snapshot => {
+    historyList.innerHTML = snapshots.map((snapshot, index) => {
         const devices = snapshot.devices || [];
         const rows = devices.length
             ? devices.map(device => {
                 const online = device.status === "ONLINE";
-                const state = online ? "Online" : "Offline";
+                const state = online ? "En línea" : "Sin respuesta";
                 const registration = device.registered ? "" : " · No registrado";
                 const isGateway = device.gateway === true || (device.detectionMethod && device.detectionMethod.includes("Puerta de enlace"));
-                const gatewayBadge = isGateway ? ' <span class="gateway-badge" title="Puerta de enlace predeterminada (Gateway)">🌐 Gateway</span>' : "";
+                const gatewayBadge = isGateway ? ' <span class="gateway-badge" title="Puerta de enlace predeterminada (Gateway)">Gateway</span>' : "";
                 const metadata = metadataByDevice[deviceIdentityKey(device)] || {};
                 const identification = metadata.label
                     ? `<strong>${escapeHtml(metadata.label)}</strong><br><span>${escapeHtml(device.name || device.address)}</span>`
@@ -136,23 +150,31 @@ function renderHistory(snapshots) {
             }).join("")
             : '<tr><td colspan="7" class="empty-state">Esta detección no encontró dispositivos.</td></tr>';
 
-        return `<section class="network-card ports-panel discovery-history-entry">
-            <div class="section-heading">
-                <div>
-                    <p class="network-eyebrow">DETECCIÓN #${escapeHtml(snapshot.id)}</p>
-                    <h2>${escapeHtml(formatDate(snapshot.observedAt))}</h2>
-                    <p class="management-help">Subred: ${escapeHtml(snapshot.subnet)} · Origen: ${escapeHtml(snapshot.source)} · Dispositivos: ${devices.length}</p>
+        // Solo la detección más reciente entra abierta: el resto se abre cuando se necesita.
+        return `<details class="net-acordeon discovery-history-entry"${index === 0 ? " open" : ""}>
+            <summary>
+                <span class="net-acordeon-titulo">
+                    <strong>Detección #${escapeHtml(snapshot.id)}</strong>
+                    <span class="deteccion-fecha">${escapeHtml(formatDate(snapshot.observedAt))}</span>
+                </span>
+                <span class="deteccion-meta">
+                    <span>Subred ${escapeHtml(snapshot.subnet)}</span>
+                    <span>Origen ${escapeHtml(snapshot.source)}</span>
+                    <span>${devices.length} ${devices.length === 1 ? "dispositivo" : "dispositivos"}</span>
+                </span>
+                <i class="fa-solid fa-chevron-down net-acordeon-flecha" aria-hidden="true"></i>
+            </summary>
+            <div class="net-acordeon-cuerpo">
+                <div class="table-scroll table-alta">
+                    <table>
+                        <thead>
+                        <tr><th scope="col">IP</th><th scope="col">MAC</th><th scope="col">Identificación</th><th scope="col">Estado</th><th scope="col">Evidencia</th><th scope="col">Primera detección</th><th scope="col">Última detección</th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
                 </div>
             </div>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr><th>IP</th><th>MAC</th><th>Identificación</th><th>Estado</th><th>Evidencia</th><th>Primera detección</th><th>Última detección</th></tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-        </section>`;
+        </details>`;
     }).join("");
 }
 

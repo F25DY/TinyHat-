@@ -20,6 +20,7 @@
     var ultimoTiempo = 0;
     var animacionId = 0;
     var movimientoReducido = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var INTERVALO_MS = 33;   // ~30 cuadros por segundo
 
     function dibujar() {
         contexto.clearRect(0, 0, ancho, alto);
@@ -103,7 +104,12 @@
     }
 
     function animar(tiempo) {
-        var delta = ultimoTiempo ? Math.min(tiempo - ultimoTiempo, 40) : 0;
+        // Un fondo tenue no necesita 60 cuadros por segundo: se dibuja a ~30 y se deja el resto del tiempo libre.
+        if (ultimoTiempo && tiempo - ultimoTiempo < INTERVALO_MS) {
+            animacionId = window.requestAnimationFrame(animar);
+            return;
+        }
+        var delta = ultimoTiempo ? Math.min(tiempo - ultimoTiempo, 80) : 0;
         ultimoTiempo = tiempo;
 
         paquetes.forEach(function (paquete) {
