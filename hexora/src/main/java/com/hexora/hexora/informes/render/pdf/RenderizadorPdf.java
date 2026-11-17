@@ -50,11 +50,6 @@ public class RenderizadorPdf implements InformeRenderer {
      * suplente suelto no es XML 1.0 válido y haría fallar el análisis del documento. Se eliminan.
      */
     static String sinCaracteresInvalidosEnXml(String texto) {
-        StringBuilder limpio = new StringBuilder(texto.length());
-        texto.codePoints()
-            .filter(cp -> cp == 0x9 || cp == 0xA || cp == 0xD || (cp >= 0x20 && cp <= 0xD7FF)
-                || (cp >= 0xE000 && cp <= 0xFFFD) || (cp >= 0x10000 && cp <= 0x10FFFF))
-            .forEach(limpio::appendCodePoint);
-        return limpio.toString();
+        return com.hexora.hexora.informes.render.TextoSeguro.limpiarXml(texto);
     }
 }
