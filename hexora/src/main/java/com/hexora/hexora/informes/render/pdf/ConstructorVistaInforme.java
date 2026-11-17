@@ -201,7 +201,7 @@ public class ConstructorVistaInforme {
             String[] partes = referencia.split("\\*", -1);
             for (int i = 0; i < partes.length; i++) {
                 if (!partes[i].isEmpty()) {
-                    segmentos.add(new SegmentoTexto(partes[i], i % 2 == 1));
+                    segmentos.add(new SegmentoTexto(partes[i], (i & 1) == 1));
                 }
             }
             resultado.add(new Referencia(segmentos));

@@ -114,10 +114,15 @@ public class AlmacenInformes {
     /** Mueve el temporal al destino definitivo con {@code ATOMIC_MOVE}; no sobrescribe un archivo existente. */
     public Path mover(Path temporal, String rutaRelativa) throws IOException {
         Path destino = resolver(rutaRelativa);
-        if (Files.exists(destino)) {
-            throw new FileAlreadyExistsException(destino.getFileName().toString());
+        Path nombre = destino.getFileName();
+        Path carpeta = destino.getParent();
+        if (nombre == null || carpeta == null) {
+            throw new IllegalArgumentException("Ruta de archivo inválida");
         }
-        crearDirectorios(destino.getParent());
+        if (Files.exists(destino)) {
+            throw new FileAlreadyExistsException(nombre.toString());
+        }
+        crearDirectorios(carpeta);
         Files.move(temporal, destino, StandardCopyOption.ATOMIC_MOVE);
         restringir(destino, "rw-------");
         return destino;

@@ -36,10 +36,13 @@ public final class GeneradorPdf {
         new Fuente("JetBrainsMono-Regular.ttf", "JetBrains Mono", 400, FontStyle.NORMAL),
         new Fuente("JetBrainsMono-Bold.ttf", "JetBrains Mono", 700, FontStyle.NORMAL));
 
+    /** Referencia fuerte: si el registro se recolecta, se pierde el nivel configurado. */
+    private static final Logger REGISTRO_LIBRERIA = Logger.getLogger("com.openhtmltopdf");
+
     static {
         // La librería escribe en java.util.logging a nivel INFO cada recurso que carga o rechaza; los rechazos los
         // registra el resolvedor con SLF4J, así que aquí solo interesan las advertencias reales.
-        Logger.getLogger("com.openhtmltopdf").setLevel(Level.WARNING);
+        REGISTRO_LIBRERIA.setLevel(Level.WARNING);
     }
 
     private GeneradorPdf() {

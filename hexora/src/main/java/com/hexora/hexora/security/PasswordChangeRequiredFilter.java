@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.DefaultRedirectStrategy;
+import org.springframework.security.web.RedirectStrategy;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,6 +24,7 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
         RUTA_CAMBIO, "/logout", "/error", "/css/**", "/js/**", "/img/**", "/imagen/**", "/vendor/**", "/favicon.ico", "/mfa/**"
     };
     private final AntPathMatcher comparador = new AntPathMatcher();
+    private final RedirectStrategy redireccion = new DefaultRedirectStrategy();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -29,7 +32,7 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
         Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
         if (autenticacion != null && autenticacion.getPrincipal() instanceof TinyHatPrincipal principal
             && principal.isDebeCambiarPassword() && !permitida(request)) {
-            response.sendRedirect(request.getContextPath() + RUTA_CAMBIO);
+            redireccion.sendRedirect(request, response, RUTA_CAMBIO);
             return;
         }
         chain.doFilter(request, response);
