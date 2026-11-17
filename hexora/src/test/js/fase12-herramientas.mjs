@@ -159,30 +159,10 @@ const find = (html, re) => (html.match(re) || [])[1];
   const cookie = cookieHeader();
   record("WebSocket de red (101 con origen y sesión válidos)", /101/.test(await wsHandshake(ORIGIN, cookie)), "handshake");
 
-  // --- Herramienta nueva: informes ------------------------------------------------------------------
+  // --- Informes -------------------------------------------------------------------------------------
+  // El módulo de informes anterior (API /api/informes) fue sustituido por el nuevo (feature/informes);
+  // su flujo se prueba en las pruebas de integración de Java. Aquí solo se renueva el token CSRF.
   res = await request("GET", `/proyectos/${projectId}`); csrf = csrfFrom(res.body);
-  record("panel de informes visible para el auditor", res.body.includes('id="reports-panel"') && res.body.includes("project-reports.js"), "panel + script externo");
-  res = await request("GET", "/js/project-reports.js");
-  record("script del panel servido sin inline", res.status === 200 && /javascript/.test(res.headers["content-type"] || ""), `status=${res.status}`);
-  const hdr = { "X-CSRF-TOKEN": csrf };
-  res = await request("POST", `/api/proyectos/${projectId}/informes`, { json: { tipo: "TECNICO_PDF", titulo: "Informe de herramientas" }, headers: hdr });
-  const report = res.status === 201 ? JSON.parse(res.body) : null;
-  record("crear borrador de informe (snapshot + hash)", !!report && /^[0-9a-f]{64}$/.test(report.hashContenido), `status=${res.status}`);
-  res = await request("GET", `/api/informes/${report?.publicId}/contenido`);
-  const snapshot = res.status === 200 ? JSON.parse(res.body) : null;
-  record("snapshot con hallazgo, CVE, mitigación y matriz", !!snapshot && snapshot.findings.length === 1
-    && snapshot.mitigations[0].planDocumented === true && snapshot.riskMatrix.cells.length === 5
-    && snapshot.summary.overallRisk === "CRITICO", snapshot ? `hallazgos=${snapshot.findings.length} riesgo=${snapshot.summary.overallRisk}` : `status=${res.status}`);
-  // El TOTP recién completado cuenta como autenticación reciente (5 min), así que publicar procede.
-  // El rechazo con REAUTH_REQUIRED para sesiones antiguas lo cubre ReportFoundationIntegrationTest.
-  res = await request("POST", `/api/informes/${report?.publicId}/publicar`, { headers: hdr });
-  record("publicar con autenticación reciente", res.status === 200 && JSON.parse(res.body).estado === "PUBLICADO", `status=${res.status}`);
-  res = await request("POST", `/api/informes/${report?.publicId}/despublicar`, { headers: hdr });
-  record("despublicar vuelve a borrador", res.status === 200 && JSON.parse(res.body).estado === "BORRADOR", `status=${res.status}`);
-  res = await request("GET", `/api/informes/${report?.publicId}/descarga`);
-  record("descarga sin generador responde 501 explícito", res.status === 501 && /REPORT_RENDERER_UNAVAILABLE/.test(res.body), `status=${res.status}`);
-  res = await request("GET", `/api/informes/00000000-0000-4000-8000-000000000000`);
-  record("informe ajeno o inexistente => 404", res.status === 404, `status=${res.status}`);
 
   // --- Cierre ----------------------------------------------------------------------------------------
   res = await request("POST", "/logout", { form: { _csrf: csrf } });

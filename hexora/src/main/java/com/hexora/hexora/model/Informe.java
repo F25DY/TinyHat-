@@ -1,25 +1,33 @@
 package com.hexora.hexora.model;
 
+import com.hexora.hexora.informes.TipoInforme;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.EntityListeners;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.hibernate.annotations.Filter;
 
+/**
+ * Serie de informes de un proyecto para un tipo (MR, TEC, EJE, MIT, FIN): hay una por proyecto y tipo. Sus
+ * versiones viven en {@link InformeVersion}. {@code organizacionId} está desnormalizado (y la base lo ata al proyecto
+ * con una clave foránea compuesta) para filtrar por organización dentro de la consulta.
+ */
 @Entity
 @Table(name = "informe")
 @Filter(name = "accountFilter", condition = "cuenta_id = :tenantId")
 @EntityListeners(TenantScopedEntityListener.class)
 public class Informe implements TenantScopedEntity {
 
-    public static final String ESTADO_BORRADOR = "BORRADOR";
-    public static final String ESTADO_PUBLICADO = "PUBLICADO";
+    /** Alcance de la v1: siempre el proyecto completo. La columna queda reservada para filtros por área. */
+    public static final String ALCANCE_PROYECTO = "PROYECTO";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,53 +36,41 @@ public class Informe implements TenantScopedEntity {
     @Column(name = "public_id", nullable = false, length = 36, columnDefinition = "CHAR(36)")
     private String publicId;
 
-    @Column(name = "cuenta_id", nullable = false)
+    @Column(name = "cuenta_id", nullable = false, updatable = false)
     private Long cuentaId;
 
-    @Column(name = "organizacion_id", nullable = false)
+    @Column(name = "organizacion_id", nullable = false, updatable = false)
     private Long organizacionId;
 
-    @Column(name = "proyecto_id", nullable = false)
+    @Column(name = "proyecto_id", nullable = false, updatable = false)
     private Long proyectoId;
 
-    @Column(nullable = false, length = 40)
-    private String tipo;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 3, updatable = false)
+    private TipoInforme tipo;
 
-    @Column(nullable = false, length = 200)
-    private String titulo = "";
+    @Column(nullable = false, length = 16, updatable = false)
+    private String alcance = ALCANCE_PROYECTO;
 
-    @Column(nullable = false, length = 20)
-    private String audiencia = "TECNICO";
-
-    @Column(nullable = false, length = 10)
-    private String formato = "PDF";
-
-    @Column(name = "esquema_version", nullable = false)
-    private int esquemaVersion = 1;
-
-    @Column(nullable = false, length = 20)
-    private String estado;
-
-    @Column(name = "publicado_en")
-    private LocalDateTime publicadoEn;
-
-    @Column(name = "publicado_por")
-    private Long publicadoPor;
-
-    @Column(name = "hash_contenido", length = 64, columnDefinition = "CHAR(64)")
-    private String hashContenido;
-
-    /** Immutable JSON snapshot of the report content; its SHA-256 is {@link #hashContenido}. */
-    @Column(name = "contenido_json", columnDefinition = "LONGTEXT")
-    private String contenidoJson;
+    /** Año de creación de la serie; forma parte del ID del documento. */
+    @Column(nullable = false, updatable = false)
+    private short anio;
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     private LocalDateTime creadoEn;
 
-    @Column(name = "creado_por", updatable = false)
+    @Column(name = "creado_por", nullable = false, updatable = false)
     private Long creadoPor;
 
-    public Informe() {
+    protected Informe() {
+    }
+
+    public Informe(Long organizacionId, Long proyectoId, TipoInforme tipo, short anio, Long creadoPor) {
+        this.organizacionId = organizacionId;
+        this.proyectoId = proyectoId;
+        this.tipo = tipo;
+        this.anio = anio;
+        this.creadoPor = creadoPor;
     }
 
     public Long getId() {
@@ -85,10 +81,7 @@ public class Informe implements TenantScopedEntity {
         return publicId;
     }
 
-    public void setPublicId(String publicId) {
-        this.publicId = publicId;
-    }
-
+    @Override
     public Long getCuentaId() {
         return cuentaId;
     }
@@ -102,96 +95,20 @@ public class Informe implements TenantScopedEntity {
         return organizacionId;
     }
 
-    public void setOrganizacionId(Long organizacionId) {
-        this.organizacionId = organizacionId;
-    }
-
     public Long getProyectoId() {
         return proyectoId;
     }
 
-    public void setProyectoId(Long proyectoId) {
-        this.proyectoId = proyectoId;
-    }
-
-    public String getTipo() {
+    public TipoInforme getTipo() {
         return tipo;
     }
 
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
+    public String getAlcance() {
+        return alcance;
     }
 
-    public String getTitulo() {
-        return titulo;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public String getAudiencia() {
-        return audiencia;
-    }
-
-    public void setAudiencia(String audiencia) {
-        this.audiencia = audiencia;
-    }
-
-    public String getFormato() {
-        return formato;
-    }
-
-    public void setFormato(String formato) {
-        this.formato = formato;
-    }
-
-    public int getEsquemaVersion() {
-        return esquemaVersion;
-    }
-
-    public void setEsquemaVersion(int esquemaVersion) {
-        this.esquemaVersion = esquemaVersion;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
-
-    public LocalDateTime getPublicadoEn() {
-        return publicadoEn;
-    }
-
-    public void setPublicadoEn(LocalDateTime publicadoEn) {
-        this.publicadoEn = publicadoEn;
-    }
-
-    public Long getPublicadoPor() {
-        return publicadoPor;
-    }
-
-    public void setPublicadoPor(Long publicadoPor) {
-        this.publicadoPor = publicadoPor;
-    }
-
-    public String getHashContenido() {
-        return hashContenido;
-    }
-
-    public void setHashContenido(String hashContenido) {
-        this.hashContenido = hashContenido;
-    }
-
-    public String getContenidoJson() {
-        return contenidoJson;
-    }
-
-    public void setContenidoJson(String contenidoJson) {
-        this.contenidoJson = contenidoJson;
+    public short getAnio() {
+        return anio;
     }
 
     public LocalDateTime getCreadoEn() {
@@ -202,12 +119,8 @@ public class Informe implements TenantScopedEntity {
         return creadoPor;
     }
 
-    public void setCreadoPor(Long creadoPor) {
-        this.creadoPor = creadoPor;
-    }
-
     @PrePersist
-    void prepareForInsert() {
+    void prepararInsercion() {
         publicId = PublicIds.ensure(publicId);
         if (creadoEn == null) {
             creadoEn = LocalDateTime.now(ZoneOffset.UTC);

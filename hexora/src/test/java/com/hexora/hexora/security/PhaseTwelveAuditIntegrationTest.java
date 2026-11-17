@@ -388,6 +388,14 @@ class PhaseTwelveAuditIntegrationTest extends IsolatedMySqlTestDatabase {
     // Catalogue versus emitters
     // ---------------------------------------------------------------------------------------------
 
+    /**
+     * TEMPORAL (feature/informes, Etapa 2 a 6). El módulo de informes anterior emitía estos eventos y fue
+     * sustituido; el nuevo módulo los emite en la Etapa 6. Mientras tanto no tienen emisor. Si alguien los
+     * emite antes, esta prueba falla para obligar a quitar la excepción (no puede quedarse olvidada).
+     */
+    private static final java.util.Set<AuditEventType> SIN_EMISOR_HASTA_ETAPA_6 = java.util.EnumSet.of(
+        AuditEventType.REPORT_PUBLISHED, AuditEventType.REPORT_VIEWED, AuditEventType.REPORT_EXPORTED);
+
     @Test
     void everyRequiredEventHasAnEmitterAndReservedEventsHaveNone() throws IOException {
         String sources;
@@ -403,6 +411,8 @@ class PhaseTwelveAuditIntegrationTest extends IsolatedMySqlTestDatabase {
             boolean emitted = sources.contains("\"" + type.name() + "\"") || sources.contains("AuditEventType." + type.name());
             if (AuditEventType.RESERVED.contains(type)) {
                 assertThat(emitted).as("%s is reserved and must have no emitter in v1", type).isFalse();
+            } else if (SIN_EMISOR_HASTA_ETAPA_6.contains(type)) {
+                assertThat(emitted).as("%s ya tiene emisor: quitar la excepción SIN_EMISOR_HASTA_ETAPA_6", type).isFalse();
             } else {
                 assertThat(emitted).as("%s must have an emitter in the application code", type).isTrue();
             }

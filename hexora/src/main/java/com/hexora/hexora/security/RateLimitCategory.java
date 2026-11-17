@@ -63,7 +63,7 @@ enum RateLimitCategory {
         if (matches(path, "/api/network/discover", "/api/network/discover/**")) {
             return NETWORK_DISCOVER;
         }
-        if (matches(path, "/**/pdf", "/**/pdf/**", "/api/pdf/**", "/**/*.pdf", "/api/informes/*/descarga")) {
+        if (matches(path, "/**/pdf", "/**/pdf/**", "/api/pdf/**", "/**/*.pdf")) {
             return PDF;
         }
         if (properties.getSession().getPollPaths().stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, path))) {

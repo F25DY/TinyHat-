@@ -273,18 +273,6 @@ public class SecurityConfiguration {
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers("/api/agent/**").denyAll()
 				.requestMatchers(
-					HttpMethod.GET,
-					"/api/proyectos/*/informes",
-					"/api/informes/*",
-					"/api/informes/*/contenido",
-					"/api/informes/*/descarga"
-				).hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
-				.requestMatchers(
-					"/api/proyectos/*/informes",
-					"/api/informes/*/publicar",
-					"/api/informes/*/despublicar"
-				).hasRole("AUDITOR")
-				.requestMatchers(
 					"/api/organizaciones/*/invitaciones",
 					"/api/cves/buscar",
 					"/api/cves/*/detalle",

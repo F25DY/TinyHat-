@@ -177,16 +177,15 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		int general = html.indexOf("Información general");
 		int metricas = html.indexOf("exposicion-numero");
 		int areas = html.indexOf("Áreas auditadas");
-		int informes = html.indexOf("id=\"reports-panel\"");
 		assertThat(general).isPositive();
 		assertThat(metricas).isGreaterThan(general);
 		assertThat(areas).isGreaterThan(metricas);
-		assertThat(informes).as("los informes van al final").isGreaterThan(areas);
+		assertThat(html).as("el panel de informes anterior ya no existe").doesNotContain("reports-panel");
 
 		int topButton = html.indexOf("Agregar área");
 		int bottomButton = html.lastIndexOf("Agregar área");
 		assertThat(topButton).as("botón arriba, antes de la información general").isPositive().isLessThan(general);
-		assertThat(bottomButton).as("botón abajo, después de las áreas").isGreaterThan(areas).isLessThan(informes);
+		assertThat(bottomButton).as("botón abajo, después de las áreas").isGreaterThan(areas);
 
 		assertThat(html).contains("area-card").contains("ancho-");
 		assertThat(html).doesNotContain("Departamento").doesNotContain("departamentos registrados");
