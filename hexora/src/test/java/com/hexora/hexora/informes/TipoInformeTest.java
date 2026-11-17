@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,5 +71,58 @@ class TipoInformeTest {
         assertThat(FormatoInforme.XLSX.mime())
             .isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         assertThat(FormatoInforme.XLSX.extension()).isEqualTo("xlsx");
+    }
+
+    /** Tabla de secciones de §6.3 (obligatoria = bloquea la publicación). */
+    @Test
+    void lasSeccionesNarrativasSonLasDelPlan() {
+        assertThat(claves(TipoInforme.EJE)).containsExactly("resumenEjecutivo", "recomendaciones");
+        assertThat(obligatorias(TipoInforme.EJE)).containsExactly("resumenEjecutivo");
+
+        assertThat(claves(TipoInforme.TEC)).containsExactly("alcanceMetodologia", "conclusiones");
+        assertThat(obligatorias(TipoInforme.TEC)).containsExactly("alcanceMetodologia");
+
+        assertThat(claves(TipoInforme.MIT)).containsExactly("introduccion");
+        assertThat(obligatorias(TipoInforme.MIT)).isEmpty();
+
+        assertThat(claves(TipoInforme.MR)).containsExactly("notas");
+        assertThat(obligatorias(TipoInforme.MR)).isEmpty();
+
+        assertThat(claves(TipoInforme.FIN))
+            .containsExactly("cartaEntrega", "resumenEjecutivo", "alcanceMetodologia", "conclusiones");
+        assertThat(obligatorias(TipoInforme.FIN))
+            .containsExactly("cartaEntrega", "resumenEjecutivo", "alcanceMetodologia", "conclusiones");
+    }
+
+    @Test
+    void soloSeAdmitenLasSeccionesDelTipo() {
+        assertThat(TipoInforme.EJE.admiteSeccion("resumenEjecutivo")).isTrue();
+        assertThat(TipoInforme.EJE.admiteSeccion("cartaEntrega")).isFalse();
+        assertThat(TipoInforme.MR.admiteSeccion("notas")).isTrue();
+        assertThat(TipoInforme.MR.admiteSeccion("conclusiones")).isFalse();
+        assertThat(TipoInforme.TEC.admiteSeccion(null)).isFalse();
+    }
+
+    @Test
+    void cadaSeccionTieneEtiquetaParaElAuditor() {
+        for (TipoInforme tipo : TipoInforme.values()) {
+            tipo.secciones().forEach(seccion -> assertThat(seccion.etiqueta()).isNotBlank());
+        }
+        assertThat(TipoInforme.FIN.secciones().get(0).etiqueta()).isEqualTo("Carta de entrega");
+        assertThat(TipoInforme.TEC.secciones().get(0).etiqueta()).isEqualTo("Alcance y metodología");
+    }
+
+    @Test
+    void lasListasDeSeccionesSonInmutables() {
+        assertThatThrownBy(() -> TipoInforme.EJE.secciones().clear()).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    private static List<String> claves(TipoInforme tipo) {
+        return tipo.secciones().stream().map(TipoInforme.SeccionNarrativa::clave).toList();
+    }
+
+    private static List<String> obligatorias(TipoInforme tipo) {
+        return tipo.secciones().stream().filter(TipoInforme.SeccionNarrativa::obligatoria)
+            .map(TipoInforme.SeccionNarrativa::clave).toList();
     }
 }

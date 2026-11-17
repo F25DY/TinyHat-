@@ -1,6 +1,7 @@
 package com.hexora.hexora.informes;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -20,18 +21,50 @@ import java.util.Set;
  */
 public enum TipoInforme {
 
-    MR("Matriz de riesgo", EnumSet.of(FormatoInforme.PDF, FormatoInforme.XLSX)),
-    TEC("Técnico", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX)),
-    EJE("Ejecutivo", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX)),
-    MIT("Mitigación", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX, FormatoInforme.XLSX)),
-    FIN("Final de entrega", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX));
+    MR("Matriz de riesgo", EnumSet.of(FormatoInforme.PDF, FormatoInforme.XLSX),
+        SeccionNarrativa.opcional("notas", "Notas")),
+    TEC("Técnico", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX),
+        SeccionNarrativa.obligatoria("alcanceMetodologia", "Alcance y metodología"), SeccionNarrativa.opcional("conclusiones", "Conclusiones")),
+    EJE("Ejecutivo", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX),
+        SeccionNarrativa.obligatoria("resumenEjecutivo", "Resumen ejecutivo"), SeccionNarrativa.opcional("recomendaciones", "Recomendaciones")),
+    MIT("Mitigación", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX, FormatoInforme.XLSX),
+        SeccionNarrativa.opcional("introduccion", "Introducción")),
+    FIN("Final de entrega", EnumSet.of(FormatoInforme.PDF, FormatoInforme.DOCX),
+        SeccionNarrativa.obligatoria("cartaEntrega", "Carta de entrega"), SeccionNarrativa.obligatoria("resumenEjecutivo", "Resumen ejecutivo"),
+        SeccionNarrativa.obligatoria("alcanceMetodologia", "Alcance y metodología"), SeccionNarrativa.obligatoria("conclusiones", "Conclusiones"));
+
+    /**
+     * Sección de la narrativa (§6.3). Las obligatorias bloquean la publicación; el resto son opcionales.
+     * {@code clave} es la que se guarda en {@code narrativa_json}; {@code etiqueta} es el nombre que ve el auditor.
+     */
+    public record SeccionNarrativa(String clave, String etiqueta, boolean obligatoria) {
+
+        static SeccionNarrativa obligatoria(String clave, String etiqueta) {
+            return new SeccionNarrativa(clave, etiqueta, true);
+        }
+
+        static SeccionNarrativa opcional(String clave, String etiqueta) {
+            return new SeccionNarrativa(clave, etiqueta, false);
+        }
+    }
 
     private final String nombre;
     private final Set<FormatoInforme> formatos;
+    private final List<SeccionNarrativa> secciones;
 
-    TipoInforme(String nombre, Set<FormatoInforme> formatos) {
+    TipoInforme(String nombre, Set<FormatoInforme> formatos, SeccionNarrativa... secciones) {
         this.nombre = nombre;
         this.formatos = Set.copyOf(formatos);
+        this.secciones = List.of(secciones);
+    }
+
+    /** Secciones narrativas de este tipo, en el orden en que se muestran. */
+    public List<SeccionNarrativa> secciones() {
+        return secciones;
+    }
+
+    public boolean admiteSeccion(String clave) {
+        return secciones.stream().anyMatch(seccion -> seccion.clave().equals(clave));
     }
 
     public String nombre() {
