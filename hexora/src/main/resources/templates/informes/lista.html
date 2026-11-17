@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Informes del proyecto</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <header class="encabezado-retorno">
+            <a th:href="@{/proyectos/{id}(id=${lista.proyectoPublicId})}" class="link-volver" aria-label="Volver al proyecto">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+            <div class="titulos-nuevo">
+                <h1 class="titulo-pagina">Informes</h1>
+                <p class="subtitulo" th:text="${lista.proyectoNombre}">Proyecto</p>
+            </div>
+        </header>
+
+        <p class="informe-mensaje informe-mensaje-error" role="alert" th:if="${error}" th:text="${error}"></p>
+        <p class="informe-mensaje informe-mensaje-ok" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+
+        <section class="tarjeta-blanca informe-tipo" th:each="fila : ${lista.tipos}" th:attr="aria-labelledby='tipo-' + ${fila.tipo.name()}">
+            <div class="informe-tipo-cabecera">
+                <div>
+                    <h2 class="seccion-titulo" th:id="'tipo-' + ${fila.tipo.name()}" th:text="${fila.tipo.nombre()}">Técnico</h2>
+                    <p class="informe-formatos">
+                        Formatos:
+                        <span class="informe-chip" th:each="f : ${fila.tipo.formatos()}" th:text="${f}">PDF</span>
+                    </p>
+                </div>
+                <form th:unless="${fila.hayBorrador}" method="post"
+                      th:action="@{/proyectos/{p}/informes/{t}/borradores(p=${lista.proyectoPublicId}, t=${fila.tipo.name()})}">
+                    <button type="submit" class="btn btn-primario">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Crear borrador
+                    </button>
+                </form>
+                <span class="informe-nota" th:if="${fila.hayBorrador}">Ya hay un borrador en curso.</span>
+            </div>
+
+            <p class="informe-vacio" th:if="${#lists.isEmpty(fila.versiones)}">Todavía no hay versiones de este informe.</p>
+
+            <div class="table-responsive" th:unless="${#lists.isEmpty(fila.versiones)}">
+                <table class="tabla-hexora table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Versión</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Publicada</th>
+                            <th scope="col">Despublicada</th>
+                            <th scope="col"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="v : ${fila.versiones}">
+                            <td th:text="'v' + ${v.numero}">v1</td>
+                            <td>
+                                <span class="informe-estado"
+                                      th:classappend="${v.estado == 'PUBLICADO'} ? 'informe-estado-publicado' : (${v.estado == 'BORRADOR'} ? 'informe-estado-borrador' : 'informe-estado-despublicado')"
+                                      th:text="${v.estado == 'PUBLICADO'} ? 'Publicado' : (${v.estado == 'BORRADOR'} ? 'Borrador' : 'Despublicado')">Borrador</span>
+                            </td>
+                            <td th:text="${v.publicadoEn != null} ? ${#temporals.format(v.publicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC' : '—'">—</td>
+                            <td th:text="${v.despublicadoEn != null} ? ${#temporals.format(v.despublicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC' : '—'">—</td>
+                            <td class="acciones-tabla">
+                                <a class="btn btn-secundario" th:href="@{/informes/versiones/{id}(id=${v.publicId})}">
+                                    <span th:text="${v.estado == 'BORRADOR'} ? 'Editar' : 'Abrir'">Abrir</span>
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

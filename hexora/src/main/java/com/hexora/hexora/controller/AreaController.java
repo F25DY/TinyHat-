@@ -8,11 +8,14 @@ import com.hexora.hexora.model.Vulnerabilidad;
 import com.hexora.hexora.repository.AreaAuditableRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
 import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.riesgo.EscalaRiesgo;
 import com.hexora.hexora.service.DashboardService;
 import com.hexora.hexora.service.PermissionService;
 import jakarta.validation.Valid;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -181,11 +184,15 @@ public class AreaController {
                                 Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
 
-        long critico = countRisk(findings, "Critico");
-        long alto = countRisk(findings, "Alto");
-        long medio = countRisk(findings, "Medio");
-        long bajo = countRisk(findings, "Bajo");
-        long total = critico + alto + medio + bajo;
+        Map<String, Long> metricas = new LinkedHashMap<>();
+        List<DashboardResumen.Nivel> niveles = new ArrayList<>();
+        long total = findings.stream().filter(finding -> finding.getNivel() != null).count();
+        for (EscalaRiesgo.NivelRiesgo nivel : EscalaRiesgo.NivelRiesgo.deMayorAMenor()) {
+            long cantidad = countRisk(findings, nivel.valorAlmacenado());
+            metricas.put(nivel.clave(), cantidad);
+            niveles.add(new DashboardResumen.Nivel(
+                    nivel.etiqueta(), nivel.clave(), cantidad, DashboardService.porcentaje(cantidad, total)));
+        }
 
         model.addAttribute("area", area);
         model.addAttribute("departamento", area);
@@ -193,30 +200,18 @@ public class AreaController {
         model.addAttribute("proyecto", project);
         model.addAttribute("canManageProjects", auditor);
         model.addAttribute("vulnerabilidades", findings);
-        model.addAttribute("metricas", Map.of("critico", critico, "alto", alto, "medio", medio, "bajo", bajo));
+        model.addAttribute("metricas", metricas);
 
         // Barra de exposición: los mismos niveles y el mismo formato que el panel y el proyecto.
         model.addAttribute("totalHallazgos", total);
-        model.addAttribute("niveles", List.of(
-                new DashboardResumen.Nivel("Crítico", "critico", critico, DashboardService.porcentaje(critico, total)),
-                new DashboardResumen.Nivel("Alto", "alto", alto, DashboardService.porcentaje(alto, total)),
-                new DashboardResumen.Nivel("Medio", "medio", medio, DashboardService.porcentaje(medio, total)),
-                new DashboardResumen.Nivel("Bajo", "bajo", bajo, DashboardService.porcentaje(bajo, total))));
+        model.addAttribute("niveles", List.copyOf(niveles));
         return "detalle-area";
     }
 
     /** Posición de un nivel de riesgo en el orden de criticidad; lo desconocido va al final. */
     private int riskRank(String level) {
-        if (level == null) {
-            return 4;
-        }
-        return switch (normalize(level.trim())) {
-            case "critico" -> 0;
-            case "alto" -> 1;
-            case "medio" -> 2;
-            case "bajo" -> 3;
-            default -> 4;
-        };
+        EscalaRiesgo.NivelRiesgo nivel = EscalaRiesgo.NivelRiesgo.desdeAlmacenado(level);
+        return nivel == null ? EscalaRiesgo.NivelRiesgo.values().length : nivel.posicionDeCriticidad();
     }
 
     private void populateAreaForm(

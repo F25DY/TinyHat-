@@ -86,9 +86,9 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		assertThat(resumen.mitigados()).isEqualTo(1);
 		assertThat(resumen.aceptados()).isEqualTo(1);
 		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::nombre)
-			.containsExactly("Crítico", "Alto", "Medio", "Bajo");
-		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::cantidad).containsExactly(1L, 2L, 1L, 4L);
-		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::porcentaje).containsExactly(13, 25, 13, 50);
+			.containsExactly("Crítico", "Alto", "Medio", "Bajo", "Muy bajo");
+		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::cantidad).containsExactly(1L, 2L, 1L, 4L, 0L);
+		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::porcentaje).containsExactly(13, 25, 13, 50, 0);
 	}
 
 	@Test
@@ -177,16 +177,15 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		int general = html.indexOf("Información general");
 		int metricas = html.indexOf("exposicion-numero");
 		int areas = html.indexOf("Áreas auditadas");
-		int informes = html.indexOf("id=\"reports-panel\"");
 		assertThat(general).isPositive();
 		assertThat(metricas).isGreaterThan(general);
 		assertThat(areas).isGreaterThan(metricas);
-		assertThat(informes).as("los informes van al final").isGreaterThan(areas);
+		assertThat(html).as("el panel de informes anterior ya no existe").doesNotContain("reports-panel");
 
 		int topButton = html.indexOf("Agregar área");
 		int bottomButton = html.lastIndexOf("Agregar área");
 		assertThat(topButton).as("botón arriba, antes de la información general").isPositive().isLessThan(general);
-		assertThat(bottomButton).as("botón abajo, después de las áreas").isGreaterThan(areas).isLessThan(informes);
+		assertThat(bottomButton).as("botón abajo, después de las áreas").isGreaterThan(areas);
 
 		assertThat(html).contains("area-card").contains("ancho-");
 		assertThat(html).doesNotContain("Departamento").doesNotContain("departamentos registrados");
@@ -200,8 +199,8 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		String html = page("/proyectos/" + world.sqlProjectId() + "/departamentos/" + world.sqlAreaId(), world.auditorA());
 
 		java.util.regex.Matcher rows = java.util.regex.Pattern
-			.compile("data-busqueda=\"[^\"]*\\b(Critico|Alto|Medio|Bajo) (?:En Progreso|[^\" ]+)\"").matcher(html);
-		List<String> order = List.of("Critico", "Alto", "Medio", "Bajo");
+			.compile("data-busqueda=\"[^\"]*\\b(Critico|Alto|Medio|Bajo|Muy bajo) (?:En Progreso|[^\" ]+)\"").matcher(html);
+		List<String> order = List.of("Critico", "Alto", "Medio", "Bajo", "Muy bajo");
 		int previous = -1;
 		int count = 0;
 		while (rows.find()) {

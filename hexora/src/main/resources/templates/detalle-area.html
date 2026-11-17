@@ -108,6 +108,7 @@
                             <th scope="col">Vulnerabilidad</th>
                             <th scope="col">Tipo</th>
                             <th scope="col">Riesgo</th>
+                            <th scope="col">Probabilidad</th>
                             <th scope="col">Estado</th>
                             <th scope="col">Fecha</th>
                             <th scope="col"><span class="sr-only">Acciones</span></th>
@@ -115,7 +116,7 @@
                     </thead>
                     <tbody>
                         <tr th:if="${#lists.isEmpty(vulnerabilidades)}">
-                            <td colspan="6" class="tabla-vacia">
+                            <td colspan="7" class="tabla-vacia">
                                 Todavía no hay vulnerabilidades en esta área.
                                 <a th:if="${canManageProjects}"
                                    th:href="@{/proyectos/{pid}/departamentos/{did}/vulnerabilidades/nueva(pid=${proyecto.publicId}, did=${departamento.publicId})}">Registra la primera</a>
@@ -134,12 +135,12 @@
                             <td class="texto-empresa" th:text="${vuln.tipo}">Tipo</td>
 
                             <td>
-                                <span th:text="${vuln.riesgo}"
-                                      th:classappend="${vuln.riesgo == 'Critico'} ? 'badge-rojo' :
-                                                 (${vuln.riesgo == 'Alto'} ? 'badge-naranja' :
-                                                 (${vuln.riesgo == 'Medio'} ? 'badge-amarillo' : 'badge-verde'))"
+                                <span th:text="${vuln.etiquetaRiesgo}"
+                                      th:classappend="${vuln.claseInsigniaRiesgo}"
                                       class="badge"></span>
                             </td>
+
+                            <td class="texto-empresa" th:text="|${vuln.probabilidadEscala} · ${vuln.etiquetaProbabilidad}|">3 · Media</td>
 
                             <td>
                                 <span th:text="${vuln.estado}"

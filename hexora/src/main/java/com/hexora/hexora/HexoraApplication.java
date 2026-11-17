@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import com.hexora.hexora.informes.InformesProperties;
 import com.hexora.hexora.security.TinyHatCapabilityProperties;
 import com.hexora.hexora.security.TinyHatNvdProperties;
 import com.hexora.hexora.security.TinyHatSecurityProperties;
@@ -15,7 +16,8 @@ import com.hexora.hexora.security.TinyHatSecurityProperties;
 @EnableConfigurationProperties({
 	TinyHatSecurityProperties.class,
 	TinyHatCapabilityProperties.class,
-	TinyHatNvdProperties.class
+	TinyHatNvdProperties.class,
+	InformesProperties.class
 })
 public class HexoraApplication {
 

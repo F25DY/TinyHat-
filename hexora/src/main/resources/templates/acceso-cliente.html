@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Acceso del cliente</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/cliente.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <header class="encabezado-retorno">
+            <a th:href="@{/proyectos/{id}(id=${proyecto.publicId})}" class="link-volver" aria-label="Volver al proyecto">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+            <div class="titulos-nuevo">
+                <h1 class="titulo-pagina">Acceso del cliente</h1>
+                <p class="subtitulo" th:text="${proyecto.nombre}">Proyecto</p>
+            </div>
+        </header>
+
+        <p class="informe-mensaje informe-mensaje-error" role="alert" th:if="${error}" th:text="${error}"></p>
+        <p class="informe-mensaje informe-mensaje-ok" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+        <p class="informe-mensaje informe-mensaje-error" th:if="${proyecto.estado == 'Completado'}">
+            Este proyecto está completado: nadie de la organización puede entrar hasta que vuelva a estar activo.
+        </p>
+
+        <!-- Credenciales recién creadas: se muestran una sola vez -->
+        <section class="tarjeta-blanca cliente-credencial" th:if="${credencial != null}" aria-labelledby="credencial-titulo">
+            <h2 class="seccion-titulo" id="credencial-titulo">
+                <span th:text="${credencial.cuentaNueva or credencial.contrasenaTemporal != null} ? 'Entregue estas credenciales' : 'Acceso agregado'">Entregue estas credenciales</span>
+            </h2>
+            <th:block th:if="${credencial.contrasenaTemporal != null}">
+                <dl class="cliente-credencial-datos">
+                    <div>
+                        <dt>Correo</dt>
+                        <dd class="informe-id" th:text="${credencial.correo}">correo@empresa.co</dd>
+                    </div>
+                    <div>
+                        <dt>Contraseña temporal</dt>
+                        <dd>
+                            <code class="cliente-clave" id="clave-temporal" th:text="${credencial.contrasenaTemporal}">Xk3m-Pq7R-aT9n-Wd4h</code>
+                            <button type="button" class="btn btn-secundario" data-copia="clave-temporal" hidden>
+                                <i class="fa-solid fa-copy" aria-hidden="true"></i> Copiar
+                            </button>
+                        </dd>
+                    </div>
+                </dl>
+                <p class="informe-nota">
+                    Se muestra una sola vez y no queda guardada en ningún lugar. Entréguela por un canal que usted considere seguro;
+                    la persona deberá cambiarla al iniciar sesión.
+                </p>
+            </th:block>
+            <p class="informe-nota" th:unless="${credencial.contrasenaTemporal != null}">
+                <span th:text="${credencial.correo}">correo</span> ya tenía cuenta en esta organización: se le agregó este proyecto y su contraseña no cambió.
+            </p>
+        </section>
+
+        <!-- Agregar -->
+        <section class="tarjeta-blanca" aria-labelledby="agregar-titulo">
+            <h2 class="seccion-titulo" id="agregar-titulo">Dar acceso al administrador de la MiPyme</h2>
+            <p class="informe-nota">
+                Verá los informes que usted publique sobre este proyecto, con su fecha de publicación y de retiro.
+                Puede entrar mientras el proyecto esté activo y usted no le retire el acceso.
+            </p>
+            <form th:action="@{/proyectos/{id}/acceso-cliente(id=${proyecto.publicId})}" method="post" class="cliente-agregar">
+                <div class="campo-grupo">
+                    <label for="correo">Correo de la persona</label>
+                    <input id="correo" name="correo" type="email" required maxlength="254" autocomplete="off" placeholder="nombre@empresa.co">
+                </div>
+                <button type="submit" class="btn btn-primario">
+                    <i class="fa-solid fa-user-plus" aria-hidden="true"></i> Dar acceso
+                </button>
+            </form>
+        </section>
+
+        <!-- Quién tiene acceso -->
+        <section class="tarjeta-blanca" aria-labelledby="accesos-titulo">
+            <h2 class="seccion-titulo" id="accesos-titulo">Quién tiene acceso</h2>
+            <p class="informe-vacio" th:if="${#lists.isEmpty(accesos)}">
+                Todavía nadie de la organización puede entrar a este proyecto. Agregue a quien recibirá los informes.
+            </p>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(accesos)}">
+                <table class="tabla-hexora table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Correo</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Desde</th>
+                            <th scope="col"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="a, it : ${accesos}" th:classappend="${!a.vigente} ? 'fila-retirada'">
+                            <td class="informe-id" th:text="${a.correo}">correo@empresa.co</td>
+                            <td>
+                                <span class="informe-estado informe-estado-publicado" th:if="${a.vigente and !a.debeCambiar}">Con acceso</span>
+                                <span class="informe-estado informe-estado-borrador" th:if="${a.vigente and a.debeCambiar}">Aún no cambia la contraseña</span>
+                                <span class="informe-estado informe-estado-despublicado" th:unless="${a.vigente}">Retirado</span>
+                            </td>
+                            <td th:text="${#temporals.format(a.concedidoEn, 'dd/MM/yyyy')}">01/01/2026</td>
+                            <td class="acciones-tabla cliente-acciones">
+                                <th:block th:if="${a.vigente}">
+                                    <form th:action="@{/proyectos/{p}/acceso-cliente/{u}/restablecer(p=${proyecto.publicId}, u=${a.usuarioPublicId})}" method="post">
+                                        <button type="submit" class="btn btn-secundario">Nueva contraseña temporal</button>
+                                    </form>
+                                    <button type="button" class="btn btn-secundario" th:attr="data-abre-dialogo='retirar-' + ${it.index}">Retirar acceso</button>
+                                </th:block>
+                                <form th:unless="${a.vigente}" th:action="@{/proyectos/{p}/acceso-cliente(p=${proyecto.publicId})}" method="post">
+                                    <input type="hidden" name="correo" th:value="${a.correo}">
+                                    <button type="submit" class="btn btn-secundario">Volver a dar acceso</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <dialog th:each="a, it : ${accesos}" th:if="${a.vigente}" th:id="'retirar-' + ${it.index}" class="dialogo"
+            th:attr="aria-labelledby='retirar-titulo-' + ${it.index}">
+        <form th:action="@{/proyectos/{p}/acceso-cliente/{u}/retirar(p=${proyecto.publicId}, u=${a.usuarioPublicId})}" method="post" class="dialogo-form">
+            <div class="dialogo-cabecera">
+                <h2 th:id="'retirar-titulo-' + ${it.index}">Retirar acceso</h2>
+                <button type="button" class="dialogo-cerrar" data-cierra-dialogo aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="dialogo-ayuda">
+                <span th:text="${a.correo}">correo</span> ya no podrá entrar a este proyecto y se cerrará su sesión. Podrá darle acceso de nuevo cuando quiera.
+            </p>
+            <div class="dialogo-acciones">
+                <button type="button" class="btn btn-secundario" data-cierra-dialogo>Cancelar</button>
+                <button type="submit" class="btn btn-primario">Retirar acceso</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script th:src="@{/js/dialogo.js(v=1)}" defer></script>
+    <script th:src="@{/js/copiar-clave.js(v=1)}" defer></script>
+</body>
+</html>

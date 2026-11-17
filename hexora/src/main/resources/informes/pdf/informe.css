@@ -1,0 +1,675 @@
+/*
+ * Estilo de los informes en PDF: APA 7 adaptado a la marca (§6.1).
+ * CSS 2.1 más las extensiones de OpenHTMLtoPDF (@page, márgenes, contadores, elementos "running").
+ * Sin flexbox ni grid: tablas y bloques. Sin estilos en línea en las plantillas: todo está aquí.
+ * Cualquier cambio en este archivo sube tinyhat.informes.plantilla-version.
+ */
+
+/* ------------------------------------------------------------------ página */
+
+@page {
+    size: letter;
+    margin: 2.54cm;
+    @top-right {
+        content: counter(page) " de " counter(pages);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 9pt;
+        color: #333333;
+    }
+    @bottom-center {
+        content: element(pie);
+    }
+}
+
+/* ------------------------------------------------------------------ texto base */
+
+html {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 11pt;
+    line-height: 1.15;
+    color: #1A1A1A;
+}
+
+body {
+    counter-reset: tabla figura;
+    margin: 0;
+}
+
+p {
+    margin: 0 0 8pt 0;
+}
+
+.mono, code, pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9pt;
+}
+
+pre {
+    white-space: pre-wrap;
+    background: #F5F5F5;
+    border: 0.5pt solid #CCCCCC;
+    padding: 5pt;
+    margin: 0 0 8pt 0;
+}
+
+/* Pie de cada página: ID, CONFIDENCIAL y los 12 primeros caracteres del SHA-256. */
+.pie {
+    position: running(pie);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5pt;
+    text-align: center;
+    color: #444444;
+}
+
+/* ------------------------------------------------------------------ títulos (APA) */
+
+h1 {
+    font-size: 14pt;
+    font-weight: bold;
+    text-align: center;
+    margin: 18pt 0 10pt 0;
+    page-break-after: avoid;
+}
+
+h2 {
+    font-size: 12pt;
+    font-weight: bold;
+    text-align: left;
+    margin: 14pt 0 8pt 0;
+    page-break-after: avoid;
+}
+
+h3 {
+    font-size: 11pt;
+    font-weight: bold;
+    font-style: italic;
+    text-align: left;
+    margin: 10pt 0 6pt 0;
+    page-break-after: avoid;
+}
+
+h4 {
+    font-size: 11pt;
+    font-weight: bold;
+    font-style: normal;
+    margin: 8pt 0 6pt 1.27cm;
+    page-break-after: avoid;
+}
+
+h4:after {
+    content: ".";
+}
+
+.nueva-pagina {
+    page-break-before: always;
+}
+
+.sin-corte {
+    page-break-inside: avoid;
+}
+
+/* ------------------------------------------------------------------ portada */
+
+.portada {
+    text-align: center;
+    padding-top: 60pt;
+}
+
+.portada .logo {
+    width: 96pt;
+    height: 96pt;
+}
+
+.portada-tipo {
+    font-size: 24pt;
+    font-weight: bold;
+    margin: 18pt 0 6pt 0;
+}
+
+.portada-proyecto {
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 0 0 4pt 0;
+}
+
+.portada-organizacion {
+    font-size: 13pt;
+    margin: 0 0 24pt 0;
+}
+
+.portada-datos {
+    width: 70%;
+    margin: 0 auto 24pt auto;
+    text-align: left;
+    border-top: 1pt solid #000000;
+    border-bottom: 1pt solid #000000;
+}
+
+.portada-datos th {
+    width: 38%;
+    background: #FFFFFF;
+    border: none;
+    font-weight: bold;
+}
+
+.portada-datos td {
+    border: none;
+}
+
+.confidencial {
+    font-size: 14pt;
+    font-weight: bold;
+    letter-spacing: 4pt;
+    color: #7A0019;
+    margin: 12pt 0 0 0;
+}
+
+.aviso-np {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #FFFFFF;
+    background: #C62828;
+    padding: 6pt;
+    margin: 12pt 40pt 0 40pt;
+}
+
+/* Marca de agua diagonal de las copias no publicadas (elemento fijo: se repite en cada página). */
+.marca-np {
+    position: fixed;
+    top: 270pt;
+    left: 46pt;
+    width: 520pt;
+    text-align: center;
+    font-size: 46pt;
+    line-height: 1.1;
+    font-weight: bold;
+    color: #F4C9C5;
+    transform: rotate(-35deg);
+    z-index: -1;
+}
+
+/* ------------------------------------------------------------------ tablas y figuras (APA) */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 4pt 0;
+    border-top: 1pt solid #000000;
+    border-bottom: 1pt solid #000000;
+}
+
+th {
+    font-weight: bold;
+    text-align: left;
+    vertical-align: bottom;
+    padding: 3pt 4pt;
+    border-bottom: 1pt solid #000000;
+    background: #FFFFFF;
+}
+
+td {
+    vertical-align: top;
+    padding: 3pt 4pt;
+    border-bottom: 0.5pt solid #D0D0D0;
+}
+
+table.chica th, table.chica td {
+    font-size: 8pt;
+    padding: 2pt 3pt;
+}
+
+table.minima th, table.minima td {
+    font-size: 7pt;
+    padding: 2pt 2pt;
+}
+
+td.centro, th.centro {
+    text-align: center;
+}
+
+td.numero {
+    text-align: right;
+}
+
+.wrap {
+    word-wrap: break-word;
+}
+
+tr {
+    page-break-inside: avoid;
+}
+
+thead {
+    display: table-header-group;
+}
+
+/* "Tabla N" en negrita; el título en cursiva en la línea siguiente; "Nota." debajo. */
+.leyenda {
+    margin: 10pt 0 4pt 0;
+    page-break-after: avoid;
+}
+
+.num-tabla:before {
+    counter-increment: tabla;
+    content: "Tabla " counter(tabla);
+    font-weight: bold;
+}
+
+.num-figura:before {
+    counter-increment: figura;
+    content: "Figura " counter(figura);
+    font-weight: bold;
+}
+
+.num-tabla, .num-figura {
+    margin: 0;
+}
+
+.titulo-tabla, .titulo-figura {
+    font-style: italic;
+    margin: 0 0 4pt 0;
+}
+
+.nota {
+    font-size: 9pt;
+    margin: 2pt 0 10pt 0;
+}
+
+/* ------------------------------------------------------------------ paleta de severidad y riesgo (§6.2) */
+
+.sev-critica, .niv-critico {
+    background: #7A0019;
+    color: #FFFFFF;
+}
+
+.sev-alta, .niv-alto {
+    background: #C62828;
+    color: #FFFFFF;
+}
+
+.sev-media, .niv-medio {
+    background: #F9A825;
+    color: #000000;
+}
+
+.sev-baja, .niv-bajo {
+    background: #2E7D32;
+    color: #FFFFFF;
+}
+
+.sev-informativa, .niv-muy-bajo {
+    background: #1565C0;
+    color: #FFFFFF;
+}
+
+.sev-sin {
+    background: #E0E0E0;
+    color: #000000;
+}
+
+td.sev-critica, td.sev-alta, td.sev-media, td.sev-baja, td.sev-informativa, td.sev-sin,
+td.niv-critico, td.niv-alto, td.niv-medio, td.niv-bajo, td.niv-muy-bajo {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* En el registro de la matriz de riesgo se colorea toda la fila; el texto siempre lleva su etiqueta. */
+tr.niv-critico td, tr.niv-alto td, tr.niv-medio td, tr.niv-bajo td, tr.niv-muy-bajo td, tr.sev-sin td {
+    border-bottom: 0.5pt solid #FFFFFF;
+}
+
+/* ------------------------------------------------------------------ barras (anchos calculados en el servidor) */
+
+.barra {
+    width: 100%;
+    height: 9pt;
+    background: #EEEEEE;
+    font-size: 0;
+    line-height: 0;
+    white-space: nowrap;
+}
+
+.segmento {
+    display: inline-block;
+    height: 9pt;
+}
+
+/* ------------------------------------------------------------------ recuadros, fichas, índice */
+
+.recuadro {
+    border: 1pt solid #7A0019;
+    background: #FFF8E1;
+    padding: 6pt 8pt;
+    margin: 8pt 0 10pt 0;
+    page-break-inside: avoid;
+}
+
+.recuadro p {
+    margin: 0;
+}
+
+.aviso {
+    font-size: 9pt;
+    border-top: 0.5pt solid #999999;
+    padding-top: 4pt;
+    margin-top: 10pt;
+}
+
+.pendiente {
+    font-weight: bold;
+    color: #C62828;
+}
+
+.ficha {
+    border: 0.5pt solid #999999;
+    margin: 0 0 10pt 0;
+    padding: 0;
+    page-break-inside: avoid;
+}
+
+.ficha-cabecera {
+    background: #F0F0F0;
+    padding: 4pt 6pt;
+    border-bottom: 0.5pt solid #999999;
+}
+
+.ficha-cabecera .codigo {
+    font-weight: bold;
+}
+
+.ficha table {
+    border: none;
+    margin: 0;
+}
+
+.ficha th {
+    width: 22%;
+    border: none;
+    font-weight: bold;
+    vertical-align: top;
+    background: #FFFFFF;
+}
+
+.ficha td {
+    border: none;
+}
+
+.ficha .contenido {
+    padding: 4pt 6pt;
+}
+
+.indice p {
+    margin: 0 0 3pt 0;
+}
+
+.indice a {
+    color: #1A1A1A;
+    text-decoration: none;
+}
+
+.indice a:after {
+    content: leader('.') target-counter(attr(href), page);
+}
+
+.indice p.indice-2 {
+    margin-left: 16pt;
+}
+
+.referencia {
+    margin: 0 0 6pt 0;
+    padding-left: 1.27cm;
+    text-indent: -1.27cm;
+}
+
+.firma {
+    margin-top: 36pt;
+    border-top: 0.75pt solid #000000;
+    padding-top: 3pt;
+    font-size: 9pt;
+}
+
+.casilla {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.mapa-calor td {
+    text-align: center;
+    font-weight: bold;
+    height: 24pt;
+    vertical-align: middle;
+    border: 1pt solid #FFFFFF;
+}
+
+.mapa-calor th {
+    font-size: 8pt;
+    text-align: center;
+}
+
+.mapa-calor td.eje {
+    background: #FFFFFF;
+    color: #000000;
+    font-size: 8pt;
+    text-align: left;
+    border-bottom: 0.5pt solid #D0D0D0;
+}
+
+.mapa-eje-impacto {
+    text-align: center;
+    font-size: 9pt;
+    margin: 2pt 0 0 0;
+}
+
+/* ------------------------------------------------------------------ columnas del registro de la matriz y detalles */
+
+table.fijo {
+    table-layout: fixed;
+}
+
+.k-cod { width: 7%; }
+.k-area { width: 8.5%; }
+.k-hall { width: 10.3%; }
+.k-cia { width: 2.2%; }
+.k-sev { width: 6.2%; }
+.k-prob { width: 5.5%; }
+.k-imp { width: 5.5%; }
+.k-pts { width: 3.3%; }
+.k-niv { width: 5%; }
+.k-cve { width: 6.5%; }
+.k-cvss { width: 4.5%; }
+.k-est { width: 6.2%; }
+.k-mit { width: 10.9%; }
+.k-blanco { width: 4.5%; }
+.k-plan { width: 5%; }
+
+.cod {
+    white-space: nowrap;
+}
+
+.chip {
+    padding: 1pt 5pt;
+    font-weight: bold;
+}
+
+.fijo td, .fijo th {
+    word-wrap: break-word;
+}
+
+.ficha td {
+    line-height: 1.45;
+}
+
+.portada-datos td.firma-linea {
+    border-bottom: 0.75pt solid #000000;
+    height: 18pt;
+}
+
+/* ------------------------------------------------------------------ anchos porcentuales de las barras (w-0 a w-100) */
+
+.w-0 { width: 0%; }
+.w-1 { width: 1%; }
+.w-2 { width: 2%; }
+.w-3 { width: 3%; }
+.w-4 { width: 4%; }
+.w-5 { width: 5%; }
+.w-6 { width: 6%; }
+.w-7 { width: 7%; }
+.w-8 { width: 8%; }
+.w-9 { width: 9%; }
+.w-10 { width: 10%; }
+.w-11 { width: 11%; }
+.w-12 { width: 12%; }
+.w-13 { width: 13%; }
+.w-14 { width: 14%; }
+.w-15 { width: 15%; }
+.w-16 { width: 16%; }
+.w-17 { width: 17%; }
+.w-18 { width: 18%; }
+.w-19 { width: 19%; }
+.w-20 { width: 20%; }
+.w-21 { width: 21%; }
+.w-22 { width: 22%; }
+.w-23 { width: 23%; }
+.w-24 { width: 24%; }
+.w-25 { width: 25%; }
+.w-26 { width: 26%; }
+.w-27 { width: 27%; }
+.w-28 { width: 28%; }
+.w-29 { width: 29%; }
+.w-30 { width: 30%; }
+.w-31 { width: 31%; }
+.w-32 { width: 32%; }
+.w-33 { width: 33%; }
+.w-34 { width: 34%; }
+.w-35 { width: 35%; }
+.w-36 { width: 36%; }
+.w-37 { width: 37%; }
+.w-38 { width: 38%; }
+.w-39 { width: 39%; }
+.w-40 { width: 40%; }
+.w-41 { width: 41%; }
+.w-42 { width: 42%; }
+.w-43 { width: 43%; }
+.w-44 { width: 44%; }
+.w-45 { width: 45%; }
+.w-46 { width: 46%; }
+.w-47 { width: 47%; }
+.w-48 { width: 48%; }
+.w-49 { width: 49%; }
+.w-50 { width: 50%; }
+.w-51 { width: 51%; }
+.w-52 { width: 52%; }
+.w-53 { width: 53%; }
+.w-54 { width: 54%; }
+.w-55 { width: 55%; }
+.w-56 { width: 56%; }
+.w-57 { width: 57%; }
+.w-58 { width: 58%; }
+.w-59 { width: 59%; }
+.w-60 { width: 60%; }
+.w-61 { width: 61%; }
+.w-62 { width: 62%; }
+.w-63 { width: 63%; }
+.w-64 { width: 64%; }
+.w-65 { width: 65%; }
+.w-66 { width: 66%; }
+.w-67 { width: 67%; }
+.w-68 { width: 68%; }
+.w-69 { width: 69%; }
+.w-70 { width: 70%; }
+.w-71 { width: 71%; }
+.w-72 { width: 72%; }
+.w-73 { width: 73%; }
+.w-74 { width: 74%; }
+.w-75 { width: 75%; }
+.w-76 { width: 76%; }
+.w-77 { width: 77%; }
+.w-78 { width: 78%; }
+.w-79 { width: 79%; }
+.w-80 { width: 80%; }
+.w-81 { width: 81%; }
+.w-82 { width: 82%; }
+.w-83 { width: 83%; }
+.w-84 { width: 84%; }
+.w-85 { width: 85%; }
+.w-86 { width: 86%; }
+.w-87 { width: 87%; }
+.w-88 { width: 88%; }
+.w-89 { width: 89%; }
+.w-90 { width: 90%; }
+.w-91 { width: 91%; }
+.w-92 { width: 92%; }
+.w-93 { width: 93%; }
+.w-94 { width: 94%; }
+.w-95 { width: 95%; }
+.w-96 { width: 96%; }
+.w-97 { width: 97%; }
+.w-98 { width: 98%; }
+.w-99 { width: 99%; }
+.w-100 { width: 100%; }
+
+
+/* ------------------------------------------------------------------ lectura rápida: indicadores, hoja de ruta, guía */
+
+table.kpis {
+    width: 100%;
+    margin: 6pt 0 8pt 0;
+    border-collapse: separate;
+    border-spacing: 4pt 0;
+}
+
+td.kpi {
+    width: 20%;
+    padding: 7pt 4pt 6pt 4pt;
+    text-align: center;
+    border: 0;
+    page-break-inside: avoid;
+}
+
+td.kpi.kpi-neutro {
+    background: #EEF1F4;
+    color: #1A1A1A;
+}
+
+.kpi-valor {
+    font-size: 19pt;
+    font-weight: bold;
+    line-height: 1.1;
+}
+
+.kpi-etiqueta {
+    font-size: 8.5pt;
+    font-weight: bold;
+    margin-top: 2pt;
+}
+
+.kpi-nota {
+    font-size: 7.5pt;
+}
+
+.postura {
+    border-left: 3pt solid #0F2A43;
+    background: #F4F6F8;
+    padding: 5pt 8pt;
+    margin: 4pt 0 10pt 0;
+    page-break-inside: avoid;
+}
+
+ul.guia {
+    margin: 4pt 0 8pt 0;
+    padding-left: 14pt;
+}
+
+ul.guia li {
+    margin-bottom: 2pt;
+}
+
+h2.grupo-fase {
+    margin: 12pt 0 4pt 0;
+    page-break-after: avoid;
+}
+
+.grupo-fase-etiqueta {
+    padding: 1pt 7pt;
+    margin-right: 6pt;
+    font-size: 10pt;
+}

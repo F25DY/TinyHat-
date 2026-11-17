@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Informes de la organización</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/cliente.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('informes')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <section class="cabecera-gestion">
+            <div class="texto-cabecera">
+                <h1 class="titulo-interno">Informes</h1>
+                <p class="subtitulo">Todo lo que su auditor ha publicado, del más reciente al más antiguo.</p>
+            </div>
+        </section>
+
+        <section class="tarjeta-blanca">
+            <p class="informe-vacio" th:if="${#lists.isEmpty(informes)}">Todavía no hay informes publicados.</p>
+            <th:block th:unless="${#lists.isEmpty(informes)}">
+                <th:block th:replace="~{fragments/informes-cliente :: tabla(${informes})}"></th:block>
+                <p class="informe-nota">
+                    Un informe «Retirado» fue despublicado por su auditor y ya no se puede descargar; si lo corrige, publicará una versión nueva.
+                    La versión de referencia es el PDF.
+                </p>
+            </th:block>
+        </section>
+    </main>
+</body>
+</html>

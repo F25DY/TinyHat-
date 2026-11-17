@@ -3,12 +3,14 @@ package com.hexora.hexora.service;
 import com.hexora.hexora.model.AreaAuditable;
 import com.hexora.hexora.model.Auditoria;
 import com.hexora.hexora.model.Empresa;
-import com.hexora.hexora.model.Informe;
+import com.hexora.hexora.model.InformeArchivo;
+import com.hexora.hexora.model.InformeVersion;
 import com.hexora.hexora.model.Vulnerabilidad;
 import com.hexora.hexora.repository.AreaAuditableRepository;
 import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.repository.EmpresaRepository;
-import com.hexora.hexora.repository.InformeRepository;
+import com.hexora.hexora.repository.InformeArchivoRepository;
+import com.hexora.hexora.repository.InformeVersionRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
 import com.hexora.hexora.security.ScopedNotFoundException;
 import com.hexora.hexora.security.TinyHatPrincipal;
@@ -23,19 +25,22 @@ public class PermissionService {
     private final AuditoriaRepository auditoriaRepository;
     private final AreaAuditableRepository areaAuditableRepository;
     private final VulnerabilidadRepository vulnerabilidadRepository;
-    private final InformeRepository informeRepository;
+    private final InformeVersionRepository informeVersionRepository;
+    private final InformeArchivoRepository informeArchivoRepository;
     private final EmpresaRepository empresaRepository;
 
     public PermissionService(
             AuditoriaRepository auditoriaRepository,
             AreaAuditableRepository areaAuditableRepository,
             VulnerabilidadRepository vulnerabilidadRepository,
-            InformeRepository informeRepository,
+            InformeVersionRepository informeVersionRepository,
+            InformeArchivoRepository informeArchivoRepository,
             EmpresaRepository empresaRepository) {
         this.auditoriaRepository = auditoriaRepository;
         this.areaAuditableRepository = areaAuditableRepository;
         this.vulnerabilidadRepository = vulnerabilidadRepository;
-        this.informeRepository = informeRepository;
+        this.informeVersionRepository = informeVersionRepository;
+        this.informeArchivoRepository = informeArchivoRepository;
         this.empresaRepository = empresaRepository;
     }
 
@@ -106,9 +111,21 @@ public class PermissionService {
     }
 
     @Transactional(readOnly = true)
-    public Informe requireInforme(TinyHatPrincipal principal, String publicId) {
+    public InformeVersion requireInformeVersion(TinyHatPrincipal principal, String publicId) {
         requireActivePrincipal(principal);
-        return informeRepository.findVisibleByPublicId(
+        return informeVersionRepository.findVisibleByPublicId(
+                publicId,
+                principal.getCuentaId(),
+                principal.getOrganizacionId(),
+                principal.getUserId(),
+                principal.getRol()).orElseThrow(ScopedNotFoundException::new);
+    }
+
+    /** Archivo de un informe publicado; un CLIENTE_ADMIN no alcanza el de una versión despublicada (404). */
+    @Transactional(readOnly = true)
+    public InformeArchivo requireInformeArchivo(TinyHatPrincipal principal, String publicId) {
+        requireActivePrincipal(principal);
+        return informeArchivoRepository.findVisibleByPublicId(
                 publicId,
                 principal.getCuentaId(),
                 principal.getOrganizacionId(),

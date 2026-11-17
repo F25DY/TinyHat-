@@ -1,52 +1,24 @@
 package com.hexora.hexora.repository;
 
+import com.hexora.hexora.informes.TipoInforme;
 import com.hexora.hexora.model.Informe;
-import java.util.Optional;
 import java.util.List;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/**
+ * Series de informes. Toda consulta lleva la cuenta; la visibilidad por rol (auditor asignado, cliente de la
+ * organización) se decide sobre las versiones y archivos, que son lo que el cliente puede ver.
+ */
 public interface InformeRepository extends JpaRepository<Informe, Long> {
 
     Optional<Informe> findByPublicIdAndCuentaId(String publicId, Long cuentaId);
 
-    @Query("""
-        select informe from Informe informe
-        where informe.publicId = :publicId
-          and informe.cuentaId = :cuentaId
-          and (
-              (:rol = 'AUDITOR' and exists (
-                  select proyecto from Auditoria proyecto
-                  join AsignacionAuditorProyecto asignacion
-                    on asignacion.id.proyectoId = proyecto.idAuditoria
-                   and asignacion.id.cuentaId = proyecto.cuentaId
-                  where proyecto.idAuditoria = informe.proyectoId
-                    and proyecto.cuentaId = informe.cuentaId
-                    and asignacion.id.usuarioId = :usuarioId
-              ))
-              or
-              (:rol = 'CLIENTE_ADMIN'
-                  and informe.organizacionId = :organizacionId
-                  and informe.estado = 'PUBLICADO')
-          )
-        """)
-    Optional<Informe> findVisibleByPublicId(
-            @Param("publicId") String publicId,
-            @Param("cuentaId") Long cuentaId,
-            @Param("organizacionId") Long organizacionId,
-            @Param("usuarioId") Long usuarioId,
-            @Param("rol") String rol);
+    /** Por clave interna, siempre dentro de la cuenta (la búsqueda por clave no aplica el filtro de cuenta). */
+    Optional<Informe> findByIdAndCuentaId(Long id, Long cuentaId);
 
-    List<Informe> findByCuentaIdAndProyectoIdOrderByCreadoEnDesc(Long cuentaId, Long proyectoId);
+    /** La serie de un tipo en un proyecto (hay una sola: clave única proyecto + tipo). */
+    Optional<Informe> findByProyectoIdAndTipoAndCuentaId(Long proyectoId, TipoInforme tipo, Long cuentaId);
 
-    List<Informe> findByCuentaIdAndProyectoIdAndEstadoOrderByPublicadoEnDesc(
-            Long cuentaId,
-            Long proyectoId,
-            String estado);
-
-    List<Informe> findByCuentaIdAndOrganizacionIdAndEstadoOrderByPublicadoEnDesc(
-            Long cuentaId,
-            Long organizacionId,
-            String estado);
+    List<Informe> findByProyectoIdAndCuentaIdOrderByTipoAsc(Long proyectoId, Long cuentaId);
 }

@@ -1,0 +1,40 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <!-- Recuadro de advertencia: solo si hay riesgos aceptados o falsos positivos. -->
+    <th:block th:fragment="recuadro">
+        <div class="recuadro" th:if="${v.avisoAnexoA != null}">
+            <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoAnexoA})}"></th:block>
+        </div>
+    </th:block>
+
+    <!-- Anexo A completo. -->
+    <th:block th:fragment="tabla">
+        <div th:if="${not #lists.isEmpty(v.anexoA)}">
+            <h1 id="sec-anexo-a">Anexo A. Riesgos aceptados</h1>
+            <div class="leyenda">
+                <p class="num-tabla"></p>
+                <p class="titulo-tabla">Hallazgos con riesgo aceptado</p>
+            </div>
+            <table class="chica">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Hallazgo</th>
+                        <th>Área</th>
+                        <th class="centro">Severidad</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="a : ${v.anexoA}">
+                        <td class="mono cod" th:text="${a.codigo}">H-000000</td>
+                        <td th:text="${a.titulo}">Título</td>
+                        <td th:text="${a.area}">Área</td>
+                        <td class="centro" th:classappend="${a.severidad.clase}" th:text="${a.severidad.texto}">Severidad</td>
+                        <td th:text="${a.tipo}">Tipo</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="nota"><em>Nota.</em> Estos hallazgos no se incluyen en las métricas principales. La aplicación no registra una justificación para el riesgo aceptado.</p>
+        </div>
+    </th:block>
+</th:block>

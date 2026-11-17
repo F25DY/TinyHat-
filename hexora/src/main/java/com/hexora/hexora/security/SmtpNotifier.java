@@ -67,6 +67,15 @@ public class SmtpNotifier implements Notifier {
         );
     }
 
+    @Override
+    public void sendReportAvailableEmail(String email, String loginUrl) {
+        send(
+            email,
+            "Nuevo informe disponible en TinyHat",
+            "Hay un nuevo informe disponible en TinyHat. Inicie sesión para consultarlo:\n\n" + loginUrl
+        );
+    }
+
     private void send(String recipient, String subject, String body) {
         MimeMessage message = mailSender.createMimeMessage();
         try {

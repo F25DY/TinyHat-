@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Editor de informe</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <header class="encabezado-retorno">
+            <a th:href="@{/proyectos/{id}/informes(id=${v.proyectoPublicId})}" class="link-volver" aria-label="Volver a los informes">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+            <div class="titulos-nuevo">
+                <h1 class="titulo-pagina"><span th:text="${v.tipo.nombre()}">Técnico</span> · v<span th:text="${v.numero}">1</span></h1>
+                <p class="subtitulo"><span th:text="${v.proyectoNombre}">Proyecto</span> · <span class="informe-id" th:text="${v.id}">ID</span></p>
+            </div>
+            <span class="informe-estado"
+                  th:classappend="${v.estado.name() == 'PUBLICADO'} ? 'informe-estado-publicado' : (${v.estado.name() == 'BORRADOR'} ? 'informe-estado-borrador' : 'informe-estado-despublicado')"
+                  th:text="${v.estado.name() == 'PUBLICADO'} ? 'Publicado' : (${v.estado.name() == 'BORRADOR'} ? 'Borrador' : 'Despublicado')">Borrador</span>
+        </header>
+
+        <p class="informe-mensaje informe-mensaje-error" role="alert" th:if="${error}" th:text="${error}"></p>
+        <p class="informe-mensaje informe-mensaje-ok" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+        <div class="informe-mensaje informe-mensaje-error" role="alert" th:if="${errores}">
+            <p>No se puede publicar todavía:</p>
+            <ul><li th:each="m : ${errores}" th:text="${m}">Falta la sección</li></ul>
+        </div>
+
+        <!-- Narrativa -->
+        <section class="tarjeta-blanca" aria-labelledby="narrativa-titulo">
+            <h2 class="seccion-titulo" id="narrativa-titulo">Narrativa</h2>
+            <p class="informe-nota">Texto en Markdown. Los enlaces, las imágenes y el HTML se muestran solo como texto. Los datos de hallazgos salen siempre del proyecto, no de aquí.</p>
+            <form class="informe-seccion" th:each="s, it : ${v.secciones}" method="post"
+                  th:action="@{/informes/versiones/{id}/narrativa(id=${v.publicId})}">
+                <input type="hidden" name="seccion" th:value="${s.clave}">
+                <label th:for="'texto-' + ${it.index}">
+                    <span th:text="${s.etiqueta}">Resumen ejecutivo</span>
+                    <span class="requerido" th:if="${s.obligatoria}" aria-hidden="true">*</span>
+                    <span class="sr-only" th:if="${s.obligatoria}">(obligatoria)</span>
+                </label>
+                <textarea th:id="'texto-' + ${it.index}" name="texto" rows="8" maxlength="20000"
+                          th:readonly="${v.estado.name() != 'BORRADOR'}" th:text="${s.texto}"></textarea>
+                <button type="submit" class="btn btn-secundario" th:if="${v.estado.name() == 'BORRADOR'}">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar sección
+                </button>
+            </form>
+        </section>
+
+        <!-- Borrador: condiciones, copias y publicación -->
+        <th:block th:if="${v.estado.name() == 'BORRADOR'}">
+            <section class="tarjeta-blanca" aria-labelledby="condiciones-titulo">
+                <h2 class="seccion-titulo" id="condiciones-titulo">Condiciones para publicar</h2>
+                <p class="informe-mensaje informe-mensaje-ok" th:if="${#lists.isEmpty(v.faltantes)}">Todo listo: el informe puede publicarse.</p>
+                <ul class="informe-faltantes" th:unless="${#lists.isEmpty(v.faltantes)}">
+                    <li th:each="f : ${v.faltantes}" th:text="${f}">Falta la sección obligatoria</li>
+                </ul>
+            </section>
+
+            <section class="tarjeta-blanca" aria-labelledby="copias-titulo">
+                <h2 class="seccion-titulo" id="copias-titulo">Vista previa y copias de trabajo</h2>
+                <p class="informe-nota">Las copias de trabajo llevan la marca «NO PUBLICADO», no se guardan y el cliente no las ve.</p>
+                <div class="informe-acciones">
+                    <a class="btn btn-secundario" target="_blank" rel="noopener noreferrer"
+                       th:href="@{/informes/versiones/{id}/vista-previa(id=${v.publicId})}">
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i> Vista previa
+                    </a>
+                    <form th:each="f : ${v.formatos}" method="post" th:action="@{/informes/versiones/{id}/generar(id=${v.publicId})}">
+                        <input type="hidden" name="formato" th:value="${f.name()}">
+                        <button type="submit" class="btn btn-secundario">
+                            <i class="fa-solid fa-download" aria-hidden="true"></i> Copia <span th:text="${f}">PDF</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="tarjeta-blanca" aria-labelledby="publicar-titulo">
+                <h2 class="seccion-titulo" id="publicar-titulo">Publicar</h2>
+                <p class="informe-nota">Al publicar se congela el contenido y los formatos elegidos quedan fijos; agregar otro exige una nueva versión. El PDF es la versión de referencia y siempre se publica.</p>
+                <form method="post" th:action="@{/informes/versiones/{id}/publicar(id=${v.publicId})}" class="informe-publicar">
+                    <fieldset>
+                        <legend>Formatos</legend>
+                        <label class="informe-opcion" th:each="f : ${v.formatos}">
+                            <input type="checkbox" name="formatos" th:value="${f.name()}" th:checked="${f.name() == 'PDF'}">
+                            <span th:text="${f}">PDF</span>
+                        </label>
+                    </fieldset>
+                    <button type="submit" class="btn btn-primario">
+                        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Publicar informe
+                    </button>
+                </form>
+            </section>
+
+            <section class="tarjeta-blanca" aria-labelledby="eliminar-titulo">
+                <h2 class="seccion-titulo" id="eliminar-titulo">Eliminar borrador</h2>
+                <button type="button" class="btn btn-secundario" data-abre-dialogo="dialogo-eliminar">
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i> Eliminar este borrador
+                </button>
+            </section>
+        </th:block>
+
+        <!-- Publicado o despublicado: archivos, verificación y despublicación -->
+        <th:block th:unless="${v.estado.name() == 'BORRADOR'}">
+            <section class="tarjeta-blanca" aria-labelledby="archivos-titulo">
+                <h2 class="seccion-titulo" id="archivos-titulo">Archivos publicados</h2>
+                <p class="informe-nota" th:if="${v.estado.name() == 'DESPUBLICADO'}">
+                    Despublicado el <span th:text="${#temporals.format(v.despublicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC'">fecha</span>.
+                    Motivo: <span th:text="${v.motivo}">motivo</span>. El cliente ya no lo ve.
+                </p>
+                <ul class="informe-archivos">
+                    <li th:each="a : ${v.archivos}">
+                        <a th:href="@{/informes/archivos/{id}(id=${a.publicId})}">
+                            <i class="fa-solid fa-download" aria-hidden="true"></i> Descargar <span th:text="${a.formato}">PDF</span>
+                        </a>
+                        <span class="informe-nota" th:text="${#numbers.formatDecimal(a.bytes / 1024.0, 1, 1)} + ' KiB'">10 KiB</span>
+                    </li>
+                </ul>
+                <a class="btn btn-secundario" th:href="@{/informes/versiones/{id}/verificacion(id=${v.publicId})}">
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verificación de integridad
+                </a>
+                <p class="informe-nota">Para otro formato que no se publicó puede generar una copia de trabajo desde el contenido congelado.</p>
+                <div class="informe-acciones">
+                    <form th:each="f : ${v.formatos}" method="post" th:action="@{/informes/versiones/{id}/generar(id=${v.publicId})}">
+                        <input type="hidden" name="formato" th:value="${f.name()}">
+                        <button type="submit" class="btn btn-secundario">Copia de trabajo <span th:text="${f}">PDF</span></button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="tarjeta-blanca" aria-labelledby="despublicar-titulo" th:if="${v.estado.name() == 'PUBLICADO'}">
+                <h2 class="seccion-titulo" id="despublicar-titulo">Despublicar</h2>
+                <p class="informe-nota">Para corregir un informe publicado: despublíquelo con un motivo, cree una nueva versión y publíquela.</p>
+                <button type="button" class="btn btn-secundario" data-abre-dialogo="dialogo-despublicar">
+                    <i class="fa-solid fa-eye-slash" aria-hidden="true"></i> Despublicar
+                </button>
+            </section>
+        </th:block>
+    </main>
+
+    <dialog id="dialogo-despublicar" class="dialogo" th:if="${v.estado.name() == 'PUBLICADO'}" aria-labelledby="dialogo-despublicar-titulo">
+        <form th:action="@{/informes/versiones/{id}/despublicar(id=${v.publicId})}" method="post" class="dialogo-form">
+            <div class="dialogo-cabecera">
+                <h2 id="dialogo-despublicar-titulo">Despublicar informe</h2>
+                <button type="button" class="dialogo-cerrar" data-cierra-dialogo aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="dialogo-ayuda">El cliente dejará de verlo y descargarlo. Esta acción queda registrada.</p>
+            <div class="campo-grupo">
+                <label for="motivo">Motivo (de 10 a 500 caracteres) <span class="requerido" aria-hidden="true">*</span></label>
+                <textarea id="motivo" name="motivo" rows="4" minlength="10" maxlength="500" required></textarea>
+            </div>
+            <div class="dialogo-acciones">
+                <button type="button" class="btn btn-secundario" data-cierra-dialogo>Cancelar</button>
+                <button type="submit" class="btn btn-primario">Despublicar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dialogo-eliminar" class="dialogo" th:if="${v.estado.name() == 'BORRADOR'}" aria-labelledby="dialogo-eliminar-titulo">
+        <form th:action="@{/informes/versiones/{id}/eliminar(id=${v.publicId})}" method="post" class="dialogo-form">
+            <div class="dialogo-cabecera">
+                <h2 id="dialogo-eliminar-titulo">Eliminar borrador</h2>
+                <button type="button" class="dialogo-cerrar" data-cierra-dialogo aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="dialogo-ayuda">Se borra el texto de este borrador. Las versiones publicadas no se tocan.</p>
+            <div class="dialogo-acciones">
+                <button type="button" class="btn btn-secundario" data-cierra-dialogo>Cancelar</button>
+                <button type="submit" class="btn btn-primario">Eliminar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script th:src="@{/js/dialogo.js(v=1)}" defer></script>
+</body>
+</html>

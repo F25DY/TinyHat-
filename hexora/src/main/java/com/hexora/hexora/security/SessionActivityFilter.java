@@ -39,6 +39,7 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
     private final SessionTerminationEventPublisher sessionTerminationEventPublisher;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final AccesoClienteProyecto accesoCliente;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public SessionActivityFilter(
@@ -49,7 +50,9 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
             SessionRegistry sessionRegistry,
             SessionTerminationEventPublisher sessionTerminationEventPublisher,
             AuditService auditService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            AccesoClienteProyecto accesoCliente) {
+        this.accesoCliente = accesoCliente;
         this.properties = properties;
         this.clock = clock;
         this.usuarioRepository = usuarioRepository;
@@ -125,6 +128,7 @@ public final class SessionActivityFilter extends OncePerRequestFilter {
         if (user.isEmpty() || account.isEmpty()
                 || !"ACTIVO".equals(user.get().getEstado())
                 || !"ACTIVA".equals(account.get().getEstado())
+                || !accesoCliente.permitido(user.get().getRol(), user.get().getId(), user.get().getCuentaId())
                 || !principal.getRol().equals(user.get().getRol())
                 || !Objects.equals(principal.getOrganizacionId(), user.get().getOrganizacionId())) {
             return "PRINCIPAL_REVOKED";

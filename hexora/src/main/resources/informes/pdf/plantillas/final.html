@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" th:replace="~{base :: documento(~{::cuerpo}, false)}">
+<body>
+<th:block th:fragment="cuerpo">
+    <!-- Informe final de entrega: Parte I ejecutiva, Parte II técnica, conclusiones, trazabilidad y constancia. -->
+    <th:block th:replace="~{fragmentos/portada :: portada}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <th:block th:replace="~{fragmentos/control :: control}"></th:block>
+    <th:block th:replace="~{fragmentos/avisos :: avisos}"></th:block>
+    <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <h1>Parte I. Informe ejecutivo</h1>
+
+    <h2 th:text="${v.secciones['cartaEntrega'].titulo}">Carta de entrega</h2>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['cartaEntrega']})}"></th:block>
+
+    <h2 th:text="${v.secciones['resumenEjecutivo'].titulo}">Resumen ejecutivo</h2>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['resumenEjecutivo']})}"></th:block>
+
+    <h2>Estado del riesgo</h2>
+    <th:block th:replace="~{fragmentos/lectura :: indicadores}"></th:block>
+    <p>
+        El proyecto incluye <strong th:text="${v.doc.totalAreas}">0</strong> área(s) y
+        <strong th:text="${v.totalHallazgos}">0</strong> hallazgo(s) en el cuerpo del informe.
+    </p>
+    <th:block th:replace="~{fragmentos/mapa-calor :: mapa}"></th:block>
+    <div class="leyenda">
+        <p class="num-tabla"></p>
+        <p class="titulo-tabla">Hallazgos por nivel de riesgo</p>
+    </div>
+    <table class="chica">
+        <thead>
+            <tr><th>Nivel de riesgo</th><th class="numero">Hallazgos</th></tr>
+        </thead>
+        <tbody>
+            <tr th:each="n : ${v.conteoNiveles}">
+                <td class="centro" th:classappend="${n.clase}" th:text="${n.etiqueta}">Nivel</td>
+                <td class="numero" th:text="${n.cantidad}">0</td>
+            </tr>
+        </tbody>
+    </table>
+    <th:block th:replace="~{fragmentos/tabla-severidad :: conteo}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: fases}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: avance}"></th:block>
+
+    <div class="nueva-pagina"></div>
+    <h1>Parte II. Informe técnico</h1>
+
+    <h2 th:text="${v.secciones['alcanceMetodologia'].titulo}">Alcance y metodología</h2>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['alcanceMetodologia']})}"></th:block>
+
+    <h2>Resultados</h2>
+    <p th:if="${#lists.isEmpty(v.resumenHallazgos)}">El informe no incluye hallazgos en el cuerpo.</p>
+    <th:block th:unless="${#lists.isEmpty(v.resumenHallazgos)}">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Resumen de hallazgos</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Hallazgo</th>
+                    <th>Área</th>
+                    <th class="centro">Severidad</th>
+                    <th>Probabilidad</th>
+                    <th class="centro">Riesgo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="r : ${v.resumenHallazgos}">
+                    <td class="mono cod" th:text="${r.codigo}">H-000000</td>
+                    <td th:text="${r.titulo}">Hallazgo</td>
+                    <td th:text="${r.area}">Área</td>
+                    <td class="centro" th:classappend="${r.severidad.clase}" th:text="${r.severidad.texto}">Severidad</td>
+                    <td th:text="${r.probabilidad}">Probabilidad</td>
+                    <td class="centro" th:classappend="${r.riesgo.clase}" th:text="${r.riesgo.texto}">Riesgo</td>
+                    <td th:text="${r.estado}">Estado</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> El detalle de cada hallazgo está en el informe técnico publicado.</p>
+    </th:block>
+
+    <h2>Plan de mitigación</h2>
+        <p th:if="${#lists.isEmpty(v.mitigacion)}">El informe no incluye hallazgos en el cuerpo.</p>
+        <th:block th:unless="${#lists.isEmpty(v.mitigacion)}">
+            <div class="leyenda">
+                <p class="num-tabla"></p>
+                <p class="titulo-tabla">Plan de mitigación ordenado por severidad</p>
+            </div>
+            <table class="chica">
+                <thead>
+                    <tr>
+                        <th class="centro">Prioridad</th>
+                        <th>Código</th>
+                        <th>Hallazgo</th>
+                        <th>Área</th>
+                        <th class="centro">Severidad</th>
+                        <th>Fase sugerida</th>
+                        <th>Acción de mitigación</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="m : ${v.mitigacion}">
+                        <td class="centro" th:text="${m.prioridad}">1</td>
+                        <td class="mono cod" th:text="${m.codigo}">H-000000</td>
+                        <td th:text="${m.titulo}">Hallazgo</td>
+                        <td th:text="${m.area}">Área</td>
+                        <td class="centro" th:classappend="${m.severidad.clase}" th:text="${m.severidad.texto}">Severidad</td>
+                        <td th:text="${m.fase}">Fase</td>
+                        <td th:text="${m.accion}">Acción</td>
+                        <td th:text="${m.estado}">Estado</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="nota">
+                <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoFase})}"></th:block>
+            </div>
+        </th:block>
+
+    <h1 th:text="${v.secciones['conclusiones'].titulo}">Conclusiones</h1>
+    <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['conclusiones']})}"></th:block>
+
+    <h1>Trazabilidad</h1>
+    <p th:if="${#lists.isEmpty(v.trazabilidad)}">El proyecto no tiene otros informes publicados vigentes.</p>
+    <th:block th:unless="${#lists.isEmpty(v.trazabilidad)}">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Paquete de entregables</p>
+        </div>
+        <table class="minima">
+            <thead>
+                <tr>
+                    <th>Identificador</th>
+                    <th>Tipo</th>
+                    <th>Formato</th>
+                    <th>SHA-256</th>
+                    <th>Publicado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="t : ${v.trazabilidad}">
+                    <td class="mono cod" th:text="${t.id}">ID</td>
+                    <td th:text="${t.tipo}">Tipo</td>
+                    <td th:text="${t.formato}">PDF</td>
+                    <td class="mono wrap" th:text="${t.sha256}">hash</td>
+                    <td th:text="${t.publicado}">Fecha</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> Informes publicados vigentes del proyecto y la huella de cada archivo. La versión de referencia es el PDF.</p>
+    </th:block>
+
+    <div class="nueva-pagina"></div>
+    <h1>Constancia de entrega</h1>
+    <p>
+        Las partes dejan constancia de la entrega del presente informe y de los entregables del proyecto
+        <strong th:text="${v.doc.proyecto}">Proyecto</strong>.
+    </p>
+    <table class="portada-datos">
+        <tbody>
+            <tr><th>Auditor</th><td class="firma-linea"></td></tr>
+            <tr><th>Nombre y cargo</th><td class="firma-linea"></td></tr>
+            <tr><th>Fecha</th><td class="firma-linea"></td></tr>
+        </tbody>
+    </table>
+    <p class="firma">Firma del auditor</p>
+    <table class="portada-datos">
+        <tbody>
+            <tr><th>Representante del cliente</th><td class="firma-linea"></td></tr>
+            <tr><th>Nombre y cargo</th><td class="firma-linea"></td></tr>
+            <tr><th>Fecha</th><td class="firma-linea"></td></tr>
+        </tbody>
+    </table>
+    <p class="firma">Firma del representante del cliente</p>
+
+    <h2>Lista de verificación de cierre</h2>
+    <p class="nota">Para marcar a mano al entregar:</p>
+    <p><span class="casilla">[&#160;&#160;]</span> Cuentas temporales eliminadas.</p>
+    <p><span class="casilla">[&#160;&#160;]</span> Archivos, payloads y binarios retirados.</p>
+    <p><span class="casilla">[&#160;&#160;]</span> Configuraciones revertidas.</p>
+    <p><span class="casilla">[&#160;&#160;]</span> Servicio verificado sin degradación.</p>
+
+    <th:block th:replace="~{fragmentos/anexo-a :: tabla}"></th:block>
+    <th:block th:replace="~{fragmentos/referencias :: referencias}"></th:block>
+</th:block>
+</body>
+</html>

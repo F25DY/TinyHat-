@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Cambiar contraseña</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/cliente.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('contrasena')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <section class="cabecera-gestion">
+            <div class="texto-cabecera">
+                <h1 class="titulo-interno">Cambiar contraseña</h1>
+                <p class="subtitulo" th:if="${obligatorio}">La contraseña que le entregó su auditor es temporal. Elija una propia para continuar.</p>
+                <p class="subtitulo" th:unless="${obligatorio}">Al guardar, se cierra su sesión y entra de nuevo con la contraseña nueva.</p>
+            </div>
+        </section>
+
+        <section class="tarjeta-blanca cliente-formulario">
+            <p class="informe-mensaje informe-mensaje-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+            <form th:action="@{/cliente/contrasena}" method="post" class="cliente-form">
+                <div class="campo-grupo">
+                    <label for="actual">Contraseña actual</label>
+                    <input id="actual" name="actual" type="password" autocomplete="current-password" required maxlength="200" th:attr="autofocus=true">
+                </div>
+                <div class="campo-grupo">
+                    <label for="nueva">Contraseña nueva</label>
+                    <input id="nueva" name="nueva" type="password" autocomplete="new-password" required minlength="12" maxlength="200"
+                           aria-describedby="ayuda-nueva">
+                    <p class="cliente-ayuda" id="ayuda-nueva">Al menos 12 caracteres. Una frase corta que solo usted conozca funciona bien.</p>
+                </div>
+                <div class="campo-grupo">
+                    <label for="confirmar">Repita la contraseña nueva</label>
+                    <input id="confirmar" name="confirmar" type="password" autocomplete="new-password" required minlength="12" maxlength="200">
+                </div>
+                <button type="submit" class="btn btn-primario">
+                    <i class="fa-solid fa-key" aria-hidden="true"></i> Guardar contraseña
+                </button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

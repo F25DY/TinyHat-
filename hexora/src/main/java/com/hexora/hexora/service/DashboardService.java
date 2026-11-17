@@ -9,6 +9,7 @@ import com.hexora.hexora.dto.DashboardResumen.ProyectoResumen;
 import com.hexora.hexora.model.Auditoria;
 import com.hexora.hexora.model.Vulnerabilidad;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
+import com.hexora.hexora.riesgo.EscalaRiesgo;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -35,10 +36,10 @@ public class DashboardService {
     private static final Map<String, String[]> NIVELES = new LinkedHashMap<>();
 
     static {
-        NIVELES.put("critico", new String[] {"Crítico", "critico"});
-        NIVELES.put("alto", new String[] {"Alto", "alto"});
-        NIVELES.put("medio", new String[] {"Medio", "medio"});
-        NIVELES.put("bajo", new String[] {"Bajo", "bajo"});
+        // Del más grave al menos grave; los cinco niveles salen de la regla única de riesgo.
+        for (EscalaRiesgo.NivelRiesgo nivel : EscalaRiesgo.NivelRiesgo.deMayorAMenor()) {
+            NIVELES.put(normalizar(nivel.valorAlmacenado()), new String[] {nivel.etiqueta(), nivel.clave()});
+        }
     }
 
     private static final Set<String> ESTADOS_ABIERTOS = Set.of("abierta", "en progreso");

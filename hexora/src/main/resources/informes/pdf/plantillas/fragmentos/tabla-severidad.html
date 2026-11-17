@@ -1,0 +1,67 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <!-- Conteo de hallazgos por severidad (con barra proporcional). -->
+    <th:block th:fragment="conteo">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Hallazgos por severidad</p>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Severidad</th>
+                    <th class="numero">Hallazgos</th>
+                    <th class="numero">Proporción</th>
+                    <th>Distribución</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="f : ${v.conteoSeveridad}">
+                    <td class="centro" th:classappend="${f.clase}" th:text="${f.etiqueta}">Severidad</td>
+                    <td class="numero" th:text="${f.cantidad}">0</td>
+                    <td class="numero" th:text="${f.porcentaje}">0 %</td>
+                    <td>
+                        <div class="barra"><span class="segmento" th:classappend="|${f.clase} w-${f.ancho}|"></span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Total</strong></td>
+                    <td class="numero"><strong th:text="${v.totalHallazgos}">0</strong></td>
+                    <td class="numero">100 %</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> Solo cuenta los hallazgos del cuerpo del informe; los de riesgo aceptado van en el Anexo A.</p>
+    </th:block>
+
+    <!-- Hallazgos por área y severidad, con barras de ancho calculado en el servidor. -->
+    <th:block th:fragment="porArea">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Hallazgos por área y severidad</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th class="centro" th:each="e : ${v.etiquetasSeveridad}" th:text="${e}">Sev.</th>
+                    <th class="numero">Total</th>
+                    <th>Proporción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="a : ${v.areaSeveridad}">
+                    <td th:text="${a.area}">Área</td>
+                    <td class="numero" th:each="n : ${a.conteos}" th:text="${n}">0</td>
+                    <td class="numero" th:text="${a.total}">0</td>
+                    <td>
+                        <div class="barra">
+                            <span class="segmento" th:each="g : ${a.segmentos}" th:classappend="|${g.clase} w-${g.ancho}|" th:title="${g.etiqueta}"></span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> La longitud de cada barra es proporcional al área con más hallazgos.</p>
+    </th:block>
+</th:block>

@@ -1,0 +1,9 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="seccion(s)">
+    <!--/*
+        ÚNICO punto del documento donde se inserta marcado sin escapar. El valor ya salió de MarkdownSaneado
+        (lista blanca de nodos, HTML escapado, sin enlaces ni imágenes y sin atributos) o de los textos fijos
+        versionados con las plantillas. Todo texto de usuario restante va con th:text. FragmentosPdfTest lo vigila.
+    */-->
+    <div class="narrativa" th:if="${s != null and s.presente}" th:utext="${s.html}"></div>
+    <p class="pendiente" th:if="${s != null and s.pendiente}" th:text="${v.doc.pendiente}"></p>
+</th:block>

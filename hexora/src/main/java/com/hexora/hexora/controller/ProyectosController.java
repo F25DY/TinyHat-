@@ -16,12 +16,14 @@ import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.repository.EmpresaRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
 import com.hexora.hexora.security.TinyHatPrincipal;
+import com.hexora.hexora.riesgo.EscalaRiesgo;
 import com.hexora.hexora.service.DashboardService;
 import com.hexora.hexora.service.PermissionService;
 import jakarta.validation.Valid;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -138,11 +140,10 @@ public class ProyectosController {
                     .toList()
                 : List.of();
 
-        Map<String, Long> metrics = Map.of(
-                "critico", countRisk(findings, "Critico"),
-                "alto", countRisk(findings, "Alto"),
-                "medio", countRisk(findings, "Medio"),
-                "bajo", countRisk(findings, "Bajo"));
+        Map<String, Long> metrics = new LinkedHashMap<>();
+        for (EscalaRiesgo.NivelRiesgo nivel : EscalaRiesgo.NivelRiesgo.deMayorAMenor()) {
+            metrics.put(nivel.clave(), countRisk(findings, nivel.valorAlmacenado()));
+        }
         List<DepartamentoView> areasView = areas.stream()
                 .map(area -> {
                     List<Vulnerabilidad> areaFindings = auditor
@@ -176,11 +177,9 @@ public class ProyectosController {
         // Barra de exposición del proyecto: los mismos niveles y el mismo formato que el panel.
         long totalHallazgos = metrics.values().stream().mapToLong(Long::longValue).sum();
         model.addAttribute("totalHallazgos", totalHallazgos);
-        model.addAttribute("niveles", List.of(
-                nivel("Crítico", "critico", metrics.get("critico"), totalHallazgos),
-                nivel("Alto", "alto", metrics.get("alto"), totalHallazgos),
-                nivel("Medio", "medio", metrics.get("medio"), totalHallazgos),
-                nivel("Bajo", "bajo", metrics.get("bajo"), totalHallazgos)));
+        model.addAttribute("niveles", EscalaRiesgo.NivelRiesgo.deMayorAMenor().stream()
+                .map(nivel -> nivel(nivel.etiqueta(), nivel.clave(), metrics.get(nivel.clave()), totalHallazgos))
+                .toList());
 
         model.addAttribute("canManageProjects", auditor);
         return "detalleproyecto";

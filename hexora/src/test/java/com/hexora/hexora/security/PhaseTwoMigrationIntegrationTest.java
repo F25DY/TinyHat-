@@ -33,6 +33,7 @@ import org.testcontainers.mysql.MySQLContainer;
 class PhaseTwoMigrationIntegrationTest {
 
 	private static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0.46")
+		.withCommand("--log-bin-trust-function-creators=1")
 		.withDatabaseName("hexora_phase2")
 		.withUsername("hexora_test")
 		.withPassword("hexora_test_password");

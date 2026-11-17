@@ -88,6 +88,36 @@
 			<version>3.3.1</version>
 		</dependency>
 
+		<!-- Informes: Markdown de la narrativa (analisis unico, lista blanca de nodos). Etapa 3. -->
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.32.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark-ext-gfm-tables</artifactId>
+			<version>0.32.0</version>
+		</dependency>
+
+		<!--
+			Informes en PDF (Etapa 4). LGPL 2.1: se usan los JAR sin modificar. No agregar openhtmltopdf-svg-support
+			(Batik), -mathml-support, -objects ni -java2d (plan de informes, seccion 2).
+		-->
+		<dependency>
+			<groupId>io.github.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-pdfbox</artifactId>
+			<version>1.1.114</version>
+		</dependency>
+
+		<!-- Informes en DOCX (XWPF) y XLSX (SXSSF), Etapa 5. Ultima 5.x estable (plan de informes, seccion 2). -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.5.1</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

@@ -1,0 +1,9 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="avisos">
+    <div class="aviso">
+        <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoReferencia})}"></th:block>
+        <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoAlcance})}"></th:block>
+    </div>
+    <div class="aviso-np" th:if="${v.avisoNoPublicado != null}">
+        <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.avisoNoPublicado})}"></th:block>
+    </div>
+</th:block>

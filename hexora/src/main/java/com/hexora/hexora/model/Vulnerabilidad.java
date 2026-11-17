@@ -1,5 +1,6 @@
 package com.hexora.hexora.model;
 
+import com.hexora.hexora.riesgo.EscalaRiesgo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -288,6 +289,43 @@ public class Vulnerabilidad implements TenantScopedEntity {
 
     public void setPublicId(String publicId) {
         this.publicId = publicId;
+    }
+
+    // Probabilidad en la escala 1-5 de la regla de riesgo. Derivada (no se guarda): la columna sigue en 0-10.
+
+    /** Probabilidad en escala 1-5. */
+    public int getProbabilidadEscala() {
+        return EscalaRiesgo.probabilidad(probabilidad);
+    }
+
+    /** "Rara", "Improbable", "Posible", "Probable" o "Casi segura". */
+    public String getEtiquetaProbabilidad() {
+        return EscalaRiesgo.etiquetaProbabilidad(getProbabilidadEscala());
+    }
+
+
+
+    /** Nivel de riesgo guardado como valor tipado; {@code null} si el texto no corresponde a un nivel conocido. */
+    public EscalaRiesgo.NivelRiesgo getNivel() {
+        return EscalaRiesgo.NivelRiesgo.desdeAlmacenado(nivelRiesgo);
+    }
+
+    /** Texto del nivel para personas ("Crítico", "Alto", ...). */
+    public String getEtiquetaRiesgo() {
+        EscalaRiesgo.NivelRiesgo nivel = getNivel();
+        return nivel == null ? String.valueOf(nivelRiesgo) : nivel.etiqueta();
+    }
+
+    /** Clave de estilo del nivel (sufijo de {@code riesgo-*}); "sin-nivel" si no se reconoce. */
+    public String getClaveRiesgo() {
+        EscalaRiesgo.NivelRiesgo nivel = getNivel();
+        return nivel == null ? "sin-nivel" : nivel.clave();
+    }
+
+    /** Clase CSS de la insignia del nivel. */
+    public String getClaseInsigniaRiesgo() {
+        EscalaRiesgo.NivelRiesgo nivel = getNivel();
+        return nivel == null ? "badge-gris" : nivel.claseInsignia();
     }
 
     @PrePersist

@@ -15,6 +15,7 @@
     --th-riesgo-critico: #E5484D;
     --th-riesgo-alto: #F76B15;
     --th-riesgo-medio: #F5B301;
+    --th-riesgo-muy-bajo: #4466CC;
 
     /* Tema oscuro del panel: planos, sin degradados. El degradado queda para el logo y la acción principal. */
     --th-noche: #1C1236;
@@ -2400,6 +2401,7 @@ button.boton-cerrar-sesion {
 .riesgo-alto { background: var(--th-riesgo-alto); }
 .riesgo-medio { background: var(--th-riesgo-medio); }
 .riesgo-bajo { background: var(--th-verde); }
+.riesgo-muy-bajo { background: var(--th-riesgo-muy-bajo); }
 .riesgo-sin-nivel { background: transparent; box-shadow: inset 0 0 0 2px var(--th-noche-suave); }
 
 /* --- Cifras de apoyo: una línea de datos, no tarjetas --- */
@@ -3278,79 +3280,6 @@ button.boton-cerrar-sesion {
     margin-top: 4px;
 }
 
-/* --- 4. Informes --- */
-
-.pagina-oscura .reports-panel {
-    margin: 0 0 24px;
-    padding: 20px;
-}
-
-.pagina-oscura .reports-panel h2 {
-    margin: 0 0 4px;
-    font-size: 1.15rem;
-    font-weight: 700;
-}
-
-.pagina-oscura .reports-hint {
-    max-width: 75ch;
-    color: var(--th-noche-suave);
-    opacity: 1;
-}
-
-.pagina-oscura .reports-form label {
-    color: var(--th-noche-suave);
-    font-weight: 500;
-}
-
-.pagina-oscura .reports-form select,
-.pagina-oscura .reports-form input {
-    min-height: 44px;
-    padding: 8px 12px;
-    border: 1px solid var(--th-noche-borde);
-    border-radius: var(--th-radio-chico);
-    background: var(--th-noche);
-    color: var(--th-noche-texto);
-}
-
-.pagina-oscura .reports-form select:focus,
-.pagina-oscura .reports-form input:focus {
-    border-color: var(--th-turquesa);
-    box-shadow: 0 0 0 3px rgb(41 182 224 / 22%);
-    outline: none;
-}
-
-.pagina-oscura .reports-form input::placeholder {
-    color: var(--th-noche-suave);
-    opacity: 0.8;
-}
-
-.pagina-oscura .reports-table th {
-    color: var(--th-noche-suave);
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.pagina-oscura .reports-table th,
-.pagina-oscura .reports-table td {
-    border-bottom: 1px solid var(--th-noche-borde);
-}
-
-.pagina-oscura .reports-table tbody tr:hover td {
-    background: var(--th-noche-hover);
-    color: var(--th-noche-hueso);
-}
-
-.pagina-oscura .reports-message {
-    color: var(--th-noche-suave);
-}
-
-.pagina-oscura .reports-message.is-error {
-    color: var(--th-texto-error);
-}
-
-.pagina-oscura .reports-actions .btn {
-    min-height: 38px;
-}
 
 /* Botón secundario también en las páginas oscuras que no son el panel. */
 .pagina-oscura .btn-secundario {

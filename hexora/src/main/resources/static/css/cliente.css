@@ -1,0 +1,155 @@
+/* Vista del administrador de la MiPyme y el acceso que le da el auditor. Hereda la paleta y los componentes de style.css. */
+
+.cliente-proyectos {
+    margin-bottom: 20px;
+}
+
+.cliente-proyecto + .cliente-proyecto {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--th-borde, #e3e5f2);
+}
+
+.cliente-proyecto-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.cliente-proyecto-cabecera h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.cliente-datos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px 24px;
+    margin: 12px 0 0;
+}
+
+.cliente-datos dt {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.75;
+}
+
+.cliente-datos dd {
+    margin: 2px 0 0;
+    font-weight: 600;
+}
+
+.cliente-seccion-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Historial de informes */
+
+.cliente-historial th,
+.cliente-historial td {
+    vertical-align: top;
+}
+
+.cliente-id {
+    display: block;
+    margin-top: 2px;
+    opacity: 0.8;
+}
+
+.cliente-hora {
+    display: block;
+    font-size: 0.8rem;
+    opacity: 0.75;
+}
+
+.cliente-historial .fila-retirada td {
+    opacity: 0.72;
+}
+
+.cliente-verificar {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Formularios */
+
+.cliente-formulario {
+    max-width: 520px;
+}
+
+.cliente-form,
+.cliente-agregar {
+    display: grid;
+    gap: 14px;
+}
+
+.cliente-agregar {
+    max-width: 520px;
+}
+
+.cliente-ayuda {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Credenciales recién creadas: una sola vez */
+
+.cliente-credencial {
+    border: 2px solid var(--th-turquesa, #29b6e0);
+}
+
+.cliente-credencial-datos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px 24px;
+    margin: 0 0 8px;
+}
+
+.cliente-credencial-datos dt {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.75;
+}
+
+.cliente-credencial-datos dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0 0;
+}
+
+.cliente-clave {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #f3f4fa;
+    color: #1b1b4b;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    user-select: all;
+}
+
+.cliente-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+    .cliente-acciones {
+        justify-content: flex-start;
+    }
+}

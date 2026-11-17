@@ -16,5 +16,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByPublicIdAndCuentaId(String publicId, Long cuentaId);
 
     List<Usuario> findByCuentaId(Long cuentaId);
+
+    /** Destinatarios del aviso de informe publicado: los CLIENTE_ADMIN activos de la organización. */
+    List<Usuario> findByCuentaIdAndOrganizacionIdAndRolAndEstado(
+        Long cuentaId, Long organizacionId, String rol, String estado);
 }
 

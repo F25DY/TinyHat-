@@ -1,0 +1,51 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <!-- Mapa de calor 5x5 con los conteos de hallazgos (figura). Filas: probabilidad; columnas: impacto. -->
+    <th:block th:fragment="mapa">
+        <div class="leyenda">
+            <p class="num-figura"></p>
+            <p class="titulo-figura">Mapa de calor de riesgo: probabilidad por impacto</p>
+        </div>
+        <table class="mapa-calor chica">
+            <thead>
+                <tr>
+                    <th>Probabilidad \ Impacto</th>
+                    <th th:each="e, it : ${v.etiquetasImpacto}" th:text="|${it.count} · ${e}|">Impacto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="f : ${v.mapaCalor}">
+                    <td class="eje" th:text="${f.probabilidad}">Probabilidad</td>
+                    <td th:each="c : ${f.celdas}" th:classappend="${c.clase}" th:text="${c.valor}">0</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota">
+            <em>Nota.</em>
+            Cada celda indica cuántos hallazgos tienen esa probabilidad e impacto; el color es el nivel de riesgo de la matriz de NIST SP 800-30.
+            <span th:if="${v.sinProbabilidad > 0}" th:text="|Hallazgos sin probabilidad: ${v.sinProbabilidad}.|"></span>
+        </p>
+    </th:block>
+
+    <!-- Matriz de niveles de riesgo de la escala de calificación (sin conteos). -->
+    <th:block th:fragment="matrizNiveles">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Matriz de niveles de riesgo (NIST SP 800-30 Rev. 1, Tabla I-2)</p>
+        </div>
+        <table class="mapa-calor chica">
+            <thead>
+                <tr>
+                    <th>Probabilidad \ Impacto</th>
+                    <th th:each="e, it : ${v.etiquetasImpacto}" th:text="|${it.count} · ${e}|">Impacto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="f : ${v.matrizNiveles}">
+                    <td class="eje" th:text="${f.probabilidad}">Probabilidad</td>
+                    <td th:each="c : ${f.celdas}" th:classappend="${c.clase}" th:text="${c.texto}">Nivel</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> El nivel de riesgo sale de esta tabla de búsqueda, no de umbrales sobre el puntaje.</p>
+    </th:block>
+</th:block>

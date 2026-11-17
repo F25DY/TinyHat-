@@ -59,6 +59,7 @@ class PhaseThreeSecurityIntegrationTest {
 
 	private static final String DB_PASSWORD = "phase3_test_password";
 	private static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0.46")
+		.withCommand("--log-bin-trust-function-creators=1")
 		.withDatabaseName("hexora_phase3")
 		.withUsername("hexora_test")
 		.withPassword(DB_PASSWORD);

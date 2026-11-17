@@ -24,8 +24,15 @@ public final class TinyHatPrincipal implements UserDetails, Serializable {
 	private final String email;
 	private final String passwordHash;
 	private final boolean cuentaActiva;
+	private final boolean accesoProyecto;
+	private final boolean debeCambiarPassword;
 
 	public TinyHatPrincipal(Usuario usuario, boolean cuentaActiva) {
+		this(usuario, cuentaActiva, true);
+	}
+
+	/** {@code accesoProyecto} false: administrador de MiPyme sin proyecto activo (no puede iniciar sesión). */
+	public TinyHatPrincipal(Usuario usuario, boolean cuentaActiva, boolean accesoProyecto) {
 		this.userId = Objects.requireNonNull(usuario.getId(), "User id is required");
 		this.publicId = Objects.requireNonNull(usuario.getPublicId(), "Public id is required");
 		this.cuentaId = Objects.requireNonNull(usuario.getCuentaId(), "Account id is required");
@@ -35,6 +42,12 @@ public final class TinyHatPrincipal implements UserDetails, Serializable {
 		this.email = Objects.requireNonNull(usuario.getEmailNormalizado(), "Email is required");
 		this.passwordHash = Objects.requireNonNull(usuario.getPasswordHash(), "Password hash is required");
 		this.cuentaActiva = cuentaActiva;
+		this.accesoProyecto = accesoProyecto;
+		this.debeCambiarPassword = usuario.isDebeCambiarPassword();
+	}
+
+	public boolean isDebeCambiarPassword() {
+		return debeCambiarPassword;
 	}
 
 	public Long getUserId() {
@@ -86,7 +99,7 @@ public final class TinyHatPrincipal implements UserDetails, Serializable {
 
 	@Override
 	public boolean isAccountNonLocked() {
-		return cuentaActiva && "ACTIVO".equals(estado);
+		return cuentaActiva && accesoProyecto && "ACTIVO".equals(estado);
 	}
 
 	@Override
@@ -96,7 +109,7 @@ public final class TinyHatPrincipal implements UserDetails, Serializable {
 
 	@Override
 	public boolean isEnabled() {
-		return cuentaActiva && "ACTIVO".equals(estado);
+		return cuentaActiva && accesoProyecto && "ACTIVO".equals(estado);
 	}
 
 	@Override

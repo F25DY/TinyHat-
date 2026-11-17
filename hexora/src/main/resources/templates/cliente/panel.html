@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Panel de la organización</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/cliente.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('panel')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <section class="cabecera-gestion">
+            <div class="texto-cabecera">
+                <h1 class="titulo-interno" th:text="${#strings.isEmpty(panel.organizacion)} ? 'Su organización' : ${panel.organizacion}">Organización</h1>
+                <p class="subtitulo">Aquí encuentra los informes que su auditor publica sobre su proyecto.</p>
+            </div>
+        </section>
+
+        <!-- Proyecto -->
+        <section class="tarjeta-blanca cliente-proyectos" aria-labelledby="proyectos-titulo">
+            <h2 class="seccion-titulo" id="proyectos-titulo" th:text="${#lists.size(panel.proyectos) == 1} ? 'Su proyecto' : 'Sus proyectos'">Su proyecto</h2>
+
+            <p class="informe-vacio" th:if="${#lists.isEmpty(panel.proyectos)}">
+                Todavía no tiene un proyecto activo asignado. Su auditor puede agregarlo desde la pestaña de acceso del proyecto.
+            </p>
+
+            <article class="cliente-proyecto" th:each="p : ${panel.proyectos}">
+                <header class="cliente-proyecto-cabecera">
+                    <h3 th:text="${p.nombre}">Nombre del proyecto</h3>
+                    <span class="informe-estado"
+                          th:classappend="${p.estado == 'En Progreso'} ? 'informe-estado-borrador' : 'informe-estado-despublicado'"
+                          th:text="${p.estado == 'En Progreso'} ? 'En progreso' : ${p.estado}">En progreso</span>
+                </header>
+                <dl class="cliente-datos">
+                    <div>
+                        <dt>Periodo</dt>
+                        <dd th:text="${p.inicio != null and p.fin != null} ? ${#temporals.format(p.inicio, 'dd/MM/yyyy')} + ' al ' + ${#temporals.format(p.fin, 'dd/MM/yyyy')} : 'Sin fechas definidas'">01/01/2026 al 31/01/2026</dd>
+                    </div>
+                    <div>
+                        <dt>Auditor</dt>
+                        <dd th:text="${p.auditor}">Firma auditora</dd>
+                    </div>
+                    <div>
+                        <dt>Informes vigentes</dt>
+                        <dd th:text="${p.informesVigentes}">0</dd>
+                    </div>
+                </dl>
+            </article>
+        </section>
+
+        <!-- Informes -->
+        <section class="tarjeta-blanca" aria-labelledby="informes-titulo">
+            <div class="cliente-seccion-cabecera">
+                <h2 class="seccion-titulo" id="informes-titulo">Informes entregados</h2>
+                <a class="btn btn-secundario" th:href="@{/cliente/informes}" th:if="${not #lists.isEmpty(panel.informes)}">Ver todos</a>
+            </div>
+            <p class="informe-vacio" th:if="${#lists.isEmpty(panel.informes)}">
+                Aún no hay informes publicados. Cuando su auditor publique uno, aparecerá aquí con su fecha y podrá descargarlo.
+            </p>
+            <th:block th:unless="${#lists.isEmpty(panel.informes)}">
+                <th:block th:replace="~{fragments/informes-cliente :: tabla(${#lists.size(panel.informes) > 5} ? ${panel.informes.subList(0, 5)} : ${panel.informes})}"></th:block>
+            </th:block>
+        </section>
+    </main>
+</body>
+</html>

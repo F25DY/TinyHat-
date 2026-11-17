@@ -137,7 +137,8 @@ public class SecurityConfiguration {
 		com.hexora.hexora.repository.CuentaRepository cuentaRepository,
 		SessionRegistry sessionRegistry,
 		SessionTerminationEventPublisher sessionTerminationEventPublisher,
-		AuditService auditService
+		AuditService auditService,
+		AccesoClienteProyecto accesoCliente
 	) {
 		return new SessionActivityFilter(
 			securityProperties,
@@ -147,7 +148,8 @@ public class SecurityConfiguration {
 			sessionRegistry,
 			sessionTerminationEventPublisher,
 			auditService,
-			objectMapper
+			objectMapper,
+			accesoCliente
 		);
 	}
 
@@ -220,6 +222,18 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
+	PasswordChangeRequiredFilter passwordChangeRequiredFilter() {
+		return new PasswordChangeRequiredFilter();
+	}
+
+	@Bean
+	FilterRegistrationBean<PasswordChangeRequiredFilter> passwordChangeRequiredFilterRegistration(PasswordChangeRequiredFilter filter) {
+		FilterRegistrationBean<PasswordChangeRequiredFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
 	MfaGateFilter mfaGateFilter(TinyHatSecurityProperties properties, MfaService mfaService) {
 		return new MfaGateFilter(properties, mfaService, objectMapper);
 	}
@@ -272,18 +286,6 @@ public class SecurityConfiguration {
 			})
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers("/api/agent/**").denyAll()
-				.requestMatchers(
-					HttpMethod.GET,
-					"/api/proyectos/*/informes",
-					"/api/informes/*",
-					"/api/informes/*/contenido",
-					"/api/informes/*/descarga"
-				).hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
-				.requestMatchers(
-					"/api/proyectos/*/informes",
-					"/api/informes/*/publicar",
-					"/api/informes/*/despublicar"
-				).hasRole("AUDITOR")
 				.requestMatchers(
 					"/api/organizaciones/*/invitaciones",
 					"/api/cves/buscar",
@@ -342,6 +344,7 @@ public class SecurityConfiguration {
 		LoginAttemptService loginAttemptService,
 		ClientIpResolver clientIpResolver,
 		MfaGateFilter mfaGateFilter,
+		PasswordChangeRequiredFilter passwordChangeRequiredFilter,
 		SecurityContextRepository securityContextRepository
 	) throws Exception {
 		http
@@ -382,6 +385,7 @@ public class SecurityConfiguration {
 					"/favicon.ico"
 				).permitAll()
 					.requestMatchers("/mfa/**").authenticated()
+				.requestMatchers("/panel").hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
 					.requestMatchers(
 					"/dashboard",
 					"/inicio",
@@ -397,6 +401,11 @@ public class SecurityConfiguration {
 					"/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}"
 				).hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
 				.requestMatchers("/proyectos/**", "/areas/**").hasRole("AUDITOR")
+				// Informes: descarga y verificacion para ambos roles; el resto de /informes es solo del AUDITOR.
+				.requestMatchers("/informes/archivos/{archivoUuid}", "/informes/versiones/{versionUuid}/verificacion")
+					.hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
+				.requestMatchers("/informes/**").hasRole("AUDITOR")
+				.requestMatchers("/cliente", "/cliente/**").hasRole("CLIENTE_ADMIN")
 				.anyRequest().denyAll())
 			.formLogin(form -> form
 				.loginPage("/login")
@@ -427,6 +436,7 @@ public class SecurityConfiguration {
 			.addFilterBefore(ipRateLimitFilter, org.springframework.security.web.context.SecurityContextHolderFilter.class)
 			.addFilterAfter(mfaGateFilter, SessionActivityFilter.class)
 			.addFilterAfter(userRateLimitFilter, MfaGateFilter.class)
+			.addFilterAfter(passwordChangeRequiredFilter, UserRateLimitFilter.class)
 			.addFilterBefore(loginAttemptFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
 			.headers(this::configureHeaders);
 		return http.build();
@@ -496,7 +506,11 @@ public class SecurityConfiguration {
 				securityContextRepository.saveContext(context, request, response);
 			}
 			auditService.loginSucceeded(principal, request);
-			response.sendRedirect(request.getContextPath() + "/dashboard");
+			String destino = "/dashboard";
+			if ("CLIENTE_ADMIN".equals(principal.getRol())) {
+				destino = principal.isDebeCambiarPassword() ? PasswordChangeRequiredFilter.RUTA_CAMBIO : "/cliente";
+			}
+			response.sendRedirect(request.getContextPath() + destino);
 		};
 	}
 

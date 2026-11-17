@@ -3,8 +3,9 @@
 <body>
 <!--
     Menú lateral de las páginas con sesión iniciada. Es el único: no se copia en cada plantilla.
-    Parámetro: la sección activa ('dashboard', 'red' o 'proyectos').
-    El logo lleva siempre al panel. "Nuevo proyecto" está a un clic desde cualquier página.
+    Parámetro: la sección activa ('dashboard', 'red', 'proyectos' para el auditor; 'panel', 'informes' o 'contrasena' para
+    el administrador de la MiPyme).
+    El logo lleva siempre al panel de cada rol. "Nuevo proyecto" está a un clic desde cualquier página del auditor.
     El usuario sale de CurrentUserAdvice (correo y rol de quien inició sesión). Cerrar sesión es un POST con CSRF:
     un enlace GET no cierra la sesión.
 -->
@@ -13,14 +14,37 @@
     <a class="saltar-contenido" href="#contenido-principal">Saltar al contenido</a>
     <aside class="sidebar">
         <div class="logo-plataforma">
-            <a th:href="@{/dashboard}" class="textos-marca" aria-label="TinyHat, ir al panel">
+            <a th:href="${esCliente} ? @{/cliente} : @{/dashboard}" class="textos-marca" aria-label="TinyHat, ir al panel">
                 <img th:src="@{/imagen/logo.png}" width="40" alt="">
                 <span class="nombre-completo"><span class="tinyhat-tiny">Tiny</span><span class="tinyhat-hat">Hat</span></span>
             </a>
         </div>
 
         <nav class="menu" aria-label="Principal">
-            <ul>
+            <!-- Administrador de la MiPyme -->
+            <ul th:if="${esCliente}">
+                <li>
+                    <a th:href="@{/cliente}" class="enlace-menu" title="Panel" th:classappend="${active == 'panel'} ? 'activo'"
+                       th:attr="aria-current=${active == 'panel'} ? 'page' : null">
+                        <i class="fa-solid fa-house" aria-hidden="true"></i> Panel
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/cliente/informes}" class="enlace-menu" title="Informes" th:classappend="${active == 'informes'} ? 'activo'"
+                       th:attr="aria-current=${active == 'informes'} ? 'page' : null">
+                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Informes
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/cliente/contrasena}" class="enlace-menu" title="Contraseña" th:classappend="${active == 'contrasena'} ? 'activo'"
+                       th:attr="aria-current=${active == 'contrasena'} ? 'page' : null">
+                        <i class="fa-solid fa-key" aria-hidden="true"></i> Contraseña
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Auditor -->
+            <ul th:unless="${esCliente}">
                 <li>
                     <a th:href="@{/dashboard}" class="enlace-menu" title="Panel" th:classappend="${active == 'dashboard'} ? 'activo'"
                        th:attr="aria-current=${active == 'dashboard'} ? 'page' : null">
