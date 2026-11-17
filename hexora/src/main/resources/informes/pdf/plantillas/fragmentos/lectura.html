@@ -1,0 +1,108 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <!-- Lectura rápida: indicadores y frase de postura (todo calculado en Java a partir del snapshot). -->
+    <th:block th:fragment="indicadores">
+        <table class="kpis">
+            <tbody>
+                <tr>
+                    <td class="kpi" th:each="k : ${v.kpis}" th:classappend="${k.clase}">
+                        <div class="kpi-valor" th:text="${k.valor}">0</div>
+                        <div class="kpi-etiqueta" th:text="${k.etiqueta}">Indicador</div>
+                        <div class="kpi-nota" th:text="${k.nota}">nota</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="postura" th:text="${v.postura}">Postura</p>
+    </th:block>
+
+    <!-- Hoja de ruta: cuántos hallazgos hay en cada fase de remediación sugerida. -->
+    <th:block th:fragment="fases">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Hoja de ruta sugerida por fases</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th>Fase</th>
+                    <th>Qué incluye</th>
+                    <th class="numero">Hallazgos</th>
+                    <th>Proporción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="f : ${v.fases}">
+                    <td class="centro" th:classappend="${f.clase}" th:text="${f.nombre}">Fase 1</td>
+                    <td th:text="${f.descripcion}">Descripción</td>
+                    <td class="numero" th:text="${f.cantidad}">0</td>
+                    <td><div class="barra"><span class="segmento" th:classappend="|${f.clase} w-${f.ancho}|"></span></div></td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="nota"><em>Nota.</em> Las fases son una sugerencia derivada de la severidad; los plazos definitivos los acuerda el cliente.</p>
+    </th:block>
+
+    <!-- Avance de remediación por estado. -->
+    <th:block th:fragment="avance">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Avance de la remediación</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th class="numero">Hallazgos</th>
+                    <th class="numero">Proporción</th>
+                    <th>Distribución</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="e : ${v.avance}">
+                    <td th:text="${e.estado}">Abierta</td>
+                    <td class="numero" th:text="${e.cantidad}">0</td>
+                    <td class="numero" th:text="${e.porcentaje}">0 %</td>
+                    <td><div class="barra"><span class="segmento" th:classappend="|${e.clase} w-${e.ancho}|"></span></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </th:block>
+
+    <!-- Resumen por área: dónde se concentra el riesgo. -->
+    <th:block th:fragment="areas">
+        <div class="leyenda">
+            <p class="num-tabla"></p>
+            <p class="titulo-tabla">Dónde se concentra el riesgo</p>
+        </div>
+        <table class="chica">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th class="numero">Hallazgos</th>
+                    <th class="numero">Críticos y altos</th>
+                    <th class="centro">Riesgo más alto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="a : ${v.resumenAreas}">
+                    <td th:text="${a.area}">Área</td>
+                    <td class="numero" th:text="${a.total}">0</td>
+                    <td class="numero" th:text="${a.urgentes}">0</td>
+                    <td class="centro" th:classappend="${a.riesgoMaximo.clase}" th:text="${a.riesgoMaximo.texto}">Nivel</td>
+                </tr>
+            </tbody>
+        </table>
+    </th:block>
+
+    <!-- Guía de lectura del informe técnico. -->
+    <th:block th:fragment="guia">
+        <h2>Cómo leer este informe</h2>
+        <ul class="guia">
+            <li><strong>Lectura rápida.</strong> Los indicadores y la hoja de ruta resumen el estado en una página.</li>
+            <li><strong>Severidad.</strong> Clasificación técnica (Crítica, Alta, Media, Baja, Informativa) derivada del mayor impacto en confidencialidad, integridad o disponibilidad.</li>
+            <li><strong>Nivel de riesgo.</strong> Combina la probabilidad con el impacto (matriz de NIST SP 800-30). Un hallazgo de severidad Crítica con probabilidad baja puede tener menos riesgo que uno de severidad Alta casi seguro.</li>
+            <li><strong>Fichas.</strong> Cada hallazgo tiene su ficha con calificación, CVE y CVSS cuando existen, acción recomendada, estado y fase sugerida.</li>
+            <li><strong>Anexos.</strong> El Anexo A lista los riesgos aceptados; el Anexo B es el glosario.</li>
+        </ul>
+    </th:block>
+</th:block>

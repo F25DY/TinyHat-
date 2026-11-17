@@ -606,3 +606,70 @@ table.fijo {
 .w-98 { width: 98%; }
 .w-99 { width: 99%; }
 .w-100 { width: 100%; }
+
+
+/* ------------------------------------------------------------------ lectura rápida: indicadores, hoja de ruta, guía */
+
+table.kpis {
+    width: 100%;
+    margin: 6pt 0 8pt 0;
+    border-collapse: separate;
+    border-spacing: 4pt 0;
+}
+
+td.kpi {
+    width: 20%;
+    padding: 7pt 4pt 6pt 4pt;
+    text-align: center;
+    border: 0;
+    page-break-inside: avoid;
+}
+
+td.kpi.kpi-neutro {
+    background: #EEF1F4;
+    color: #1A1A1A;
+}
+
+.kpi-valor {
+    font-size: 19pt;
+    font-weight: bold;
+    line-height: 1.1;
+}
+
+.kpi-etiqueta {
+    font-size: 8.5pt;
+    font-weight: bold;
+    margin-top: 2pt;
+}
+
+.kpi-nota {
+    font-size: 7.5pt;
+}
+
+.postura {
+    border-left: 3pt solid #0F2A43;
+    background: #F4F6F8;
+    padding: 5pt 8pt;
+    margin: 4pt 0 10pt 0;
+    page-break-inside: avoid;
+}
+
+ul.guia {
+    margin: 4pt 0 8pt 0;
+    padding-left: 14pt;
+}
+
+ul.guia li {
+    margin-bottom: 2pt;
+}
+
+h2.grupo-fase {
+    margin: 12pt 0 4pt 0;
+    page-break-after: avoid;
+}
+
+.grupo-fase-etiqueta {
+    padding: 1pt 7pt;
+    margin-right: 6pt;
+    font-size: 10pt;
+}

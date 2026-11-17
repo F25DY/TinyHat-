@@ -11,6 +11,7 @@
 
         <div class="nueva-pagina"></div>
         <h1>Resumen</h1>
+    <th:block th:replace="~{fragmentos/lectura :: indicadores}"></th:block>
         <p>
             Proyecto <strong th:text="${v.doc.proyecto}">Proyecto</strong>, organización
             <strong th:text="${v.doc.organizacion}">Organización</strong>.
@@ -32,6 +33,7 @@
             </tbody>
         </table>
         <th:block th:replace="~{fragmentos/tabla-severidad :: conteo}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: areas}"></th:block>
         <p th:if="${v.sinProbabilidad > 0}" class="nota" th:text="|Hallazgos sin probabilidad: ${v.sinProbabilidad}.|"></p>
         <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
 

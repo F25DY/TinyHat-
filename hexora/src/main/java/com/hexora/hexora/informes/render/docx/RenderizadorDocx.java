@@ -359,9 +359,48 @@ public class RenderizadorDocx implements InformeRenderer {
             d.tabla(new int[] {2400, 6960}, null, filas);
         }
 
+        // ------------------------------------------------------------ lectura rápida
+
+        /** Indicadores, postura, hoja de ruta por fases y avance de la remediación (mismas cifras que el PDF). */
+        void lecturaRapida(boolean conAreas) {
+            List<Cd> tarjetas = new ArrayList<>();
+            for (VistaInforme.Kpi k : v.kpis()) {
+                String texto = k.valor() + "\n" + k.etiqueta() + "\n" + k.nota();
+                tarjetas.add("kpi-neutro".equals(k.clase()) ? new Cd(texto, "EEF1F4", null, true, false, true)
+                    : Cd.paleta(texto, k.clase()));
+            }
+            d.tabla(new int[] {1872, 1872, 1872, 1872, 1872}, null, List.of(tarjetas));
+            d.parrafo("Aviso", v.postura());
+            if (conAreas && !v.resumenAreas().isEmpty()) {
+                d.leyendaTabla("Dónde se concentra el riesgo");
+                List<List<Cd>> filas = new ArrayList<>();
+                for (VistaInforme.FilaAreaResumen a : v.resumenAreas()) {
+                    filas.add(List.of(Cd.t(a.area()), Cd.centro(Integer.toString(a.total())),
+                        Cd.centro(Integer.toString(a.urgentes())), Cd.paleta(a.riesgoMaximo().texto(), a.riesgoMaximo().clase())));
+                }
+                d.tabla(new int[] {3960, 1800, 1800, 1800},
+                    List.of(Cd.t("Área"), Cd.centro("Hallazgos"), Cd.centro("Críticos y altos"), Cd.centro("Riesgo más alto")), filas);
+            }
+            d.leyendaTabla("Hoja de ruta sugerida por fases");
+            List<List<Cd>> fases = new ArrayList<>();
+            for (VistaInforme.FilaFase f : v.fases()) {
+                fases.add(List.of(Cd.paleta(f.nombre(), f.clase()), Cd.t(f.descripcion()), Cd.centro(Integer.toString(f.cantidad()))));
+            }
+            d.tabla(new int[] {1400, 6360, 1600}, List.of(Cd.centro("Fase"), Cd.t("Qué incluye"), Cd.centro("Hallazgos")), fases);
+            d.nota("Las fases son una sugerencia derivada de la severidad; los plazos definitivos los acuerda el cliente.");
+            d.leyendaTabla("Avance de la remediación");
+            List<List<Cd>> avance = new ArrayList<>();
+            for (VistaInforme.FilaEstado e : v.avance()) {
+                avance.add(List.of(Cd.t(e.estado()), Cd.centro(Integer.toString(e.cantidad())), Cd.centro(e.porcentaje())));
+            }
+            d.tabla(new int[] {4360, 2500, 2500}, List.of(Cd.t("Estado"), Cd.centro("Hallazgos"), Cd.centro("Proporción")), avance);
+        }
+
         // ------------------------------------------------------------ tipos
 
         void tecnico() {
+            d.titulo(1, "Lectura rápida", true);
+            lecturaRapida(true);
             d.titulo(1, v.secciones().get("alcanceMetodologia").titulo(), true);
             seccion("alcanceMetodologia");
             d.titulo(1, "Escala de calificación", false);
@@ -400,6 +439,7 @@ public class RenderizadorDocx implements InformeRenderer {
             d.titulo(1, v.secciones().get("resumenEjecutivo").titulo(), true);
             seccion("resumenEjecutivo");
             d.titulo(1, "Estado general", false);
+            lecturaRapida(false);
             d.parrafo(null, "El proyecto incluye " + v.doc().totalAreas() + " área(s) y " + v.totalHallazgos()
                 + " hallazgo(s) en el cuerpo del informe.");
             tablaConteoSeveridad();
@@ -431,7 +471,9 @@ public class RenderizadorDocx implements InformeRenderer {
                 d.titulo(1, v.secciones().get("introduccion").titulo(), true);
                 seccion("introduccion");
             }
-            d.titulo(1, "Plan de mitigación", !presente("introduccion"));
+            d.titulo(1, "Hoja de ruta", !presente("introduccion"));
+            lecturaRapida(false);
+            d.titulo(1, "Plan de mitigación", true);
             tablaMitigacion(new int[] {700, 1150, 2200, 1400, 1050, 1500, 2700, 1000, 1260}, true);
             d.nota("Las fases de remediación se derivan de la severidad. La columna Activo queda en blanco para que la "
                 + "complete el cliente.");
@@ -444,6 +486,7 @@ public class RenderizadorDocx implements InformeRenderer {
             d.titulo(2, v.secciones().get("resumenEjecutivo").titulo(), false);
             seccion("resumenEjecutivo");
             d.titulo(2, "Estado del riesgo", false);
+            lecturaRapida(false);
             d.parrafo(null, "El proyecto incluye " + v.doc().totalAreas() + " área(s) y " + v.totalHallazgos()
                 + " hallazgo(s) en el cuerpo del informe.");
             mapaCalor();

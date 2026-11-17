@@ -26,5 +26,25 @@ services:
       timeout: 5s
       retries: 10
 
+  # Tarea de una sola ejecucion (se repite sin dano en cada "docker compose up"): asegura en volumenes YA existentes lo
+  # que database/init/01-runtime-user.sh solo aplica al crear un volumen vacio. La cuenta de migracion (Flyway) necesita
+  # GRANT OPTION sobre la base (RuntimePrivilegeMigrationStrategy) y el privilegio TRIGGER (V33, disparadores de informes).
+  # Idempotente: volver a conceder lo mismo no cambia nada.
+  hexora-bd-privilegios:
+    image: mysql:8.0
+    restart: "no"
+    depends_on:
+      hexora-bd:
+        condition: service_healthy
+    environment:
+      MYSQL_PWD: ${DB_ROOT_PASSWORD}
+      TINYHAT_DB_NAME: ${DB_NAME}
+      TINYHAT_MIGRATION_USER: ${FLYWAY_DB_USER:-${DB_USER}}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        ESC=$$(printf '%s' "$$TINYHAT_DB_NAME" | sed 's/_/\\_/g');
+        mysql -h hexora-bd -uroot -e "GRANT ALL PRIVILEGES ON \`$$ESC\`.* TO '$$TINYHAT_MIGRATION_USER'@'%' WITH GRANT OPTION; SET GLOBAL log_bin_trust_function_creators = 1; FLUSH PRIVILEGES;"
+
 volumes:
   hexora-mysql-data:

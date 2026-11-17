@@ -168,7 +168,7 @@ class InformeServiceIntegrationTest extends IsolatedMySqlTestDatabase {
 		assertThat(publicada.getSnapshotSha256()).isEqualTo(resultado.snapshotSha256()).hasSize(64);
 		// MySQL normaliza la columna JSON (orden y espacios): el hash se comprueba re-serializando de forma canónica.
 		assertThat(SerializadorSnapshot.huella(SerializadorSnapshot.leer(publicada.getSnapshotJson()))).isEqualTo(publicada.getSnapshotSha256());
-		assertThat(publicada.getPlantillaVersion()).isEqualTo("2026.1");
+		assertThat(publicada.getPlantillaVersion()).isEqualTo("2026.2");
 		assertThat(publicada.getPublicadoEn()).isNotNull();
 		List<InformeArchivo> guardados = archivosDeBase(m.cuenta, publicada.getId());
 		assertThat(guardados).hasSize(2);

@@ -153,8 +153,8 @@ class RenderizadorPdfTest {
     void laMitigacionOrdenaPorSeveridadYDejaLaColumnaActivoVacia() throws Exception {
         byte[] pdf = renderizar(DatosDemo.snapshot(TipoInforme.MIT, false), false);
         String texto = normalizar(PdfPrueba.texto(pdf));
-        assertThat(texto).contains("Plan de mitigación ordenado por severidad").contains("Prioridad").contains("Activo")
-            .contains("Fase sugerida").contains("Acción de mitigación")
+        assertThat(texto).contains("Hoja de ruta sugerida por fases").contains("Acciones de la Fase 1").contains("Prioridad")
+            .contains("Activo").contains("Acción de mitigación").contains("Avance de la remediación")
             .contains("Las fases de remediación son una sugerencia derivada de la severidad");
         int critica = texto.indexOf("Inyección SQL en el buscador");
         int alta = texto.indexOf("Servicio de administración remota");

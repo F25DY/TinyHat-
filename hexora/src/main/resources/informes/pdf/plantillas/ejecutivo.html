@@ -14,12 +14,15 @@
     <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['resumenEjecutivo']})}"></th:block>
 
     <h1>Estado general</h1>
+    <th:block th:replace="~{fragmentos/lectura :: indicadores}"></th:block>
     <p>
         El proyecto incluye <strong th:text="${v.doc.totalAreas}">0</strong> área(s) y
         <strong th:text="${v.totalHallazgos}">0</strong> hallazgo(s) en el cuerpo del informe.
     </p>
     <th:block th:replace="~{fragmentos/tabla-severidad :: conteo}"></th:block>
     <th:block th:replace="~{fragmentos/tabla-severidad :: porArea}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: fases}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: avance}"></th:block>
 
     <h1>Los riesgos principales</h1>
     <p th:if="${#lists.isEmpty(v.riesgosPrincipales)}">El informe no incluye hallazgos en el cuerpo.</p>

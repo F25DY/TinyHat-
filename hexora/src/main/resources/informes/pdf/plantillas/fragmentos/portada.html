@@ -11,6 +11,7 @@
                 <tr><th>Estado</th><td th:text="${v.doc.estado}">Publicado</td></tr>
                 <tr><th>Fecha de emisión</th><td th:text="${v.doc.fechaEmision}">Fecha</td></tr>
                 <tr><th>Auditor</th><td th:text="${v.doc.auditor}">Auditor</td></tr>
+                <tr><th>Periodo</th><td th:text="|${v.doc.fechaInicio} al ${v.doc.fechaFin}|">Periodo</td></tr>
             </tbody>
         </table>
         <p class="confidencial">CONFIDENCIAL</p>

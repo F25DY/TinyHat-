@@ -327,6 +327,32 @@ public class RenderizadorXlsx implements InformeRenderer {
             }
             barrasDeDatos(h, inicio2, f - 1, 1);
             f++;
+            f = bloqueTexto(h, f, v.postura(), nota(), 4);
+            f++;
+            f = bloqueTexto(h, f, "Hoja de ruta sugerida por fases", subtitulo(), 4);
+            Row cab3 = h.createRow(f++);
+            texto(cab3, 0, "Fase", cabecera());
+            texto(cab3, 1, "Hallazgos", cabecera());
+            texto(cab3, 2, "Qué incluye", cabecera());
+            for (VistaInforme.FilaFase fase : v.fases()) {
+                Row r = h.createRow(f++);
+                texto(r, 0, fase.nombre(), paleta(fase.clase(), true));
+                numero(r, 1, fase.cantidad(), centro());
+                texto(r, 2, fase.descripcion(), texto());
+            }
+            f++;
+            f = bloqueTexto(h, f, "Avance de la remediación", subtitulo(), 4);
+            Row cab4 = h.createRow(f++);
+            texto(cab4, 0, "Estado", cabecera());
+            texto(cab4, 1, "Hallazgos", cabecera());
+            texto(cab4, 2, "Proporción", cabecera());
+            for (VistaInforme.FilaEstado estado : v.avance()) {
+                Row r = h.createRow(f++);
+                texto(r, 0, estado.estado(), etiqueta());
+                numero(r, 1, estado.cantidad(), centro());
+                texto(r, 2, estado.porcentaje(), centro());
+            }
+            f++;
             if (v.sinProbabilidad() > 0) {
                 f = bloqueTexto(h, f, "Hallazgos sin probabilidad: " + v.sinProbabilidad() + ".", nota(), 4);
             }

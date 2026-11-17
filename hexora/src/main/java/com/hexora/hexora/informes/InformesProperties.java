@@ -12,7 +12,7 @@ public class InformesProperties {
 
     /** Versión de las plantillas y textos fijos. Cualquier cambio en ellos sube este número. */
     @NotBlank
-    private String plantillaVersion = "2026.1";
+    private String plantillaVersion = "2026.2";
 
     /** Máximo de vulnerabilidades de un proyecto que puede incluir un informe. */
     @Min(1)

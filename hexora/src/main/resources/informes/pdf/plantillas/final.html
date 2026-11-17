@@ -20,6 +20,7 @@
     <th:block th:replace="~{fragmentos/narrativa :: seccion(${v.secciones['resumenEjecutivo']})}"></th:block>
 
     <h2>Estado del riesgo</h2>
+    <th:block th:replace="~{fragmentos/lectura :: indicadores}"></th:block>
     <p>
         El proyecto incluye <strong th:text="${v.doc.totalAreas}">0</strong> área(s) y
         <strong th:text="${v.totalHallazgos}">0</strong> hallazgo(s) en el cuerpo del informe.
@@ -41,6 +42,8 @@
         </tbody>
     </table>
     <th:block th:replace="~{fragmentos/tabla-severidad :: conteo}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: fases}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: avance}"></th:block>
 
     <div class="nueva-pagina"></div>
     <h1>Parte II. Informe técnico</h1>

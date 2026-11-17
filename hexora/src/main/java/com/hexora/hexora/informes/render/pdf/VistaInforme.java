@@ -37,8 +37,30 @@ public record VistaInforme(
     List<FilaNivel> conteoNiveles,
     List<FilaAnexoA> anexoA,
     List<FilaTraza> trazabilidad,
-    List<Referencia> referencias
+    List<Referencia> referencias,
+    List<Kpi> kpis,
+    String postura,
+    List<FilaFase> fases,
+    List<FilaEstado> avance,
+    List<FilaAreaResumen> resumenAreas,
+    List<GrupoFase> mitigacionPorFase
 ) {
+
+    /** Indicador de lectura rápida (tarjeta). {@code clase} es de la paleta o {@code kpi-neutro}. */
+    public record Kpi(String etiqueta, String valor, String nota, String clase) {
+    }
+
+    public record FilaFase(String nombre, String descripcion, int cantidad, String clase, int ancho) {
+    }
+
+    public record FilaEstado(String estado, int cantidad, String porcentaje, String clase, int ancho) {
+    }
+
+    public record FilaAreaResumen(String area, int total, int urgentes, Celda riesgoMaximo) {
+    }
+
+    public record GrupoFase(String nombre, String descripcion, String clase, List<FilaMitigacion> filas) {
+    }
 
     /** Datos del documento y rótulos fijos. */
     public record Documento(

@@ -11,6 +11,14 @@
     <th:block th:replace="~{fragmentos/anexo-a :: recuadro}"></th:block>
 
     <div class="nueva-pagina"></div>
+    <h1 id="sec-lectura">Lectura rápida</h1>
+    <th:block th:replace="~{fragmentos/lectura :: indicadores}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: areas}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: fases}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: avance}"></th:block>
+    <th:block th:replace="~{fragmentos/lectura :: guia}"></th:block>
+
+    <div class="nueva-pagina"></div>
     <h1>Índice</h1>
     <div class="indice">
         <p th:each="e : ${v.indice}" th:classappend="${e.nivel == 2} ? 'indice-2'">

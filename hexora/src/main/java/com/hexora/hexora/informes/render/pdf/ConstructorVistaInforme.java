@@ -24,6 +24,11 @@ import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaResumen;
 import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaRiesgoPrincipal;
 import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaTraza;
 import com.hexora.hexora.informes.render.pdf.VistaInforme.Referencia;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Kpi;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.GrupoFase;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaAreaResumen;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaEstado;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaFase;
 import com.hexora.hexora.informes.render.pdf.VistaInforme.Segmento;
 import com.hexora.hexora.informes.render.pdf.VistaInforme.SegmentoTexto;
 import com.hexora.hexora.informes.render.pdf.VistaInforme.Seccion;
@@ -102,7 +107,13 @@ public class ConstructorVistaInforme {
             s.anexoA().stream().map(this::filaAnexoA).toList(),
             s.trazabilidad().stream().map(t -> new FilaTraza(t.id(), TipoInforme.valueOf(t.tipo()).nombre(),
                 t.formato(), t.sha256(), FormatoFechas.fechaLarga(t.publicadoEn()))).toList(),
-            referencias(s.referenciasApa()));
+            referencias(s.referenciasApa()),
+            kpis(todos),
+            postura(s, todos),
+            fases(todos),
+            avance(todos),
+            resumenAreas(s),
+            mitigacionPorFase(s, np));
     }
 
     // ---------------------------------------------------------------- documento
@@ -163,6 +174,7 @@ public class ConstructorVistaInforme {
 
     private List<EntradaIndice> indice(InformeSnapshot s, boolean hayAnexo, boolean np) {
         List<EntradaIndice> entradas = new ArrayList<>();
+        entradas.add(new EntradaIndice("Lectura rápida", "sec-lectura", 1));
         entradas.add(new EntradaIndice("Alcance y metodología", "sec-alcance", 1));
         entradas.add(new EntradaIndice("Escala de calificación", "sec-escala", 1));
         entradas.add(new EntradaIndice("Resumen de hallazgos", "sec-resumen", 1));
@@ -195,6 +207,144 @@ public class ConstructorVistaInforme {
             resultado.add(new Referencia(segmentos));
         }
         return resultado;
+    }
+
+    // ---------------------------------------------------------------- lectura rápida (indicadores, postura, fases, avance)
+
+    private static final List<String> ESTADOS = List.of("Abierta", "En Progreso", "Mitigada");
+
+    private NivelRiesgo riesgoMaximo(List<HallazgoDeArea> todos) {
+        for (NivelRiesgo nivel : NivelRiesgo.deMayorAMenor()) {
+            boolean hay = todos.stream().anyMatch(par -> par.hallazgo().riesgo() != null
+                && par.hallazgo().riesgo().nivel().equals(nivel.name()));
+            if (hay) {
+                return nivel;
+            }
+        }
+        return null;
+    }
+
+    /** "F1 — Contención inmediata (0–7 días)" se muestra como "Contención inmediata (0–7 días)" junto al rótulo "Fase 1". */
+    private static String sinCodigo(String descripcion) {
+        return descripcion.replaceFirst("^F\\d\\s*—\\s*", "");
+    }
+
+    private static int contarSeveridad(List<HallazgoDeArea> todos, Severidad... severidades) {
+        int total = 0;
+        for (HallazgoDeArea par : todos) {
+            for (Severidad severidad : severidades) {
+                if (par.hallazgo().severidad().equals(severidad.name())) {
+                    total++;
+                }
+            }
+        }
+        return total;
+    }
+
+    private static int contarEstado(List<HallazgoDeArea> todos, String estado) {
+        return (int) todos.stream().filter(par -> estado.equals(par.hallazgo().estado())).count();
+    }
+
+    /** Indicadores de lectura rápida: cifras que el lector ve primero. Todo sale del snapshot. */
+    private List<Kpi> kpis(List<HallazgoDeArea> todos) {
+        int total = todos.size();
+        int urgentes = contarSeveridad(todos, Severidad.CRITICA, Severidad.ALTA);
+        NivelRiesgo maximo = riesgoMaximo(todos);
+        int mitigados = contarEstado(todos, "Mitigada");
+        List<Kpi> lista = new ArrayList<>();
+        lista.add(new Kpi("Hallazgos", Integer.toString(total), "en el cuerpo del informe", "kpi-neutro"));
+        lista.add(new Kpi("Críticos y altos", Integer.toString(urgentes),
+            urgentes == 0 ? "ninguno por atender primero" : "para atender primero", urgentes == 0 ? "kpi-neutro" : "sev-alta"));
+        lista.add(new Kpi("Riesgo más alto", maximo == null ? RAYA : maximo.etiqueta(),
+            maximo == null ? "sin probabilidad registrada" : "según NIST SP 800-30",
+            maximo == null ? "kpi-neutro" : "niv-" + maximo.clave()));
+        lista.add(new Kpi("Abiertos", Integer.toString(contarEstado(todos, "Abierta")), "sin acción iniciada", "kpi-neutro"));
+        lista.add(new Kpi("Mitigados", porcentaje(mitigados, total), mitigados + " de " + total, "sev-baja"));
+        return lista;
+    }
+
+    /** Frase de postura de plantilla, determinista y sin juicio propio: solo cifras del snapshot. */
+    private String postura(InformeSnapshot s, List<HallazgoDeArea> todos) {
+        int total = todos.size();
+        if (total == 0) {
+            return "El proyecto no registra hallazgos en el cuerpo del informe.";
+        }
+        NivelRiesgo maximo = riesgoMaximo(todos);
+        int urgentes = contarSeveridad(todos, Severidad.CRITICA, Severidad.ALTA);
+        int criticos = contarSeveridad(todos, Severidad.CRITICA);
+        StringBuilder texto = new StringBuilder();
+        texto.append("El proyecto registra ").append(total).append(" hallazgo(s) en ").append(s.metricas().totalAreas())
+            .append(" área(s).");
+        if (maximo != null) {
+            texto.append(" El nivel de riesgo más alto es ").append(maximo.etiqueta()).append('.');
+        }
+        if (urgentes > 0) {
+            texto.append(' ').append(urgentes).append(" son de severidad Crítica o Alta");
+            if (criticos > 0) {
+                texto.append(" (").append(criticos).append(" Crítica(s))");
+            }
+            texto.append(" y se sugiere atenderlos primero.");
+        } else {
+            texto.append(" Ninguno es de severidad Crítica o Alta.");
+        }
+        int mitigados = contarEstado(todos, "Mitigada");
+        texto.append(' ').append(mitigados == 0 ? "Todavía ninguno figura como mitigado."
+            : mitigados + " de " + total + " ya figura(n) como mitigado(s) (" + porcentaje(mitigados, total) + ").");
+        return texto.toString();
+    }
+
+    /** Cuántos hallazgos caen en cada fase de remediación sugerida (§4.4). */
+    private List<FilaFase> fases(List<HallazgoDeArea> todos) {
+        List<FilaFase> filas = new ArrayList<>();
+        String[] clases = {"sev-critica", "sev-alta", "sev-media"};
+        Severidad.Fase[] fases = Severidad.Fase.values();
+        for (int i = 0; i < fases.length; i++) {
+            Severidad.Fase fase = fases[i];
+            int cantidad = (int) todos.stream()
+                .filter(par -> Severidad.valueOf(par.hallazgo().severidad()).faseSugerida() == fase).count();
+            filas.add(new FilaFase("Fase " + (i + 1), sinCodigo(fase.descripcion()), cantidad, clases[Math.min(i, 2)],
+                cantidad == 0 ? 0 : (int) Math.round(100.0 * cantidad / Math.max(1, todos.size()))));
+        }
+        return filas;
+    }
+
+    /** Avance de remediación por estado, con barras proporcionales. */
+    private List<FilaEstado> avance(List<HallazgoDeArea> todos) {
+        List<FilaEstado> filas = new ArrayList<>();
+        String[] clases = {"sev-alta", "sev-media", "sev-baja"};
+        for (int i = 0; i < ESTADOS.size(); i++) {
+            int cantidad = contarEstado(todos, ESTADOS.get(i));
+            filas.add(new FilaEstado(ESTADOS.get(i), cantidad, porcentaje(cantidad, todos.size()), clases[i],
+                todos.isEmpty() ? 0 : (int) Math.round(100.0 * cantidad / todos.size())));
+        }
+        return filas;
+    }
+
+    /** Una línea por área: cuántos hallazgos tiene, cuántos son urgentes y su riesgo más alto. */
+    private List<FilaAreaResumen> resumenAreas(InformeSnapshot s) {
+        List<FilaAreaResumen> filas = new ArrayList<>();
+        for (Area area : s.areas()) {
+            List<HallazgoDeArea> propios = area.hallazgos().stream().map(h -> new HallazgoDeArea(area.nombre(), h)).toList();
+            NivelRiesgo maximo = riesgoMaximo(propios);
+            filas.add(new FilaAreaResumen(area.nombre(), propios.size(),
+                contarSeveridad(propios, Severidad.CRITICA, Severidad.ALTA),
+                maximo == null ? new Celda("Sin dato", "sev-sin") : new Celda(maximo.etiqueta(), "niv-" + maximo.clave())));
+        }
+        return filas;
+    }
+
+    /** El plan de mitigación agrupado por fase sugerida, para leerlo como una hoja de ruta. */
+    private List<GrupoFase> mitigacionPorFase(InformeSnapshot s, boolean np) {
+        List<FilaMitigacion> todas = mitigacion(s, np);
+        List<GrupoFase> grupos = new ArrayList<>();
+        String[] clases = {"sev-critica", "sev-alta", "sev-media"};
+        Severidad.Fase[] fases = Severidad.Fase.values();
+        for (int i = 0; i < fases.length; i++) {
+            String descripcion = fases[i].descripcion();
+            List<FilaMitigacion> filas = todas.stream().filter(f -> f.fase().equals(descripcion)).toList();
+            grupos.add(new GrupoFase("Fase " + (i + 1), sinCodigo(descripcion), clases[Math.min(i, 2)], filas));
+        }
+        return grupos;
     }
 
     // ---------------------------------------------------------------- severidad y riesgo
