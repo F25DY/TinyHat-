@@ -172,19 +172,19 @@
                 <div class="tarjeta-calculo-riesgo" aria-live="polite">
                     <div class="grid-calculo">
                         <div>
-                            <p class="texto-gris">Impacto</p>
+                            <p class="texto-gris">Impacto (CIA más alta)</p>
                             <p class="numero-calculo" id="resultado-impacto">0/10</p>
                         </div>
                         <div>
-                            <p class="texto-gris">Puntaje</p>
-                            <p class="numero-calculo" id="resultado-puntaje">0/10</p>
+                            <p class="texto-gris">Puntaje (prob. × impacto)</p>
+                            <p class="numero-calculo" id="resultado-puntaje">1/25</p>
                         </div>
                         <div>
                             <p class="texto-gris">Nivel</p>
                             <span class="badge badge-verde" id="resultado-nivel">Bajo</span>
                         </div>
                     </div>
-                    <p class="calculo-nota">El impacto y el nivel se calculan con los valores ingresados.</p>
+                    <p class="calculo-nota">El impacto es la dimensión C/I/D más alta; el nivel sale de la probabilidad y el impacto en escala 1 a 5, igual que en los informes.</p>
                 </div>
 
                 <div class="paso-acciones">
@@ -241,7 +241,7 @@
         </div>
     </dialog>
 
-    <script th:src="@{/js/vulnerability-form.js(v=2)}" defer></script>
+    <script th:src="@{/js/vulnerability-form.js(v=3)}" defer></script>
     <script th:src="@{/js/cve-buscador.js(v=2)}" defer></script>
     <script th:src="@{/js/vulnerabilidad-pasos.js(v=1)}" defer></script>
 

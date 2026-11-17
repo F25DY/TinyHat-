@@ -4,11 +4,11 @@ import com.hexora.hexora.dto.VulnerabilidadForm;
 import com.hexora.hexora.model.AreaAuditable;
 import com.hexora.hexora.model.Vulnerabilidad;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
+import com.hexora.hexora.riesgo.EscalaRiesgo;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import com.hexora.hexora.service.PermissionService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -208,33 +208,16 @@ public class VulnerabilidadController {
         vulnerability.setPlanMitigacion(form.getPlanMitigacion());
     }
 
+    /** El servidor recalcula siempre el riesgo con la regla única de {@link EscalaRiesgo}; lo que mande el cliente se ignora. */
     private void calculateRisk(Vulnerabilidad vulnerability) {
-        BigDecimal confidentiality = BigDecimal.valueOf(vulnerability.getConfidencialidad());
-        BigDecimal integrity = BigDecimal.valueOf(vulnerability.getIntegridad());
-        BigDecimal availability = BigDecimal.valueOf(vulnerability.getDisponibilidad());
-        BigDecimal probability = BigDecimal.valueOf(vulnerability.getProbabilidad());
+        int confidentiality = vulnerability.getConfidencialidad();
+        int integrity = vulnerability.getIntegridad();
+        int availability = vulnerability.getDisponibilidad();
 
-        BigDecimal impact = confidentiality
-                .add(integrity)
-                .add(availability)
-                .divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
-        BigDecimal score = impact.add(probability).divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
-
-        vulnerability.setImpacto(impact);
-        vulnerability.setNivelRiesgo(riskLevel(score));
-    }
-
-    private String riskLevel(BigDecimal score) {
-        if (score.compareTo(BigDecimal.valueOf(7)) >= 0) {
-            return "Critico";
-        }
-        if (score.compareTo(BigDecimal.valueOf(5)) >= 0) {
-            return "Alto";
-        }
-        if (score.compareTo(BigDecimal.valueOf(3)) >= 0) {
-            return "Medio";
-        }
-        return "Bajo";
+        vulnerability.setImpacto(BigDecimal.valueOf(
+                EscalaRiesgo.impactoGuardado(confidentiality, integrity, availability)).setScale(2));
+        vulnerability.setNivelRiesgo(EscalaRiesgo.nivelDeVulnerabilidad(
+                confidentiality, integrity, availability, vulnerability.getProbabilidad()).valorAlmacenado());
     }
 
     private String areaUrl(AreaAuditable area) {

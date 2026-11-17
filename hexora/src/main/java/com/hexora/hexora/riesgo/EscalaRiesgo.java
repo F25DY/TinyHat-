@@ -1,4 +1,4 @@
-package com.hexora.hexora.informes;
+package com.hexora.hexora.riesgo;
 
 import java.util.List;
 
@@ -36,20 +36,47 @@ public final class EscalaRiesgo {
 
     /** Nivel de riesgo con el nombre que se imprime en los informes. */
     public enum NivelRiesgo {
-        BAJO("Bajo"),
-        MEDIO("Medio"),
-        ALTO("Alto"),
-        CRITICO("Crítico");
+        BAJO("Bajo", "Bajo"),
+        MEDIO("Medio", "Medio"),
+        ALTO("Alto", "Alto"),
+        CRITICO("Crítico", "Critico");
 
         private final String etiqueta;
+        private final String valorAlmacenado;
 
-        NivelRiesgo(String etiqueta) {
+        NivelRiesgo(String etiqueta, String valorAlmacenado) {
             this.etiqueta = etiqueta;
+            this.valorAlmacenado = valorAlmacenado;
         }
 
+        /** Texto para personas (con tilde). */
         public String etiqueta() {
             return etiqueta;
         }
+
+        /** Valor guardado en {@code vulnerabilidad.nivel_riesgo} (sin tilde, como lo usan dashboard y consultas). */
+        public String valorAlmacenado() {
+            return valorAlmacenado;
+        }
+    }
+
+    /**
+     * Impacto que se guarda en {@code vulnerabilidad.impacto} (0-10): la dimensión CIA más alta. Es el mismo valor
+     * del que sale la banda 1-5, así lo que se muestra explica el nivel.
+     */
+    public static int impactoGuardado(int confidencialidad, int integridad, int disponibilidad) {
+        int maximo = Math.max(confidencialidad, Math.max(integridad, disponibilidad));
+        return Math.max(0, Math.min(10, maximo));
+    }
+
+    /**
+     * Único cálculo del nivel de riesgo de una vulnerabilidad. Lo usan el servidor al guardar y los informes; el
+     * formulario y la migración V30 replican exactamente esta regla.
+     */
+    public static NivelRiesgo nivelDeVulnerabilidad(
+        int confidencialidad, int integridad, int disponibilidad, int probabilidad0a10
+    ) {
+        return nivel(probabilidad(probabilidad0a10), impacto(confidencialidad, integridad, disponibilidad));
     }
 
     /** Convierte un valor 0-10 de la aplicación a la banda 1-5; los valores fuera de rango se acotan. */
