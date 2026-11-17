@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Informes de la organización</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar('informes')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <section class="cabecera-gestion">
+            <div class="texto-cabecera">
+                <h1 class="titulo-interno">Informes</h1>
+                <p class="subtitulo">Informes publicados para su organización</p>
+            </div>
+        </section>
+
+        <section class="tarjeta-blanca">
+            <p class="informe-vacio" th:if="${#lists.isEmpty(informes)}">Todavía no hay informes publicados.</p>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(informes)}">
+                <table class="tabla-hexora table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Informe</th>
+                            <th scope="col">Proyecto</th>
+                            <th scope="col">Publicado</th>
+                            <th scope="col">Archivos</th>
+                            <th scope="col"><span class="sr-only">Verificación</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="i : ${informes}">
+                            <td>
+                                <strong th:text="${i.tipoNombre} + ' · v' + ${i.numero}">Técnico · v1</strong><br>
+                                <span class="informe-id" th:text="${i.id}">ID</span>
+                            </td>
+                            <td th:text="${i.proyecto}">Proyecto</td>
+                            <td th:text="${#temporals.format(i.publicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC'">fecha</td>
+                            <td>
+                                <a class="informe-descarga" th:each="a : ${i.archivos}" th:href="@{/informes/archivos/{id}(id=${a.publicId})}">
+                                    <i class="fa-solid fa-download" aria-hidden="true"></i> <span th:text="${a.formato}">PDF</span>
+                                </a>
+                            </td>
+                            <td class="acciones-tabla">
+                                <a class="btn btn-secundario" th:href="@{/informes/versiones/{id}/verificacion(id=${i.versionPublicId})}">
+                                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Verificar
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

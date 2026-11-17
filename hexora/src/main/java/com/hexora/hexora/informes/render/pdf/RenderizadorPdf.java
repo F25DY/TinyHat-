@@ -17,10 +17,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class RenderizadorPdf implements InformeRenderer {
 
-    private final ConstructorVistaPdf vistas;
+    private final ConstructorVistaInforme vistas;
     private final MotorPlantillasPdf motor;
 
-    public RenderizadorPdf(ConstructorVistaPdf vistas, MotorPlantillasPdf motor) {
+    public RenderizadorPdf(ConstructorVistaInforme vistas, MotorPlantillasPdf motor) {
         this.vistas = vistas;
         this.motor = motor;
     }

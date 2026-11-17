@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <th:block th:replace="~{fragments/security-head :: securityHead}"></th:block>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyHat - Verificación de informe</title>
+    <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/responsive-tablet.css(v=${#dates.createNow().time})}">
+    <link rel="stylesheet" th:href="@{/css/informes.css(v=1)}">
+    <link rel="stylesheet" th:href="@{/vendor/fontawesome/css/all.min.css}">
+</head>
+<body class="pagina-oscura">
+
+    <th:block th:replace="~{fragments/fondo-red :: fondo}"></th:block>
+    <th:block th:replace="~{fragments/sidebar :: sidebar(${esCliente} ? 'informes' : 'proyectos')}"></th:block>
+
+    <main id="contenido-principal" tabindex="-1" class="contenido-principal">
+
+        <header class="encabezado-retorno">
+            <a th:href="${esCliente} ? @{/cliente/informes} : @{/proyectos}" class="link-volver" aria-label="Volver">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            </a>
+            <div class="titulos-nuevo">
+                <h1 class="titulo-pagina">Verificación de integridad</h1>
+                <p class="subtitulo informe-id" th:text="${verificacion.id}">ID</p>
+            </div>
+        </header>
+
+        <section class="tarjeta-blanca" aria-labelledby="datos-titulo">
+            <h2 class="seccion-titulo" id="datos-titulo">Datos del informe</h2>
+            <dl class="informe-datos">
+                <div><dt>Identificador</dt><dd class="informe-id" th:text="${verificacion.id}">ID</dd></div>
+                <div><dt>Versión</dt><dd th:text="${verificacion.version}">1</dd></div>
+                <div><dt>Estado</dt><dd th:text="${verificacion.estado == 'PUBLICADO'} ? 'Publicado' : 'Despublicado'">Publicado</dd></div>
+                <div><dt>Publicado</dt><dd th:text="${#temporals.format(verificacion.publicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC'">fecha</dd></div>
+                <div th:if="${verificacion.despublicadoEn != null}"><dt>Despublicado</dt>
+                    <dd th:text="${#temporals.format(verificacion.despublicadoEn, 'dd/MM/yyyy HH:mm')} + ' UTC'">fecha</dd></div>
+                <div><dt>SHA-256 del contenido</dt><dd class="informe-hash" th:text="${verificacion.snapshotSha256}">hash</dd></div>
+            </dl>
+        </section>
+
+        <section class="tarjeta-blanca" aria-labelledby="archivos-titulo">
+            <h2 class="seccion-titulo" id="archivos-titulo">Archivos</h2>
+            <div class="table-responsive">
+                <table class="tabla-hexora table">
+                    <thead>
+                        <tr><th scope="col">Formato</th><th scope="col">Tamaño</th><th scope="col">SHA-256</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="a : ${verificacion.archivos}">
+                            <td th:text="${a.formato}">PDF</td>
+                            <td th:text="${#numbers.formatDecimal(a.bytes / 1024.0, 1, 1)} + ' KiB'">10 KiB</td>
+                            <td class="informe-hash" th:text="${a.sha256}">hash</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="informe-nota">
+                Para comprobar un archivo descargado calcule su huella (por ejemplo con <code>sha256sum archivo.pdf</code>) y compárela con la de esta tabla.
+                La versión de referencia es el PDF publicado; las copias en DOCX o XLSX pueden haber sido modificadas después de su descarga.
+            </p>
+        </section>
+    </main>
+</body>
+</html>

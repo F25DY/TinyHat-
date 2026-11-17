@@ -385,6 +385,11 @@ public class SecurityConfiguration {
 					"/proyectos/{proyectoPublicId}/departamentos/{areaPublicId}"
 				).hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
 				.requestMatchers("/proyectos/**", "/areas/**").hasRole("AUDITOR")
+				// Informes: descarga y verificacion para ambos roles; el resto de /informes es solo del AUDITOR.
+				.requestMatchers("/informes/archivos/{archivoUuid}", "/informes/versiones/{versionUuid}/verificacion")
+					.hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
+				.requestMatchers("/informes/**").hasRole("AUDITOR")
+				.requestMatchers("/cliente/informes").hasRole("CLIENTE_ADMIN")
 				.anyRequest().denyAll())
 			.formLogin(form -> form
 				.loginPage("/login")

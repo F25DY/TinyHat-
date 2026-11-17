@@ -43,7 +43,7 @@ class PlantillasPdfSeguridadTest {
         + "<img src=\"http://169.254.169.254/x\"/> </td></tr></table><h1>inyectado</h1> th:text=\"x\" javascript:alert(1)";
 
     private final MotorPlantillasPdf motor = new MotorPlantillasPdf();
-    private final ConstructorVistaPdf vistas = new ConstructorVistaPdf(new MarkdownSaneado(20000), new TextosInforme());
+    private final ConstructorVistaInforme vistas = new ConstructorVistaInforme(new MarkdownSaneado(20000), new TextosInforme());
 
     private static String normalizar(String texto) {
         return texto.replaceAll("\\s+", " ");

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 class MuestrasPdfTest {
 
     static RenderizadorPdf renderizador() {
-        return new RenderizadorPdf(new ConstructorVistaPdf(new MarkdownSaneado(20000), new TextosInforme()),
+        return new RenderizadorPdf(new ConstructorVistaInforme(new MarkdownSaneado(20000), new TextosInforme()),
             new MotorPlantillasPdf());
     }
 

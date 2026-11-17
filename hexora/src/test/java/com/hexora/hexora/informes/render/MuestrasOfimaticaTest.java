@@ -7,7 +7,7 @@ import com.hexora.hexora.informes.FormatoInforme;
 import com.hexora.hexora.informes.TipoInforme;
 import com.hexora.hexora.informes.markdown.MarkdownSaneado;
 import com.hexora.hexora.informes.render.docx.RenderizadorDocx;
-import com.hexora.hexora.informes.render.pdf.ConstructorVistaPdf;
+import com.hexora.hexora.informes.render.pdf.ConstructorVistaInforme;
 import com.hexora.hexora.informes.render.pdf.MotorPlantillasPdf;
 import com.hexora.hexora.informes.render.pdf.RenderizadorPdf;
 import com.hexora.hexora.informes.render.xlsx.RenderizadorXlsx;
@@ -26,7 +26,7 @@ class MuestrasOfimaticaTest {
     private static RegistroRenderers registro() {
         MarkdownSaneado markdown = new MarkdownSaneado(20000);
         TextosInforme textos = new TextosInforme();
-        ConstructorVistaPdf vistas = new ConstructorVistaPdf(markdown, textos);
+        ConstructorVistaInforme vistas = new ConstructorVistaInforme(markdown, textos);
         return new RegistroRenderers(List.of(new RenderizadorPdf(vistas, new MotorPlantillasPdf()),
             new RenderizadorDocx(vistas, markdown, textos), new RenderizadorXlsx(vistas, markdown, textos)));
     }

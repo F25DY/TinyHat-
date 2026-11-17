@@ -17,6 +17,11 @@ public class CurrentUserAdvice {
         return principal == null ? null : principal.getUsername();
     }
 
+    @ModelAttribute("esCliente")
+    public boolean esCliente(@AuthenticationPrincipal TinyHatPrincipal principal) {
+        return principal != null && "CLIENTE_ADMIN".equals(principal.getRol());
+    }
+
     @ModelAttribute("rolActual")
     public String rolActual(@AuthenticationPrincipal TinyHatPrincipal principal) {
         if (principal == null) {

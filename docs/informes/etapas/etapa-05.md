@@ -46,7 +46,7 @@ DOCX para TEC, EJE, MIT y FIN; XLSX para MR y MIT. Sin red y sin LLM (R4). El m�
 ## Riesgos o deuda detectada
 - **Tamaño:** cada DOCX pesa ~0,6 MB porque el logo PNG pesa 686 KB (el PDF tiene la misma deuda). Conviene reducir el logo o aportar una versión optimizada.
 - **Fórmulas al editar:** una celda STRING que empieza por `=` se muestra como texto, pero si alguien entra a editarla en Excel y confirma, Excel la evalúa. El plan acepta STRING como defensa; si quieres más, se puede anteponer un apóstrofo (`quotePrefix`) a esas celdas.
-- **Nombre `VistaPdf`:** ahora la usan tres formatos (D32).
+- **Nombre `VistaInforme`:** ahora la usan tres formatos (D32).
 - El PDF sigue siendo la versión de referencia (§6.4) y el aviso lo dice en las copias DOCX y XLSX.
 
 ESTADO: EN ESPERA DE "APROBADA ETAPA 05" (por indicación de la persona se continúa con la Etapa 6 sin detenerse; se detiene al terminar la 6)

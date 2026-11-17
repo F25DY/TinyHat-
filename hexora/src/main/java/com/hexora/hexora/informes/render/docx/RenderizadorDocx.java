@@ -8,11 +8,11 @@ import com.hexora.hexora.informes.render.InformeRenderer;
 import com.hexora.hexora.informes.render.OpcionesRender;
 import com.hexora.hexora.informes.render.TextosInforme;
 import com.hexora.hexora.informes.render.docx.ConstructorDocx.Cd;
-import com.hexora.hexora.informes.render.pdf.ConstructorVistaPdf;
-import com.hexora.hexora.informes.render.pdf.VistaPdf;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Ficha;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Referencia;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.SegmentoTexto;
+import com.hexora.hexora.informes.render.pdf.ConstructorVistaInforme;
+import com.hexora.hexora.informes.render.pdf.VistaInforme;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Ficha;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Referencia;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.SegmentoTexto;
 import com.hexora.hexora.informes.snapshot.InformeSnapshot;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,11 +37,11 @@ public class RenderizadorDocx implements InformeRenderer {
     private static final String LOGO = "informes/pdf/img/logo-tinyhat.png";
     private static final int[] ANCHOS_CALOR = {2000, 1472, 1472, 1472, 1472, 1472};
 
-    private final ConstructorVistaPdf vistas;
+    private final ConstructorVistaInforme vistas;
     private final MarkdownSaneado markdown;
     private final TextosInforme textos;
 
-    public RenderizadorDocx(ConstructorVistaPdf vistas, MarkdownSaneado markdown, TextosInforme textos) {
+    public RenderizadorDocx(ConstructorVistaInforme vistas, MarkdownSaneado markdown, TextosInforme textos) {
         this.vistas = vistas;
         this.markdown = markdown;
         this.textos = textos;
@@ -61,7 +61,7 @@ public class RenderizadorDocx implements InformeRenderer {
     public void render(InformeSnapshot snapshot, OpcionesRender opciones, OutputStream salida) throws IOException {
         TipoInforme tipo = TipoInforme.valueOf(snapshot.informe().tipo());
         tipo.requerirFormato(FormatoInforme.DOCX);
-        VistaPdf v = vistas.construir(snapshot, opciones);
+        VistaInforme v = vistas.construir(snapshot, opciones);
         boolean horizontal = tipo == TipoInforme.MIT;
         try (ConstructorDocx d = ConstructorDocx.desdeBase()) {
             d.pagina(horizontal);
@@ -87,10 +87,10 @@ public class RenderizadorDocx implements InformeRenderer {
     private final class Contexto {
 
         private final ConstructorDocx d;
-        private final VistaPdf v;
+        private final VistaInforme v;
         private final InformeSnapshot s;
 
-        Contexto(ConstructorDocx d, VistaPdf v, InformeSnapshot s) {
+        Contexto(ConstructorDocx d, VistaInforme v, InformeSnapshot s) {
             this.d = d;
             this.v = v;
             this.s = s;
@@ -123,7 +123,7 @@ public class RenderizadorDocx implements InformeRenderer {
             d.titulo(1, "Control del documento", true);
             d.titulo(2, "Historial de versiones", false);
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaHistorial h : v.historial()) {
+            for (VistaInforme.FilaHistorial h : v.historial()) {
                 filas.add(List.of(Cd.t(Integer.toString(h.version())), Cd.t(h.estado()), Cd.t(h.publicado()),
                     Cd.t(h.despublicado()), Cd.t(h.motivo())));
             }
@@ -158,7 +158,7 @@ public class RenderizadorDocx implements InformeRenderer {
 
         /** Texto de una sección de la narrativa; si falta y es obligatoria en una copia NP, deja el aviso de pendiente. */
         void seccion(String clave) {
-            VistaPdf.Seccion seccion = v.secciones().get(clave);
+            VistaInforme.Seccion seccion = v.secciones().get(clave);
             if (seccion == null) {
                 return;
             }
@@ -170,7 +170,7 @@ public class RenderizadorDocx implements InformeRenderer {
         }
 
         boolean presente(String clave) {
-            VistaPdf.Seccion seccion = v.secciones().get(clave);
+            VistaInforme.Seccion seccion = v.secciones().get(clave);
             return seccion != null && seccion.presente();
         }
 
@@ -183,7 +183,7 @@ public class RenderizadorDocx implements InformeRenderer {
         void tablaConteoSeveridad() {
             d.leyendaTabla("Hallazgos por severidad");
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaConteo f : v.conteoSeveridad()) {
+            for (VistaInforme.FilaConteo f : v.conteoSeveridad()) {
                 filas.add(List.of(Cd.paleta(f.etiqueta(), f.clase()), Cd.centro(Integer.toString(f.cantidad())),
                     Cd.centro(f.porcentaje())));
             }
@@ -201,7 +201,7 @@ public class RenderizadorDocx implements InformeRenderer {
             v.etiquetasSeveridad().forEach(e -> encabezado.add(Cd.centro(e)));
             encabezado.add(Cd.centro("Total"));
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaArea a : v.areaSeveridad()) {
+            for (VistaInforme.FilaArea a : v.areaSeveridad()) {
                 List<Cd> fila = new ArrayList<>();
                 fila.add(Cd.t(a.area()));
                 a.conteos().forEach(n -> fila.add(Cd.centro(Integer.toString(n))));
@@ -215,7 +215,7 @@ public class RenderizadorDocx implements InformeRenderer {
         void tablaNiveles() {
             d.leyendaTabla("Hallazgos por nivel de riesgo");
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaNivel n : v.conteoNiveles()) {
+            for (VistaInforme.FilaNivel n : v.conteoNiveles()) {
                 filas.add(List.of(Cd.paleta(n.etiqueta(), n.clase()), Cd.centro(Integer.toString(n.cantidad()))));
             }
             d.tabla(new int[] {3000, 2000}, List.of(Cd.t("Nivel de riesgo"), Cd.centro("Hallazgos")), filas);
@@ -224,7 +224,7 @@ public class RenderizadorDocx implements InformeRenderer {
         void mapaCalor() {
             d.leyendaFigura("Mapa de calor de riesgo: probabilidad por impacto");
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaCalor f : v.mapaCalor()) {
+            for (VistaInforme.FilaCalor f : v.mapaCalor()) {
                 List<Cd> fila = new ArrayList<>();
                 fila.add(Cd.negrita(f.probabilidad()));
                 f.celdas().forEach(c -> fila.add(Cd.paleta(Integer.toString(c.valor()), c.clase())));
@@ -239,7 +239,7 @@ public class RenderizadorDocx implements InformeRenderer {
         void matrizNiveles() {
             d.leyendaTabla("Matriz de niveles de riesgo (NIST SP 800-30 Rev. 1, Tabla I-2)");
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaMatrizNivel f : v.matrizNiveles()) {
+            for (VistaInforme.FilaMatrizNivel f : v.matrizNiveles()) {
                 List<Cd> fila = new ArrayList<>();
                 fila.add(Cd.negrita(f.probabilidad()));
                 f.celdas().forEach(c -> fila.add(Cd.paleta(c.texto(), c.clase())));
@@ -265,7 +265,7 @@ public class RenderizadorDocx implements InformeRenderer {
             }
             d.leyendaTabla("Resumen de hallazgos");
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaResumen r : v.resumenHallazgos()) {
+            for (VistaInforme.FilaResumen r : v.resumenHallazgos()) {
                 filas.add(List.of(Cd.mono(r.codigo()), Cd.t(r.titulo()), Cd.t(r.area()),
                     Cd.paleta(r.severidad().texto(), r.severidad().clase()), Cd.t(r.probabilidad()),
                     Cd.paleta(r.riesgo().texto(), r.riesgo().clase()), Cd.t(r.estado())));
@@ -288,7 +288,7 @@ public class RenderizadorDocx implements InformeRenderer {
                 encabezado.add(Cd.t("Activo"));
             }
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaMitigacion m : v.mitigacion()) {
+            for (VistaInforme.FilaMitigacion m : v.mitigacion()) {
                 List<Cd> fila = new ArrayList<>(List.of(Cd.centro(Integer.toString(m.prioridad())), Cd.mono(m.codigo()),
                     Cd.t(m.titulo()), Cd.t(m.area()), Cd.paleta(m.severidad().texto(), m.severidad().clase()),
                     Cd.t(m.fase()), Cd.t(m.accion()), Cd.t(m.estado())));
@@ -308,7 +308,7 @@ public class RenderizadorDocx implements InformeRenderer {
             d.titulo(1, "Anexo A. Riesgos aceptados", true);
             d.leyendaTabla("Hallazgos con riesgo aceptado");
             List<List<Cd>> filas = new ArrayList<>();
-            for (VistaPdf.FilaAnexoA a : v.anexoA()) {
+            for (VistaInforme.FilaAnexoA a : v.anexoA()) {
                 filas.add(List.of(Cd.mono(a.codigo()), Cd.t(a.titulo()), Cd.t(a.area()),
                     Cd.paleta(a.severidad().texto(), a.severidad().clase()), Cd.t(a.tipo())));
             }
@@ -345,7 +345,7 @@ public class RenderizadorDocx implements InformeRenderer {
             filas.add(List.of(Cd.negrita("Riesgo"), Cd.paleta(f.riesgo().texto(), f.riesgo().clase())));
             if (!f.cves().isEmpty()) {
                 StringBuilder cves = new StringBuilder();
-                for (VistaPdf.CveVista c : f.cves()) {
+                for (VistaInforme.CveVista c : f.cves()) {
                     cves.append(c.id()).append("  CVSS ").append(c.cvss()).append('\n');
                 }
                 filas.add(List.of(Cd.negrita("CVE y CVSS"), Cd.mono(cves.toString().stripTrailing())));
@@ -376,7 +376,7 @@ public class RenderizadorDocx implements InformeRenderer {
             if (v.areasFichas().isEmpty()) {
                 d.parrafo(null, "El proyecto no tiene áreas registradas.");
             }
-            for (VistaPdf.AreaFichas area : v.areasFichas()) {
+            for (VistaInforme.AreaFichas area : v.areasFichas()) {
                 d.titulo(2, area.nombre(), false);
                 if (area.descripcion() != null) {
                     d.parrafo(null, area.descripcion());
@@ -410,7 +410,7 @@ public class RenderizadorDocx implements InformeRenderer {
             } else {
                 d.leyendaTabla("Riesgos principales");
                 List<List<Cd>> filas = new ArrayList<>();
-                for (VistaPdf.FilaRiesgoPrincipal r : v.riesgosPrincipales()) {
+                for (VistaInforme.FilaRiesgoPrincipal r : v.riesgosPrincipales()) {
                     filas.add(List.of(Cd.centro(Integer.toString(r.posicion())), Cd.t(r.titulo()), Cd.t(r.area()),
                         Cd.paleta(r.severidad().texto(), r.severidad().clase()),
                         Cd.paleta(r.riesgo().texto(), r.riesgo().clase()), Cd.t(r.dimension())));
@@ -470,7 +470,7 @@ public class RenderizadorDocx implements InformeRenderer {
             } else {
                 d.leyendaTabla("Paquete de entregables");
                 List<List<Cd>> filas = new ArrayList<>();
-                for (VistaPdf.FilaTraza t : v.trazabilidad()) {
+                for (VistaInforme.FilaTraza t : v.trazabilidad()) {
                     filas.add(List.of(Cd.mono(t.id()), Cd.t(t.tipo()), Cd.t(t.formato()), Cd.mono(t.sha256()),
                         Cd.t(t.publicado())));
                 }

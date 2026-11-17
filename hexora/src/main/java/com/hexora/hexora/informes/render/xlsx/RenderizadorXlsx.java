@@ -9,8 +9,8 @@ import com.hexora.hexora.informes.render.PaletaInforme;
 import com.hexora.hexora.informes.render.PaletaInforme.Colores;
 import com.hexora.hexora.informes.render.TextoSeguro;
 import com.hexora.hexora.informes.render.TextosInforme;
-import com.hexora.hexora.informes.render.pdf.ConstructorVistaPdf;
-import com.hexora.hexora.informes.render.pdf.VistaPdf;
+import com.hexora.hexora.informes.render.pdf.ConstructorVistaInforme;
+import com.hexora.hexora.informes.render.pdf.VistaInforme;
 import com.hexora.hexora.informes.snapshot.InformeSnapshot;
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -56,11 +56,11 @@ public class RenderizadorXlsx implements InformeRenderer {
         "Fase sugerida", "Acción de mitigación", "Estado", "Activo", "Responsable", "Plan de mitigación (cliente)"};
     private static final int[] ANCHO_PLAN = {10, 12, 38, 22, 13, 30, 50, 14, 20, 20, 36};
 
-    private final ConstructorVistaPdf vistas;
+    private final ConstructorVistaInforme vistas;
     private final MarkdownSaneado markdown;
     private final TextosInforme textos;
 
-    public RenderizadorXlsx(ConstructorVistaPdf vistas, MarkdownSaneado markdown, TextosInforme textos) {
+    public RenderizadorXlsx(ConstructorVistaInforme vistas, MarkdownSaneado markdown, TextosInforme textos) {
         this.vistas = vistas;
         this.markdown = markdown;
         this.textos = textos;
@@ -80,7 +80,7 @@ public class RenderizadorXlsx implements InformeRenderer {
     public void render(InformeSnapshot snapshot, OpcionesRender opciones, OutputStream salida) throws IOException {
         TipoInforme tipo = TipoInforme.valueOf(snapshot.informe().tipo());
         tipo.requerirFormato(FormatoInforme.XLSX);
-        VistaPdf v = vistas.construir(snapshot, opciones);
+        VistaInforme v = vistas.construir(snapshot, opciones);
         // close() borra los temporales de SXSSF (el método dispose() está obsoleto en POI 5.5.1).
         try (SXSSFWorkbook libro = new SXSSFWorkbook(VENTANA)) {
             libro.setCompressTempFiles(true);
@@ -108,11 +108,11 @@ public class RenderizadorXlsx implements InformeRenderer {
     private final class Libro {
 
         private final SXSSFWorkbook libro;
-        private final VistaPdf v;
+        private final VistaInforme v;
         private final InformeSnapshot s;
         private final Map<String, CellStyle> estilos = new HashMap<>();
 
-        Libro(SXSSFWorkbook libro, VistaPdf v, InformeSnapshot s) {
+        Libro(SXSSFWorkbook libro, VistaInforme v, InformeSnapshot s) {
             this.libro = libro;
             this.v = v;
             this.s = s;
@@ -306,7 +306,7 @@ public class RenderizadorXlsx implements InformeRenderer {
             texto(cab, 0, "Nivel de riesgo", cabecera());
             texto(cab, 1, "Hallazgos", cabecera());
             int inicio = f;
-            for (VistaPdf.FilaNivel n : v.conteoNiveles()) {
+            for (VistaInforme.FilaNivel n : v.conteoNiveles()) {
                 Row r = h.createRow(f++);
                 texto(r, 0, n.etiqueta(), paleta(n.clase(), true));
                 numero(r, 1, n.cantidad(), centro());
@@ -319,7 +319,7 @@ public class RenderizadorXlsx implements InformeRenderer {
             texto(cab2, 1, "Hallazgos", cabecera());
             texto(cab2, 2, "Proporción", cabecera());
             int inicio2 = f;
-            for (VistaPdf.FilaConteo c : v.conteoSeveridad()) {
+            for (VistaInforme.FilaConteo c : v.conteoSeveridad()) {
                 Row r = h.createRow(f++);
                 texto(r, 0, c.etiqueta(), paleta(c.clase(), true));
                 numero(r, 1, c.cantidad(), centro());
@@ -373,7 +373,7 @@ public class RenderizadorXlsx implements InformeRenderer {
             for (int i = 0; i < v.etiquetasImpacto().size(); i++) {
                 texto(cab, i + 1, (i + 1) + " · " + v.etiquetasImpacto().get(i), cabecera());
             }
-            for (VistaPdf.FilaCalor fila : v.mapaCalor()) {
+            for (VistaInforme.FilaCalor fila : v.mapaCalor()) {
                 Row r = h.createRow(f++);
                 texto(r, 0, fila.probabilidad(), etiqueta());
                 for (int c = 0; c < fila.celdas().size(); c++) {
@@ -393,7 +393,7 @@ public class RenderizadorXlsx implements InformeRenderer {
                 texto(cab, c, COLUMNAS_REGISTRO[c], c >= 15 ? cabeceraCliente() : cabecera());
             }
             int f = 1;
-            for (VistaPdf.FilaMatriz m : v.registroMatriz()) {
+            for (VistaInforme.FilaMatriz m : v.registroMatriz()) {
                 Row r = h.createRow(f++);
                 String clase = m.clase();
                 texto(r, 0, m.codigo(), fila(clase, false));
@@ -431,7 +431,7 @@ public class RenderizadorXlsx implements InformeRenderer {
                 texto(cab, c, columnas[c], cabecera());
             }
             int f = 1;
-            for (VistaPdf.FilaAnexoA a : v.anexoA()) {
+            for (VistaInforme.FilaAnexoA a : v.anexoA()) {
                 Row r = h.createRow(f++);
                 texto(r, 0, a.codigo(), texto());
                 texto(r, 1, a.titulo(), texto());
@@ -457,7 +457,7 @@ public class RenderizadorXlsx implements InformeRenderer {
                 texto(cab, c, COLUMNAS_PLAN[c], c >= 8 ? cabeceraCliente() : cabecera());
             }
             int f = 1;
-            for (VistaPdf.FilaMitigacion m : v.mitigacion()) {
+            for (VistaInforme.FilaMitigacion m : v.mitigacion()) {
                 Row r = h.createRow(f++);
                 numero(r, 0, m.prioridad(), centro());
                 texto(r, 1, m.codigo(), texto());
@@ -508,7 +508,7 @@ public class RenderizadorXlsx implements InformeRenderer {
             for (int c = 0; c < columnas.length; c++) {
                 texto(cab, c, columnas[c], cabecera());
             }
-            for (VistaPdf.FilaHistorial hs : v.historial()) {
+            for (VistaInforme.FilaHistorial hs : v.historial()) {
                 Row r = h.createRow(f++);
                 texto(r, 0, Integer.toString(hs.version()), centro());
                 texto(r, 1, hs.estado(), texto());

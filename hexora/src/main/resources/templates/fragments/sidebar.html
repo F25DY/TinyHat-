@@ -39,6 +39,12 @@
                         <i class="fa-solid fa-folder-closed" aria-hidden="true"></i> Proyectos
                     </a>
                 </li>
+                <li th:if="${esCliente}">
+                    <a th:href="@{/cliente/informes}" class="enlace-menu" title="Informes" th:classappend="${active == 'informes'} ? 'activo'"
+                       th:attr="aria-current=${active == 'informes'} ? 'page' : null">
+                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Informes
+                    </a>
+                </li>
                 <li class="menu-accion">
                     <a th:href="@{/proyectos/nuproyectos}" class="enlace-menu enlace-accion" title="Nuevo proyecto">
                         <i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo proyecto

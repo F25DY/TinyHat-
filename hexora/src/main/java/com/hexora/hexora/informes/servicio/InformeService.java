@@ -7,6 +7,7 @@ import com.hexora.hexora.informes.TipoInforme;
 import com.hexora.hexora.informes.markdown.MarkdownSaneado;
 import com.hexora.hexora.informes.render.OpcionesRender;
 import com.hexora.hexora.informes.render.RegistroRenderers;
+import com.hexora.hexora.informes.render.pdf.VistaPreviaInforme;
 import com.hexora.hexora.informes.servicio.NotificadorInformes.InformePublicadoEvento;
 import com.hexora.hexora.informes.snapshot.EnsambladorSnapshot;
 import com.hexora.hexora.informes.snapshot.GeneradorIdInforme;
@@ -29,6 +30,7 @@ import com.hexora.hexora.security.ScopedNotFoundException;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import com.hexora.hexora.security.TinyHatSecurityProperties;
 import com.hexora.hexora.service.PermissionService;
+import java.io.ByteArrayOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -82,7 +84,8 @@ public class InformeService {
     }
 
     public record Verificacion(
-        String id, int version, String estado, String snapshotSha256, List<ArchivoPublicado> archivos
+        String id, int version, String estado, String snapshotSha256, List<ArchivoPublicado> archivos,
+        LocalDateTime publicadoEn, LocalDateTime despublicadoEn
     ) {
     }
 
@@ -107,6 +110,7 @@ public class InformeService {
     private final ApplicationEventPublisher eventos;
     private final InformesProperties propiedades;
     private final Clock reloj;
+    private final VistaPreviaInforme vistaPrevia;
 
     public InformeService(
         PermissionService permisos,
@@ -125,7 +129,8 @@ public class InformeService {
         TinyHatSecurityProperties seguridad,
         ApplicationEventPublisher eventos,
         InformesProperties propiedades,
-        Clock reloj
+        Clock reloj,
+        VistaPreviaInforme vistaPrevia
     ) {
         this.permisos = permisos;
         this.informes = informes;
@@ -144,6 +149,7 @@ public class InformeService {
         this.eventos = eventos;
         this.propiedades = propiedades;
         this.reloj = reloj;
+        this.vistaPrevia = vistaPrevia;
     }
 
     // ================================================================ borrador y narrativa
@@ -342,19 +348,26 @@ public class InformeService {
 
             borrarSiSeRevierte(movidos);
             String organizacion = proyecto.getEmpresa().getPublicId();
-            List<ArchivoPublicado> publicados = new ArrayList<>();
+            // Primero los archivos al disco; luego la version pasa a PUBLICADO y solo entonces se registran los archivos
+            // (el disparador de la base exige que el archivo pertenezca a una version publicada, I4).
+            List<String[]> destinos = new ArrayList<>();
             for (Pieza pieza : piezas) {
                 String archivoUuid = UUID.randomUUID().toString();
                 String ruta = AlmacenInformes.rutaRelativa(organizacion, serie.getPublicId(), version.getNumero(),
                     archivoUuid, pieza.formato());
                 movidos.add(almacen.mover(pieza.temporal(), ruta));
                 temporales.remove(pieza.temporal());
-                String sha = pieza.sha256();
-                archivos.saveAndFlush(new InformeArchivo(archivoUuid, version.getId(), pieza.formato(), ruta, sha, pieza.bytes()));
-                publicados.add(new ArchivoPublicado(pieza.formato().name(), sha, pieza.bytes()));
+                destinos.add(new String[] {archivoUuid, ruta});
             }
             version.publicar(json, huella, snapshot.plantillaVersion(), LocalDateTime.ofInstant(ahora, ZoneOffset.UTC));
             versiones.saveAndFlush(version);
+            List<ArchivoPublicado> publicados = new ArrayList<>();
+            for (int i = 0; i < piezas.size(); i++) {
+                Pieza pieza = piezas.get(i);
+                archivos.saveAndFlush(new InformeArchivo(destinos.get(i)[0], version.getId(), pieza.formato(),
+                    destinos.get(i)[1], pieza.sha256(), pieza.bytes()));
+                publicados.add(new ArchivoPublicado(pieza.formato().name(), pieza.sha256(), pieza.bytes()));
+            }
 
             avisarTrasConfirmar(principal, version, publicados, huella, serie.getOrganizacionId());
             return new ResultadoPublicacion(version.getPublicId(), huella, List.copyOf(publicados));
@@ -459,7 +472,8 @@ public class InformeService {
             .map(a -> new ArchivoPublicado(a.getFormato().name(), a.getSha256(), a.getBytes())).toList();
         auditoria.ok(AuditEventType.INFORME_VERIFICADO, principal, versionPublicId, Map.of());
         return new Verificacion(idDe(serie, proyecto, version.getNumero()), version.getNumero(),
-            version.getEstado().name(), version.getSnapshotSha256(), lista);
+            version.getEstado().name(), version.getSnapshotSha256(), lista, version.getPublicadoEn(),
+            version.getDespublicadoEn());
     }
 
     /**
@@ -496,6 +510,153 @@ public class InformeService {
     private void integridadFallida(TinyHatPrincipal principal, InformeVersion version, InformeArchivo archivo, String causa) {
         auditoria.registrar(AuditEventType.INFORME_INTEGRIDAD_FALLIDA, principal, "ERROR", version.getPublicId(),
             Map.of("formato", archivo.getFormato().name(), "causa", causa));
+    }
+
+    // ================================================================ consultas para las vistas (Etapa 7)
+
+    public record VersionResumen(
+        String publicId, int numero, String estado, LocalDateTime publicadoEn, LocalDateTime despublicadoEn, String motivo
+    ) {
+    }
+
+    public record TipoEnLista(TipoInforme tipo, boolean hayBorrador, boolean hayPublicada, List<VersionResumen> versiones) {
+    }
+
+    public record ListaProyecto(String proyectoPublicId, String proyectoNombre, List<TipoEnLista> tipos) {
+    }
+
+    public record SeccionEditable(String clave, String etiqueta, boolean obligatoria, String texto) {
+    }
+
+    public record ArchivoVista(String publicId, String formato, long bytes, String sha256) {
+    }
+
+    public record DetalleVersion(
+        String publicId, String proyectoPublicId, String proyectoNombre, TipoInforme tipo, int numero, EstadoVersion estado,
+        String id, List<SeccionEditable> secciones, List<FormatoInforme> formatos, List<String> faltantes,
+        List<ArchivoVista> archivos, String snapshotSha256, LocalDateTime publicadoEn, LocalDateTime despublicadoEn,
+        String motivo
+    ) {
+    }
+
+    public record InformePublicadoVista(
+        String versionPublicId, String id, String tipoNombre, int numero, String proyecto, LocalDateTime publicadoEn,
+        List<ArchivoVista> archivos
+    ) {
+    }
+
+    /** Copia no publicada lista para descargar (en memoria; no se guarda). */
+    public record Copia(byte[] contenido, String mime, String nombre) {
+    }
+
+    /** Todos los tipos del proyecto con sus versiones: lo que el AUDITOR asignado puede hacer con cada uno. */
+    @Transactional(readOnly = true)
+    public ListaProyecto listar(TinyHatPrincipal principal, String proyectoPublicId) {
+        exigirAuditor(principal);
+        Auditoria proyecto = permisos.requireProyecto(principal, proyectoPublicId);
+        long cuenta = principal.getCuentaId();
+        Map<TipoInforme, Informe> series = new java.util.EnumMap<>(TipoInforme.class);
+        informes.findByProyectoIdAndCuentaIdOrderByTipoAsc(proyecto.getIdAuditoria(), cuenta)
+            .forEach(serie -> series.put(serie.getTipo(), serie));
+        List<TipoEnLista> tipos = new ArrayList<>();
+        for (TipoInforme tipo : TipoInforme.values()) {
+            List<VersionResumen> resumenes = new ArrayList<>();
+            Informe serie = series.get(tipo);
+            if (serie != null) {
+                for (InformeVersion v : versiones.findByInformeIdAndCuentaIdOrderByNumeroDesc(serie.getId(), cuenta)) {
+                    resumenes.add(new VersionResumen(v.getPublicId(), v.getNumero(), v.getEstado().name(),
+                        v.getPublicadoEn(), v.getDespublicadoEn(), v.getMotivoDespublicacion()));
+                }
+            }
+            tipos.add(new TipoEnLista(tipo,
+                resumenes.stream().anyMatch(r -> "BORRADOR".equals(r.estado())),
+                resumenes.stream().anyMatch(r -> "PUBLICADO".equals(r.estado())), resumenes));
+        }
+        return new ListaProyecto(proyecto.getPublicId(), proyecto.getNombre(), tipos);
+    }
+
+    /** Editor de una versión: narrativa, formatos válidos, condiciones pendientes de publicar y archivos. */
+    @Transactional(readOnly = true)
+    public DetalleVersion detalle(TinyHatPrincipal principal, String versionPublicId) {
+        exigirAuditor(principal);
+        InformeVersion version = permisos.requireInformeVersion(principal, versionPublicId);
+        long cuenta = principal.getCuentaId();
+        Informe serie = serieDe(version, cuenta);
+        Auditoria proyecto = proyectoDe(serie, cuenta);
+        Map<String, String> narrativa = leerNarrativa(version);
+        List<SeccionEditable> secciones = serie.getTipo().secciones().stream()
+            .map(s -> new SeccionEditable(s.clave(), s.etiqueta(), s.obligatoria(), narrativa.getOrDefault(s.clave(), "")))
+            .toList();
+        List<String> faltantes = List.of();
+        if (version.getEstado() == EstadoVersion.BORRADOR) {
+            try {
+                InformeSnapshot vivo = ensamblador.ensamblar(proyecto, serie.getTipo(), version.getNumero(),
+                    EstadoVersion.PUBLICADO, false, serie.getAnio(), narrativa, Instant.now(reloj));
+                faltantes = validador.validar(vivo).faltantes();
+            } catch (InformeValidacionException e) {
+                faltantes = e.mensajes();
+            }
+        }
+        List<ArchivoVista> lista = archivos.findByVersionIdAndCuentaIdOrderByFormatoAsc(version.getId(), cuenta).stream()
+            .map(a -> new ArchivoVista(a.getPublicId(), a.getFormato().name(), a.getBytes(), a.getSha256())).toList();
+        return new DetalleVersion(version.getPublicId(), proyecto.getPublicId(), proyecto.getNombre(), serie.getTipo(),
+            version.getNumero(), version.getEstado(), idDe(serie, proyecto, version.getNumero()), secciones,
+            List.copyOf(serie.getTipo().formatos().stream().sorted().toList()), faltantes, lista,
+            version.getSnapshotSha256(), version.getPublicadoEn(), version.getDespublicadoEn(),
+            version.getMotivoDespublicacion());
+    }
+
+    /** Informes PUBLICADOS de la organización del CLIENTE_ADMIN, los más recientes primero. */
+    @Transactional(readOnly = true)
+    public List<InformePublicadoVista> listarPublicadas(TinyHatPrincipal principal) {
+        if (principal == null || !"CLIENTE_ADMIN".equals(principal.getRol()) || principal.getOrganizacionId() == null) {
+            throw new ScopedNotFoundException();
+        }
+        long cuenta = principal.getCuentaId();
+        List<InformePublicadoVista> lista = new ArrayList<>();
+        for (InformeVersion v : versiones.findPublicadasDeOrganizacion(cuenta, principal.getOrganizacionId())) {
+            Informe serie = serieDe(v, cuenta);
+            Auditoria proyecto = proyectoDe(serie, cuenta);
+            lista.add(new InformePublicadoVista(v.getPublicId(), idDe(serie, proyecto, v.getNumero()),
+                serie.getTipo().nombre(), v.getNumero(), proyecto.getNombre(), v.getPublicadoEn(),
+                archivos.findByVersionIdAndCuentaIdOrderByFormatoAsc(v.getId(), cuenta).stream()
+                    .map(a -> new ArchivoVista(a.getPublicId(), a.getFormato().name(), a.getBytes(), a.getSha256()))
+                    .toList()));
+        }
+        return lista;
+    }
+
+    /** Vista previa en HTML con la marca de no publicado (mismas plantillas que el PDF). */
+    @Transactional(readOnly = true)
+    public String previsualizarHtml(TinyHatPrincipal principal, String versionPublicId) {
+        exigirAuditor(principal);
+        InformeVersion version = permisos.requireInformeVersion(principal, versionPublicId);
+        Informe serie = serieDe(version, principal.getCuentaId());
+        cupo(principal);
+        boolean desdeBorrador = version.getEstado() == EstadoVersion.BORRADOR;
+        String html = concurrencia.ejecutar(() -> {
+            InformeSnapshot snapshot = desdeBorrador
+                ? ensamblador.ensamblar(proyectoDe(serie, principal.getCuentaId()), serie.getTipo(), version.getNumero(),
+                    EstadoVersion.BORRADOR, true, serie.getAnio(), leerNarrativa(version), Instant.now(reloj))
+                : comoNoPublicado(SerializadorSnapshot.leer(version.getSnapshotJson()));
+            return vistaPrevia.html(snapshot);
+        });
+        auditoria.ok(AuditEventType.INFORME_PREVISUALIZADO, principal, versionPublicId, Map.of("formato", "HTML"));
+        return html;
+    }
+
+    /** Genera una copia NO PUBLICADA en memoria y devuelve su contenido con el nombre {@code {ID}-NP.ext}. */
+    @Transactional(readOnly = true)
+    public Copia generarCopia(TinyHatPrincipal principal, String versionPublicId, FormatoInforme formato) {
+        ByteArrayOutputStream salida = new ByteArrayOutputStream();
+        generarNoPublicado(principal, versionPublicId, formato, salida);
+        InformeVersion version = permisos.requireInformeVersion(principal, versionPublicId);
+        Informe serie = serieDe(version, principal.getCuentaId());
+        String nombre = GeneradorIdInforme.generar(serie.getAnio(),
+            proyectoDe(serie, principal.getCuentaId()).getEmpresa().getPublicId(),
+            proyectoDe(serie, principal.getCuentaId()).getPublicId(), serie.getTipo(), version.getNumero(), true)
+            + "." + formato.extension();
+        return new Copia(salida.toByteArray(), formato.mime(), nombre);
     }
 
     // ================================================================ utilidades

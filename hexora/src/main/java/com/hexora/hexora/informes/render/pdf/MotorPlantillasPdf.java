@@ -46,7 +46,7 @@ public class MotorPlantillasPdf {
     }
 
     /** Genera el XHTML del documento. La vista llega como variable {@code v}. */
-    public String procesar(String plantilla, VistaPdf vista) {
+    public String procesar(String plantilla, VistaInforme vista) {
         Context contexto = new Context(ES_CO);
         contexto.setVariable("v", vista);
         return motor.process(plantilla, contexto);

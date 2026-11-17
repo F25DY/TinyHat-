@@ -209,6 +209,31 @@ sequenceDiagram
 
 ---
 
+### 3.3. Flujo de Datos: Informes (PDF, DOCX y XLSX)
+
+El informe se arma **solo con datos de la propia aplicación** (proyecto, áreas, hallazgos y la caché local de CVE): no consulta el NVD, no usa red ni genera texto con IA. El auditor escribe la narrativa en Markdown, que se sanea (sin HTML, imágenes ni enlaces activos) antes de entrar a cualquier formato.
+
+```mermaid
+flowchart TD
+    A["AUDITOR asignado al proyecto"] -->|"1. Crea borrador y escribe la narrativa"| B["informe_version (BORRADOR)"]
+    B -->|"2. Datos vivos del proyecto + caché CVE"| C["Ensamblador: snapshot canónico (JSON) + SHA-256"]
+    C -->|"3. Validación de condiciones de publicación"| D{"¿Completo?"}
+    D -->|"No: lista de faltantes"| A
+    D -->|"Sí"| E["Renderizadores: PDF (HTML+CSS), DOCX (POI), XLSX (POI)"]
+    E -->|"4a. Copia NO PUBLICADA (marca NP, no se guarda)"| A
+    E -->|"4b. Publicar: archivos temporales + SHA-256"| F[("Directorio de informes: {org}/{informe}/v{n}/{archivo}")]
+    E -->|"5. Misma transacción: versión PUBLICADA + informe_archivo (ruta relativa y hash)"| G[("MySQL: informe, informe_version, informe_archivo")]
+    G -->|"6. Después del commit: auditoría INFORME_PUBLICADO y aviso"| H["CLIENTE_ADMIN de la organización"]
+    H -->|"7. Descarga: se recalcula el SHA-256 y se compara con la BD"| F
+```
+
+- **Inmutabilidad:** lo publicado nunca se edita ni se borra (entidad, servicio y disparadores de la base); la única transición es PUBLICADO → DESPUBLICADO con motivo. Corregir = despublicar, nueva versión y publicar.
+- **Aislamiento:** el CLIENTE_ADMIN solo ve versiones PUBLICADAS de su organización; cualquier otro recurso responde 404.
+- **Integridad:** si el hash del archivo en disco no coincide, no se sirve y se registra `INFORME_INTEGRIDAD_FALLIDA`.
+- **Auditoría:** `INFORME_*` con correlationId, sin contenido de narrativa ni de hallazgos.
+
+---
+
 ## 4. Diccionario de Datos: Estructura de Información
 
 A continuación se resumen las tablas principales y sus relaciones dentro de TinyHat:
@@ -219,6 +244,9 @@ A continuación se resumen las tablas principales y sus relaciones dentro de Tin
 | **`auditoria`** | Proyectos de ciberseguridad / Pentesting | `id_auditoria`, `nombre`, `tipo_auditoria`, `estado`, `fecha_inicio`, `empresa_id` |
 | **`area_auditable`** | Departamentos o activos auditados | `id_area`, `nombre`, `descripcion`, `id_auditoria` |
 | **`vulnerabilidad`** | Hallazgos evaluados bajo escala TinyHat | `confidencialidad`, `integridad`, `disponibilidad`, `probabilidad`, `impacto`, `nivel_riesgo`, `cve`, `plan_mitigacion`, `id_area` |
+| **`informe`** | Serie de informes de un proyecto y tipo (MR, TEC, EJE, MIT, FIN) | `public_id`, `proyecto_id`, `organizacion_id`, `tipo`, `anio` |
+| **`informe_version`** | Versión de la serie (BORRADOR, PUBLICADO, DESPUBLICADO) | `numero`, `estado`, `narrativa_json`, `snapshot_json`, `snapshot_sha256`, `publicado_en`, `motivo_despublicacion` |
+| **`informe_archivo`** | Archivo publicado (PDF, DOCX o XLSX); el contenido vive en disco | `formato`, `ruta_relativa`, `sha256`, `bytes`, `mime` |
 | **`cve`** | Caché sincronizada del NVD con traducción | `codigo_cve`, `descripcion`, `puntaje_cvss`, `severidad`, `cwe`, `fecha_sincronizacion` |
 | **`network_host`** | Hosts registrados/autorizados para monitoreo | `address` (IP), `name`, `status` (ONLINE/OFFLINE), `last_seen` |
 | **`monitored_port`** | Puertos vigilados por host | `port`, `enabled`, `host_id` |

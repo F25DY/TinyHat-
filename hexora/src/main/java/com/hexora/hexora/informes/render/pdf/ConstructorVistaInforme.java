@@ -4,29 +4,29 @@ import com.hexora.hexora.informes.TipoInforme;
 import com.hexora.hexora.informes.markdown.MarkdownSaneado;
 import com.hexora.hexora.informes.render.OpcionesRender;
 import com.hexora.hexora.informes.render.TextosInforme;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.AreaFichas;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Celda;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.CeldaCalor;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.CveVista;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Documento;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.EntradaIndice;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Ficha;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaAnexoA;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaArea;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaCalor;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaConteo;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaHistorial;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaMatriz;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaMatrizNivel;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaMitigacion;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaNivel;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaResumen;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaRiesgoPrincipal;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.FilaTraza;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Referencia;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Segmento;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.SegmentoTexto;
-import com.hexora.hexora.informes.render.pdf.VistaPdf.Seccion;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.AreaFichas;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Celda;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.CeldaCalor;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.CveVista;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Documento;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.EntradaIndice;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Ficha;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaAnexoA;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaArea;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaCalor;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaConteo;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaHistorial;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaMatriz;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaMatrizNivel;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaMitigacion;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaNivel;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaResumen;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaRiesgoPrincipal;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.FilaTraza;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Referencia;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Segmento;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.SegmentoTexto;
+import com.hexora.hexora.informes.render.pdf.VistaInforme.Seccion;
 import com.hexora.hexora.informes.snapshot.FormatoFechas;
 import com.hexora.hexora.informes.snapshot.InformeSnapshot;
 import com.hexora.hexora.informes.snapshot.InformeSnapshot.Area;
@@ -50,7 +50,7 @@ import org.springframework.stereotype.Component;
  * en Java, y las plantillas solo lo pintan. Los textos de usuario nunca se interpretan como marcado.
  */
 @Component
-public class ConstructorVistaPdf {
+public class ConstructorVistaInforme {
 
     static final String LOGO = "classpath:informes/pdf/img/logo-tinyhat.png";
     static final String RAYA = "—";
@@ -60,18 +60,18 @@ public class ConstructorVistaPdf {
     private final MarkdownSaneado markdown;
     private final TextosInforme textos;
 
-    public ConstructorVistaPdf(MarkdownSaneado markdown, TextosInforme textos) {
+    public ConstructorVistaInforme(MarkdownSaneado markdown, TextosInforme textos) {
         this.markdown = markdown;
         this.textos = textos;
     }
 
-    public VistaPdf construir(InformeSnapshot s, OpcionesRender opciones) {
+    public VistaInforme construir(InformeSnapshot s, OpcionesRender opciones) {
         TipoInforme tipo = TipoInforme.valueOf(s.informe().tipo());
         boolean np = opciones.noPublicado();
         List<HallazgoDeArea> todos = OrdenHallazgos.aplanar(s);
         int aceptados = s.metricas().aceptados();
 
-        return new VistaPdf(
+        return new VistaInforme(
             documento(s, tipo, np),
             historial(s),
             aviso(textos.aviso("referencia")),

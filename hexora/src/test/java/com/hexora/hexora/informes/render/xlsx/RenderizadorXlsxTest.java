@@ -10,7 +10,7 @@ import com.hexora.hexora.informes.render.DatosDemo;
 import com.hexora.hexora.informes.render.OfimaticaPrueba;
 import com.hexora.hexora.informes.render.OpcionesRender;
 import com.hexora.hexora.informes.render.TextosInforme;
-import com.hexora.hexora.informes.render.pdf.ConstructorVistaPdf;
+import com.hexora.hexora.informes.render.pdf.ConstructorVistaInforme;
 import com.hexora.hexora.informes.snapshot.ConstructorSnapshot.FuenteVulnerabilidad;
 import com.hexora.hexora.informes.snapshot.InformeSnapshot;
 import java.io.ByteArrayInputStream;
@@ -35,7 +35,7 @@ class RenderizadorXlsxTest {
     static RenderizadorXlsx renderizador() {
         MarkdownSaneado markdown = new MarkdownSaneado(20000);
         TextosInforme textos = new TextosInforme();
-        return new RenderizadorXlsx(new ConstructorVistaPdf(markdown, textos), markdown, textos);
+        return new RenderizadorXlsx(new ConstructorVistaInforme(markdown, textos), markdown, textos);
     }
 
     static byte[] renderizar(InformeSnapshot snapshot, boolean noPublicado) throws IOException {

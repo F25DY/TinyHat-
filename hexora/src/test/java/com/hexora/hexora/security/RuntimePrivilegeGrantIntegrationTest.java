@@ -48,6 +48,7 @@ class RuntimePrivilegeGrantIntegrationTest {
     private static final String PLAIN_PASSWORD = "plain_pw_test";
 
     private static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0.46")
+		.withCommand("--log-bin-trust-function-creators=1")
         .withDatabaseName(SCHEMA)
         .withUsername(MIGRATION)
         .withPassword(PASSWORD)

@@ -236,7 +236,59 @@ class InformesModeloIntegrationTest extends IsolatedMySqlTestDatabase {
 
 		// Archivo: el control es válido; el mismo con la cuenta B sobre una versión de la cuenta A, no.
 		jdbc.update(INSERT_ARCHIVO, UUID.randomUUID().toString(), m.cuentaA, m.versionPublicadaTec1, "XLSX", SHA);
-		rechaza(CLAVE_FORANEA, INSERT_ARCHIVO, id, m.cuentaB, m.versionPublicadaTec1, "DOCX", SHA);
+		rechaza(DISPARADOR, INSERT_ARCHIVO, id, m.cuentaB, m.versionPublicadaTec1, "DOCX", SHA);
+	}
+
+	// ---------------------------------------------------------------- disparadores (I3, I4, I5)
+
+	@Test
+	void unaVersionPublicadaNoSeEditaNiSeBorraEnLaBase() {
+		Mundo m = mundo();
+		rechaza(DISPARADOR, "UPDATE informe_version SET narrativa_json = '{}' WHERE public_id = ?", m.publicadaTec1);
+		rechaza(DISPARADOR, "UPDATE informe_version SET snapshot_sha256 = ? WHERE public_id = ?", "c".repeat(64), m.publicadaTec1);
+		rechaza(DISPARADOR, "UPDATE informe_version SET plantilla_version = '9.9' WHERE public_id = ?", m.publicadaTec1);
+		rechaza(DISPARADOR, "UPDATE informe_version SET numero = 99 WHERE public_id = ?", m.publicadaTec1);
+		rechaza(DISPARADOR, "DELETE FROM informe_version WHERE public_id = ?", m.publicadaTec1);
+		assertThat(jdbc.queryForObject("SELECT estado FROM informe_version WHERE public_id = ?", String.class, m.publicadaTec1))
+			.isEqualTo("PUBLICADO");
+	}
+
+	@Test
+	void unaVersionPublicadaSoloPasaADespublicadaYNuncaVuelve() {
+		Mundo m = mundo();
+		// PUBLICADO -> BORRADOR no (I5); a DESPUBLICADO con motivo sí; y de ahí no se mueve (I3).
+		rechaza(DISPARADOR, "UPDATE informe_version SET estado = 'BORRADOR' WHERE public_id = ?", m.publicadaProyecto2);
+		jdbc.update("UPDATE informe_version SET estado = 'DESPUBLICADO', despublicado_en = UTC_TIMESTAMP(6), "
+			+ "motivo_despublicacion = 'Motivo de prueba suficiente' WHERE public_id = ?", m.publicadaProyecto2);
+		assertThat(jdbc.queryForObject("SELECT estado FROM informe_version WHERE public_id = ?", String.class, m.publicadaProyecto2))
+			.isEqualTo("DESPUBLICADO");
+		rechaza(DISPARADOR, "UPDATE informe_version SET motivo_despublicacion = 'Otro motivo distinto de antes' WHERE public_id = ?",
+			m.publicadaProyecto2);
+		rechaza(DISPARADOR, "UPDATE informe_version SET estado = 'PUBLICADO', despublicado_en = NULL, motivo_despublicacion = NULL "
+			+ "WHERE public_id = ?", m.publicadaProyecto2);
+		rechaza(DISPARADOR, "DELETE FROM informe_version WHERE public_id = ?", m.publicadaProyecto2);
+		rechaza(DISPARADOR, "DELETE FROM informe_version WHERE public_id = ?", m.despublicadaTec1);
+	}
+
+	@Test
+	void unBorradorSiSeEditaYSeBorra() {
+		Mundo m = mundo();
+		assertThat(jdbc.update("UPDATE informe_version SET narrativa_json = '{\"resumenEjecutivo\":\"x\"}' WHERE public_id = ?",
+			m.borradorTec1)).isEqualTo(1);
+		assertThat(jdbc.update("DELETE FROM informe_version WHERE public_id = ?", m.borradorEje1)).isEqualTo(1);
+	}
+
+	@Test
+	void unArchivoSoloExisteParaVersionesPublicadasYNuncaCambia() {
+		Mundo m = mundo();
+		Long borrador = jdbc.queryForObject("SELECT id FROM informe_version WHERE public_id = ?", Long.class, m.borradorTec1);
+		rechaza(DISPARADOR, INSERT_ARCHIVO, UUID.randomUUID().toString(), m.cuentaA, borrador, "XLSX", SHA);
+		rechaza(DISPARADOR, "UPDATE informe_archivo SET sha256 = ? WHERE public_id = ?", "c".repeat(64), m.archivoPublicado);
+		rechaza(DISPARADOR, "UPDATE informe_archivo SET ruta_relativa = 'otra/ruta.pdf' WHERE public_id = ?", m.archivoPublicado);
+		rechaza(DISPARADOR, "DELETE FROM informe_archivo WHERE public_id = ?", m.archivoPublicado);
+		rechaza(DISPARADOR, "DELETE FROM informe_archivo WHERE public_id = ?", m.archivoDespublicado);
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM informe_archivo WHERE public_id IN (?, ?)", Integer.class,
+			m.archivoPublicado, m.archivoDespublicado)).isEqualTo(2);
 	}
 
 	// ---------------------------------------------------------------- ciclo de vida en la base
@@ -473,6 +525,8 @@ class InformesModeloIntegrationTest extends IsolatedMySqlTestDatabase {
 	private static final int CHECK = 3819;
 	private static final int DUPLICADO = 1062;
 	private static final int CLAVE_FORANEA = 1452;
+	/** SIGNAL SQLSTATE '45000' sin código propio (V33). */
+	private static final int DISPARADOR = 1644;
 
 	/** La sentencia debe fallar por la restricción indicada (no por otra) y no dejar nada guardado. */
 	private void rechaza(int codigoMySql, String sql, Object... argumentos) {

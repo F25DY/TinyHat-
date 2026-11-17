@@ -27,6 +27,9 @@
                 <h1 class="titulo-pagina" th:text="${proyecto.nombre}">Nombre del Proyecto</h1>
                 <p class="subtitulo" th:text="${proyecto.empresa}">Empresa</p>
             </div>
+            <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/informes(id=${proyecto.id})}" class="btn btn-secundario">
+                <i class="fa-solid fa-file-lines" aria-hidden="true"></i> Informes
+            </a>
             <a th:if="${canManageProjects}" th:href="@{/proyectos/{id}/areas/nueva(id=${proyecto.id})}" class="btn btn-primario">
                 <i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar área
             </a>

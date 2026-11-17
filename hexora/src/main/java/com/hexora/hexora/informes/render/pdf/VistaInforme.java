@@ -8,7 +8,7 @@ import java.util.Map;
  * pintan datos sin escapar: todo texto de usuario va con {@code th:text}. La única excepción son los campos
  * {@code html}, que ya salieron del saneado de Markdown (ver {@link Seccion}).
  */
-public record VistaPdf(
+public record VistaInforme(
     Documento doc,
     List<FilaHistorial> historial,
     Seccion avisoReferencia,
