@@ -91,8 +91,11 @@ class ResolvedorRecursosSeguroTest {
             socket = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
             hilo = new Thread(() -> {
                 while (!socket.isClosed()) {
-                    try (Socket cliente = socket.accept()) {
-                        conexiones.incrementAndGet();
+                    try {
+                        Socket cliente = socket.accept();
+                        try (cliente) {
+                            conexiones.incrementAndGet();
+                        }
                     } catch (IOException cerrado) {
                         return;
                     }

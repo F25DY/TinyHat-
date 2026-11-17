@@ -3,7 +3,6 @@ package com.hexora.hexora.security;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Service;
@@ -18,10 +17,10 @@ public class NvdRateLimitService {
             ? properties.getRequestsWithoutKey()
             : properties.getRequestsWithKey();
         this.bucket = Bucket.builder()
-            .addLimit(Bandwidth.classic(
-                requests,
-                Refill.intervally(requests, Duration.ofSeconds(properties.getWindowSeconds()))
-            ))
+            .addLimit(Bandwidth.builder()
+                .capacity(requests)
+                .refillIntervally(requests, Duration.ofSeconds(properties.getWindowSeconds()))
+                .build())
             .build();
     }
 

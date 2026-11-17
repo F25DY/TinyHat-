@@ -4,10 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.eq;
 
-import com.hexora.network.model.NetworkInventoryUpdateDto;
 import com.hexora.network.model.NetworkScanDto;
 import com.hexora.network.service.NetworkMonitorProperties;
 import com.hexora.network.service.NetworkMonitoringService;
@@ -18,7 +16,6 @@ import com.hexora.hexora.security.TenantTaskExecutor;
 import com.hexora.hexora.security.AuditService;
 import com.hexora.hexora.service.Capability;
 import com.hexora.hexora.service.CapabilityService;
-import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,6 +1,5 @@
 package com.hexora.network.scheduler;
 
-import com.hexora.network.model.NetworkInventoryUpdateDto;
 import com.hexora.network.service.NetworkDiscoveryException;
 import com.hexora.network.service.NetworkCapabilityDisabledException;
 import com.hexora.network.model.NetworkScanDto;

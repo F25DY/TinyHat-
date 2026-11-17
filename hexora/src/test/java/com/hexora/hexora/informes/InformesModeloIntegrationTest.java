@@ -583,7 +583,6 @@ class InformesModeloIntegrationTest extends IsolatedMySqlTestDatabase {
 
 			Informe tec1 = informes.saveAndFlush(
 				new Informe(m.org1, m.proyecto1, TipoInforme.TEC, (short) 2026, m.auditor1.getUserId()));
-			m.informeTec1 = tec1.getId();
 			m.publicIdInformeTec1 = tec1.getPublicId();
 			InformeVersion v1 = versiones.saveAndFlush(
 				new InformeVersion(tec1.getId(), 1, m.auditor1.getUserId(), NARRATIVA));
@@ -692,7 +691,6 @@ class InformesModeloIntegrationTest extends IsolatedMySqlTestDatabase {
 		long proyecto1;
 		long proyecto2;
 		long proyectoB;
-		long informeTec1;
 		long versionPublicadaTec1;
 		String publicIdInformeTec1;
 		TinyHatPrincipal auditor1;

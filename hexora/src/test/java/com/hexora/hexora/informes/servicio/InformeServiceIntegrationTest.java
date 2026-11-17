@@ -8,7 +8,6 @@ import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
@@ -34,7 +33,6 @@ import com.hexora.hexora.repository.AreaAuditableRepository;
 import com.hexora.hexora.repository.AuditoriaRepository;
 import com.hexora.hexora.repository.EmpresaRepository;
 import com.hexora.hexora.repository.InformeArchivoRepository;
-import com.hexora.hexora.repository.InformeRepository;
 import com.hexora.hexora.repository.InformeVersionRepository;
 import com.hexora.hexora.repository.UsuarioRepository;
 import com.hexora.hexora.repository.VulnerabilidadRepository;
@@ -53,7 +51,6 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -113,7 +110,6 @@ class InformeServiceIntegrationTest extends IsolatedMySqlTestDatabase {
 	@Autowired private AreaAuditableRepository areas;
 	@Autowired private VulnerabilidadRepository vulnerabilidades;
 	@Autowired private UsuarioRepository usuarios;
-	@Autowired private InformeRepository informes;
 	@Autowired private InformeVersionRepository versiones;
 	@Autowired private InformeArchivoRepository archivos;
 

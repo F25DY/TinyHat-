@@ -221,7 +221,7 @@ final class ConstructorDocx implements AutoCloseable {
         XWPFParagraph p = documento.createParagraph();
         p.setAlignment(ParagraphAlignment.CENTER);
         try {
-            p.createRun().addPicture(imagen, XWPFDocument.PICTURE_TYPE_PNG, "logo-tinyhat.png", Units.toEMU(lado),
+            p.createRun().addPicture(imagen, org.apache.poi.common.usermodel.PictureType.PNG, "logo-tinyhat.png", Units.toEMU(lado),
                 Units.toEMU(lado));
         } catch (org.apache.poi.openxml4j.exceptions.InvalidFormatException e) {
             throw new IOException("Logo inválido", e);
@@ -272,7 +272,7 @@ final class ConstructorDocx implements AutoCloseable {
             CTTrPr pr = cabecera.getCtRow().isSetTrPr() ? cabecera.getCtRow().getTrPr() : cabecera.getCtRow().addNewTrPr();
             pr.addNewTblHeader();
             for (int c = 0; c < columnas; c++) {
-                Cd origen = c < encabezado.size() ? encabezado.get(c) : Cd.vacia();
+                Cd origen = encabezado != null && c < encabezado.size() ? encabezado.get(c) : Cd.vacia();
                 escribir(cabecera.getCell(c), new Cd(origen.texto(), "E8EDF2", null, true, false, origen.centro()),
                     anchos[c]);
             }
@@ -357,7 +357,7 @@ final class ConstructorDocx implements AutoCloseable {
                 }
                 case BloqueNarrativa.Cita c -> escribirBloques(c.bloques(), "Cita", sangria, null);
                 case BloqueNarrativa.Tabla t -> tablaNarrativa(t);
-                case BloqueNarrativa.Separador s -> parrafoCentrado(null, "— — —");
+                case BloqueNarrativa.Separador _ -> parrafoCentrado(null, "— — —");
             }
         }
     }

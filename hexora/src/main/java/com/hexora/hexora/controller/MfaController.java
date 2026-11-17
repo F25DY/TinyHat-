@@ -4,7 +4,6 @@ import com.hexora.hexora.security.AuditService;
 import com.hexora.hexora.security.MfaAuthenticationService;
 import com.hexora.hexora.security.MfaService;
 import com.hexora.hexora.security.RequireRecentAuth;
-import com.hexora.hexora.security.SessionActivityFilter;
 import com.hexora.hexora.security.SessionTerminationEventPublisher;
 import com.hexora.hexora.security.TinyHatPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,7 +81,7 @@ public class MfaController {
     @PreAuthorize("hasAuthority('ROLE_PRE_MFA')")
     public String confirmEnrollment(
         Authentication authentication,
-        @RequestParam("code") String code,
+        @RequestParam String code,
         HttpServletRequest request,
         HttpServletResponse response,
         Model model
@@ -117,7 +116,7 @@ public class MfaController {
     @PreAuthorize("hasAuthority('ROLE_PRE_MFA')")
     public String verify(
         Authentication authentication,
-        @RequestParam("code") String code,
+        @RequestParam String code,
         HttpServletRequest request,
         HttpServletResponse response,
         Model model
@@ -148,8 +147,8 @@ public class MfaController {
     @PreAuthorize("hasAnyRole('AUDITOR', 'CLIENTE_ADMIN')")
     public String reauthenticate(
         Authentication authentication,
-        @RequestParam("password") String password,
-        @RequestParam("code") String code,
+        @RequestParam String password,
+        @RequestParam String code,
         HttpServletRequest request,
         HttpServletResponse response,
         Model model

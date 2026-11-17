@@ -32,6 +32,7 @@ import org.testcontainers.mysql.MySQLContainer;
 })
 class PhaseTwoMigrationIntegrationTest {
 
+	@SuppressWarnings("resource")
 	private static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0.46")
 		.withCommand("--log-bin-trust-function-creators=1")
 		.withDatabaseName("hexora_phase2")

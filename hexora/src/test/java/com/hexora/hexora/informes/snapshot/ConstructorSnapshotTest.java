@@ -1,8 +1,6 @@
 package com.hexora.hexora.informes.snapshot;
 
-import static com.hexora.hexora.informes.snapshot.DatosDePrueba.APLICACIONES;
 import static com.hexora.hexora.informes.snapshot.DatosDePrueba.RED;
-import static com.hexora.hexora.informes.snapshot.DatosDePrueba.VACIA;
 import static com.hexora.hexora.informes.snapshot.DatosDePrueba.entrada;
 import static com.hexora.hexora.informes.snapshot.DatosDePrueba.entradaVariada;
 import static com.hexora.hexora.informes.snapshot.DatosDePrueba.vulnerabilidad;

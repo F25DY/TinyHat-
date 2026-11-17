@@ -6,7 +6,6 @@ import com.hexora.hexora.model.Cuenta;
 import com.hexora.hexora.model.TokenSeguridad;
 import com.hexora.hexora.model.Usuario;
 import com.hexora.hexora.repository.CuentaRepository;
-import com.hexora.hexora.repository.TokenSeguridadRepository;
 import com.hexora.hexora.repository.UsuarioRepository;
 import com.hexora.test.IsolatedMySqlTestDatabase;
 import java.time.LocalDateTime;
@@ -33,8 +32,6 @@ class PhaseEightTokenConcurrencySecurityIntegrationTest extends IsolatedMySqlTes
     @Autowired
     private SecurityTokenService tokenService;
 
-    @Autowired
-    private TokenSeguridadRepository tokenRepository;
 
     @Autowired
     private UsuarioRepository usuarioRepository;

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import jakarta.servlet.ServletException;
@@ -83,7 +84,7 @@ class SessionActivityFilterTest {
             }
         }
 
-        assertThat(response).isNotNull();
+        Objects.requireNonNull(response);
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentAsString()).contains("SESSION_EXPIRED");
         assertThat(fixture.session.isInvalid()).isTrue();
