@@ -25,7 +25,7 @@ Las vistas de §9 sobre `InformeService`. Antes de empezar se atendieron tres en
 - Modificados: `SecurityConfiguration` (rutas), `CurrentUserAdvice` y `sidebar.html` (menú del cliente), `detalleproyecto.html` (botón Informes), `InformeService`, `docker-compose.yml`, los cinco contenedores de prueba de MySQL, `InformesModeloIntegrationTest`.
 
 ## Pruebas (comando + resultado)
-- `mvnw test` (suite completa): ver el cierre de la Etapa 8.
+- `mvnw test` (suite completa): **783 pruebas, 0 fallos, 0 errores** (ver Etapa 8).
 - **Disparadores (4 nuevas en `InformesModeloIntegrationTest`):** una PUBLICADA rechaza editar narrativa, hash, plantilla o número y borrarse; PUBLICADA → BORRADOR rechazado; PUBLICADA → DESPUBLICADA con motivo permitido y luego inmutable (incluido volver a PUBLICADA y borrar); el borrador sí se edita y se borra; un archivo no se inserta para un borrador y no se actualiza ni se borra.
 - **Web (5 en `InformeWebIntegrationTest`, sesión real y CSRF):**
   - Recorrido completo: lista → crear borrador → editor con condiciones pendientes → narrativa (el `<script>` escrito aparece escapado) → vista previa HTML con la marca NP, sin `classpath:` ni scripts → copia DOCX NP con las cuatro cabeceras → el cliente no ve el borrador → publicar PDF y DOCX → bandeja del cliente → descargas con `attachment`, `nosniff` y `no-store` → verificación para ambos roles → despublicar (motivo corto → 400) → el cliente recibe 404 en bandeja, archivos y verificación y el auditor conserva el acceso.
