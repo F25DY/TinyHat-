@@ -86,9 +86,9 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		assertThat(resumen.mitigados()).isEqualTo(1);
 		assertThat(resumen.aceptados()).isEqualTo(1);
 		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::nombre)
-			.containsExactly("Crítico", "Alto", "Medio", "Bajo");
-		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::cantidad).containsExactly(1L, 2L, 1L, 4L);
-		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::porcentaje).containsExactly(13, 25, 13, 50);
+			.containsExactly("Crítico", "Alto", "Medio", "Bajo", "Muy bajo");
+		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::cantidad).containsExactly(1L, 2L, 1L, 4L, 0L);
+		assertThat(resumen.niveles()).extracting(DashboardResumen.Nivel::porcentaje).containsExactly(13, 25, 13, 50, 0);
 	}
 
 	@Test
@@ -200,8 +200,8 @@ class DashboardIntegrationTest extends IsolatedMySqlTestDatabase {
 		String html = page("/proyectos/" + world.sqlProjectId() + "/departamentos/" + world.sqlAreaId(), world.auditorA());
 
 		java.util.regex.Matcher rows = java.util.regex.Pattern
-			.compile("data-busqueda=\"[^\"]*\\b(Critico|Alto|Medio|Bajo) (?:En Progreso|[^\" ]+)\"").matcher(html);
-		List<String> order = List.of("Critico", "Alto", "Medio", "Bajo");
+			.compile("data-busqueda=\"[^\"]*\\b(Critico|Alto|Medio|Bajo|Muy bajo) (?:En Progreso|[^\" ]+)\"").matcher(html);
+		List<String> order = List.of("Critico", "Alto", "Medio", "Bajo", "Muy bajo");
 		int previous = -1;
 		int count = 0;
 		while (rows.find()) {

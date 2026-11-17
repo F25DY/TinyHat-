@@ -24,7 +24,7 @@ import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Garantiza que la migración V30 (SQL) y {@link EscalaRiesgo} (Java) calculan lo mismo: así el nivel que muestra la
+ * Garantiza que la migración V31 (SQL) y {@link EscalaRiesgo} (Java) calculan lo mismo: así el nivel que muestra la
  * aplicación para datos antiguos es el mismo que se calcularía hoy al guardar. Todo ocurre dentro de una
  * transacción que se revierte, sin dejar filas en la base compartida.
  */
@@ -37,8 +37,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 })
 class EscalaRiesgoMigracionIntegrationTest extends IsolatedMySqlTestDatabase {
 
-	private static final String MIGRACION = "db/migration/V30__align_risk_level_with_report_scale.sql";
-	private static final String MARCA = "migracion-v30";
+	private static final String MIGRACION = "db/migration/V31__risk_level_nist_five_levels.sql";
+	private static final String MARCA = "migracion-v31";
 
 	@Autowired private JdbcTemplate jdbc;
 
@@ -139,7 +139,7 @@ class EscalaRiesgoMigracionIntegrationTest extends IsolatedMySqlTestDatabase {
 			}
 			return sentencias;
 		} catch (IOException excepcion) {
-			throw new IllegalStateException("No se pudo leer la migración V30", excepcion);
+			throw new IllegalStateException("No se pudo leer la migración V31", excepcion);
 		}
 	}
 }

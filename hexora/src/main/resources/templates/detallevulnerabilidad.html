@@ -16,8 +16,7 @@
     <th:block th:replace="~{fragments/sidebar :: sidebar('proyectos')}"></th:block>
 
     <main id="contenido-principal" tabindex="-1" class="contenido-principal panel-detalle"
-          th:with="claveRiesgo=${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'critico' : (${vulnerabilidad.nivelRiesgo == 'Alto'} ? 'alto' : (${vulnerabilidad.nivelRiesgo == 'Medio'} ? 'medio' : 'bajo')),
-                   nombreRiesgo=${vulnerabilidad.nivelRiesgo == 'Critico'} ? 'Crítico' : ${vulnerabilidad.nivelRiesgo}">
+          th:with="claveRiesgo=${vulnerabilidad.claveRiesgo}, nombreRiesgo=${vulnerabilidad.etiquetaRiesgo}">
       <div class="columna-central">
 
         <!-- Cabecera: volver, nombre con su nivel y la única acción de edición -->
@@ -30,9 +29,7 @@
                 <div class="titulo-con-badge">
                     <h1 class="titulo-pagina" th:text="${vulnerabilidad.nombre}">Nombre Vulnerabilidad</h1>
                     <span th:text="${nombreRiesgo}"
-                          th:classappend="${claveRiesgo == 'critico'} ? 'badge-rojo' :
-                                         (${claveRiesgo == 'alto'} ? 'badge-naranja' :
-                                         (${claveRiesgo == 'medio'} ? 'badge-amarillo' : 'badge-verde'))"
+                          th:classappend="${vulnerabilidad.claseInsigniaRiesgo}"
                           class="badge">
                     </span>
                 </div>
@@ -68,7 +65,7 @@
             <article class="metrica-vuln">
                 <p class="metrica-etiqueta">Probabilidad</p>
                 <p class="metrica-valor" th:text="${vulnerabilidad.probabilidad} + '/10'">0/10</p>
-                <p class="metrica-etiqueta" th:text="|${vulnerabilidad.etiquetaProbabilidad} (${vulnerabilidad.probabilidadEscala} de 5)|">Posible (3 de 5)</p>
+                <p class="metrica-etiqueta" th:text="|${vulnerabilidad.etiquetaProbabilidad} (${vulnerabilidad.probabilidadEscala} de 5)|">Media (3 de 5)</p>
             </article>
             <article class="metrica-vuln metrica-nivel">
                 <p class="metrica-etiqueta">Nivel de riesgo</p>

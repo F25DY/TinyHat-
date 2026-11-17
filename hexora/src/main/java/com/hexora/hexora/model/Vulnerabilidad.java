@@ -305,6 +305,29 @@ public class Vulnerabilidad implements TenantScopedEntity {
 
 
 
+    /** Nivel de riesgo guardado como valor tipado; {@code null} si el texto no corresponde a un nivel conocido. */
+    public EscalaRiesgo.NivelRiesgo getNivel() {
+        return EscalaRiesgo.NivelRiesgo.desdeAlmacenado(nivelRiesgo);
+    }
+
+    /** Texto del nivel para personas ("Crítico", "Alto", ...). */
+    public String getEtiquetaRiesgo() {
+        EscalaRiesgo.NivelRiesgo nivel = getNivel();
+        return nivel == null ? String.valueOf(nivelRiesgo) : nivel.etiqueta();
+    }
+
+    /** Clave de estilo del nivel (sufijo de {@code riesgo-*}); "sin-nivel" si no se reconoce. */
+    public String getClaveRiesgo() {
+        EscalaRiesgo.NivelRiesgo nivel = getNivel();
+        return nivel == null ? "sin-nivel" : nivel.clave();
+    }
+
+    /** Clase CSS de la insignia del nivel. */
+    public String getClaseInsigniaRiesgo() {
+        EscalaRiesgo.NivelRiesgo nivel = getNivel();
+        return nivel == null ? "badge-gris" : nivel.claseInsignia();
+    }
+
     @PrePersist
     void generatePublicId() {
         publicId = PublicIds.ensure(publicId);

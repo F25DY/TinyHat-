@@ -135,14 +135,12 @@
                             <td class="texto-empresa" th:text="${vuln.tipo}">Tipo</td>
 
                             <td>
-                                <span th:text="${vuln.riesgo}"
-                                      th:classappend="${vuln.riesgo == 'Critico'} ? 'badge-rojo' :
-                                                 (${vuln.riesgo == 'Alto'} ? 'badge-naranja' :
-                                                 (${vuln.riesgo == 'Medio'} ? 'badge-amarillo' : 'badge-verde'))"
+                                <span th:text="${vuln.etiquetaRiesgo}"
+                                      th:classappend="${vuln.claseInsigniaRiesgo}"
                                       class="badge"></span>
                             </td>
 
-                            <td class="texto-empresa" th:text="|${vuln.probabilidadEscala} · ${vuln.etiquetaProbabilidad}|">3 · Posible</td>
+                            <td class="texto-empresa" th:text="|${vuln.probabilidadEscala} · ${vuln.etiquetaProbabilidad}|">3 · Media</td>
 
                             <td>
                                 <span th:text="${vuln.estado}"
