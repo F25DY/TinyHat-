@@ -37,7 +37,7 @@
 
                     <p class="error-codigo" th:if="${status != null}">Código <span th:text="${status}">500</span></p>
 
-                    <a th:href="@{/dashboard}" class="btn btn-primario w-100">Volver al panel</a>
+                    <a th:href="${esCliente} ? @{/cliente} : @{/dashboard}" class="btn btn-primario w-100">Volver al panel</a>
                     <p class="acceso-enlaces"><a th:href="@{/login}">Ir al inicio de sesión</a></p>
                 </section>
             </div>

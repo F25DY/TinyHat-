@@ -385,9 +385,8 @@ public class SecurityConfiguration {
 					"/favicon.ico"
 				).permitAll()
 					.requestMatchers("/mfa/**").authenticated()
+				.requestMatchers("/dashboard", "/inicio").hasAnyRole("AUDITOR", "CLIENTE_ADMIN")
 					.requestMatchers(
-					"/dashboard",
-					"/inicio",
 					"/network-monitoring",
 					"/network-monitoring/history",
 					"/ws/network"

@@ -264,7 +264,11 @@ class AccesoClienteIntegrationTest extends IsolatedMySqlTestDatabase {
 				.param("correo", "x@empresa.test")).andReturn().getResponse().getStatus()).isEqualTo(404);
 		}
 		// El cliente no gestiona accesos ni ve pantallas del auditor.
-		for (String ruta : new String[] {"/proyectos/" + m.proyectoUuid + "/acceso-cliente", "/dashboard",
+		// El inicio del auditor lleva al cliente a su propio panel (nunca un 403 ni un bucle).
+		var inicio = mockMvc.perform(get("/dashboard").session(cliente)).andReturn().getResponse();
+		assertThat(inicio.getStatus()).isEqualTo(302);
+		assertThat(inicio.getRedirectedUrl()).endsWith("/cliente");
+		for (String ruta : new String[] {"/proyectos/" + m.proyectoUuid + "/acceso-cliente",
 			"/proyectos/" + m.proyectoUuid + "/informes"}) {
 			assertThat(mockMvc.perform(get(ruta).session(cliente)).andReturn().getResponse().getStatus()).as(ruta).isIn(403, 404);
 		}

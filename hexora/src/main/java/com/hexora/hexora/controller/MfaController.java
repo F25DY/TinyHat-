@@ -105,7 +105,7 @@ public class MfaController {
     @PreAuthorize("hasAuthority('ROLE_PRE_MFA')")
     public String verifyPage(Authentication authentication) {
         if (!isPreMfa(authentication)) {
-            return "redirect:/dashboard";
+            return "redirect:" + inicio(principal(authentication));
         }
         TinyHatPrincipal principal = principal(authentication);
         return mfaService.isActive(principal.getUserId())
@@ -131,7 +131,7 @@ public class MfaController {
         }
         auditService.mfaSucceeded(principal, request, "LOGIN");
         mfaAuthenticationService.completeMfa(principal, request, response);
-        return "redirect:/dashboard";
+        return "redirect:" + inicio(principal);
     }
 
     @GetMapping("/mfa/reauth")
@@ -172,7 +172,7 @@ public class MfaController {
         if (session != null) {
             session.removeAttribute(MfaAuthenticationService.REAUTH_TARGET_ATTRIBUTE);
         }
-        return safeTarget(target, request) ? "redirect:" + target : "redirect:/dashboard";
+        return safeTarget(target, request) ? "redirect:" + target : "redirect:" + inicio(principal);
     }
 
     @GetMapping("/mfa/reset")
@@ -234,6 +234,14 @@ public class MfaController {
     private boolean isPreMfa(Authentication authentication) {
         return authentication != null
             && AuthorityUtils.authorityListToSet(authentication.getAuthorities()).contains("ROLE_PRE_MFA");
+    }
+
+    /** Pantalla de inicio de cada rol tras entrar: el administrador de la MiPyme tiene su propio panel. */
+    private static String inicio(TinyHatPrincipal principal) {
+        if ("CLIENTE_ADMIN".equals(principal.getRol())) {
+            return principal.isDebeCambiarPassword() ? "/cliente/contrasena" : "/cliente";
+        }
+        return "/dashboard";
     }
 
     private TinyHatPrincipal principal(Authentication authentication) {

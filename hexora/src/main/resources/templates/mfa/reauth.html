@@ -44,7 +44,7 @@
                         <button type="submit" class="btn btn-primario w-100">Confirmar identidad</button>
                     </form>
 
-                    <p class="acceso-enlaces"><a th:href="@{/dashboard}">Volver al panel</a></p>
+                    <p class="acceso-enlaces"><a th:href="${esCliente} ? @{/cliente} : @{/dashboard}">Volver al panel</a></p>
                 </section>
             </div>
         </div>

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 
 @Controller
-@PreAuthorize("hasRole('AUDITOR')")
+@PreAuthorize("hasAnyRole('AUDITOR', 'CLIENTE_ADMIN')")
 public class DashboardController {
 
     private final DashboardService dashboardService;
@@ -21,6 +21,10 @@ public class DashboardController {
 
     @GetMapping({"/dashboard", "/inicio"})
     public String dashboard(@AuthenticationPrincipal TinyHatPrincipal principal, Model model) {
+        // El administrador de la MiPyme tiene su propio panel.
+        if ("CLIENTE_ADMIN".equals(principal.getRol())) {
+            return principal.isDebeCambiarPassword() ? "redirect:/cliente/contrasena" : "redirect:/cliente";
+        }
         model.addAttribute("resumen", dashboardService.resumen(principal));
         return "dashboard";
     }
